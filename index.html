@@ -223,6 +223,7 @@
     <span id="syncInfo" class="subtitle mono" style="margin-right:2px;color:var(--teal);">sincronizando…</span>
     <button class="btn" id="btnLock" onclick="handleLoginButton()">Sair</button>
     <button class="btn" id="btnCSV" onclick="exportCSV()" style="display: inline-flex;">Exportar CSV</button>
+    <button class="btn" id="btnSheetExport" onclick="exportarPlanilhaFormatada()" style="display: inline-flex;">Planilha formatada</button>
     <button class="btn" id="btnReport" onclick="openReportFilter()" style="display: inline-flex;">Gerar relatório</button>
     <button class="btn" id="btnImport" onclick="document.getElementById(&#39;csvFileInput&#39;).click()" style="display: inline-flex;">Importar CSV</button>
     <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleImportFile(event)">
@@ -701,6 +702,7 @@ function updateModeUI(){
   const isDiretoria = currentUser?.role === 'diretoria';
   const canCreate = currentUser?.role === 'admin' || currentUser?.role === 'tecnico';
   document.getElementById('btnCSV').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('btnSheetExport').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnReport').style.display = (isAdmin || isDiretoria) ? 'inline-flex' : 'none';
   document.getElementById('btnImport').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnNovaOS').style.display = canCreate ? 'inline-flex' : 'none';
@@ -1034,6 +1036,35 @@ function downloadCSV(csv, filename){
 
 function backupCSV(){
   downloadCSV(buildCSV(), 'backup-os-manutencao.csv');
+}
+
+async function exportarPlanilhaFormatada(){
+  if(!gasConfigured()){
+    askConfirm('O backend ainda não está configurado (GAS_URL).', ()=>{});
+    return;
+  }
+  const btn = document.getElementById('btnSheetExport');
+  const textoOriginal = btn.textContent;
+  btn.textContent = 'Gerando...';
+  btn.disabled = true;
+  try{
+    const resp = await fetch(GAS_URL, {
+      method:'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'exportarAgora' })
+    });
+    const json = await resp.json();
+    if(json && json.ok){
+      window.open(json.url, '_blank');
+    } else {
+      askConfirm('Não foi possível gerar a planilha formatada agora. Tente novamente em instantes.', ()=>{});
+    }
+  }catch(e){
+    console.error('Erro ao gerar planilha formatada', e);
+    askConfirm('Erro de conexão ao gerar a planilha formatada.', ()=>{});
+  }
+  btn.textContent = textoOriginal;
+  btn.disabled = false;
 }
 
 function exportCSV(){
