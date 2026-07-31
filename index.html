@@ -219,7 +219,7 @@
     <p class="subtitle">Controle de ordens de serviço</p>
   </div>
   <div style="display:flex;gap:10px;align-items:center;">
-    <span id="modeLabel" class="subtitle mono" style="margin-right:2px;">modo: administrador</span>
+    <span id="modeLabel" class="subtitle mono" style="margin-right:2px;">modo: nível 4 - observador</span>
     <span id="syncInfo" class="subtitle mono" style="margin-right:2px;color:var(--teal);">sincronizando…</span>
     <button class="btn" id="btnLock" onclick="handleLoginButton()">Sair</button>
     <button class="btn" id="btnCSV" onclick="exportCSV()" style="display: inline-flex;">Exportar CSV</button>
@@ -368,8 +368,9 @@
     <div class="field">
       <label>Perfil</label>
       <select id="loginRole" onchange="updateLoginFieldsVisibility()">
-        <option value="tecnico">Técnico</option>
-        <option value="admin">Administrador</option>
+        <option value="tecnico">Técnico (nível 2)</option>
+        <option value="diretoria">Diretoria (nível 3)</option>
+        <option value="admin">Administrador (nível 1)</option>
       </select>
     </div>
     <div class="field" id="loginNameField" style="display: block;">
@@ -440,11 +441,13 @@
 // Veja o guia de configuração para os passos de implantação.
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyCfw3e-coIkBVTjlU1MC5REjetVXrhEZ5PxAcpDZFwi7hU9Wu1ZtVyNzwBg2zZF0q0LA/exec";
 
-const ADMIN_CODE = 'vtm2026'; // altere aqui o código do administrador
-const TECH_CODE = 'tecvtm2026'; // altere aqui o código do técnico
+const ADMIN_CODE = 'OpecVTM2026!'; // nível 1 - administrador (acesso total)
+const TECH_CODE = 'tecvtm2026'; // nível 2 - técnico (mantido)
+const DIRETORIA_CODE = 'DiretoriaVTM2026'; // nível 3 - diretoria (só relatórios)
 const ADMIN_SLOTS = 5;
 const TECH_SLOTS = 10;
-let userSlots = {admins:[], tecnicos:[]};
+const DIRETORIA_SLOTS = 5;
+let userSlots = {admins:[], tecnicos:[], diretores:[]};
 let currentUser = null; // null = visitante | {role:'admin', name} | {role:'tecnico', name}
 const SESSION_KEY = 'os_sessao_usuario';
 
@@ -521,17 +524,25 @@ function anyModalOpen(){
   });
 }
 
+function normalizeUserSlots(slots){
+  const s = slots || {};
+  if(!s.admins) s.admins = [];
+  if(!s.tecnicos) s.tecnicos = [];
+  if(!s.diretores) s.diretores = [];
+  return s;
+}
+
 async function loadData(){
   if(!gasConfigured()){ renderConfigNeeded(); return; }
   try{
     const resp = await fetch(GAS_URL, { method:'GET' });
     const json = await resp.json();
     items = (json && json.items) || [];
-    userSlots = (json && json.userSlots) || {admins:[], tecnicos:[]};
+    userSlots = normalizeUserSlots(json && json.userSlots);
   }catch(e){
     console.error('Erro ao carregar dados do Apps Script', e);
     if(!items) items = [];
-    if(!userSlots) userSlots = {admins:[], tecnicos:[]};
+    userSlots = normalizeUserSlots(userSlots);
   }
   if(items.length===0 && !gasConfigured()) seedExamples();
   markSynced();
@@ -569,7 +580,7 @@ async function refreshFromServer(){
     const resp = await fetch(GAS_URL, { method:'GET' });
     const json = await resp.json();
     items = (json && json.items) || [];
-    userSlots = (json && json.userSlots) || {admins:[], tecnicos:[]};
+    userSlots = normalizeUserSlots(json && json.userSlots);
     markSynced();
     render();
   }catch(e){ console.error('Erro ao atualizar do Apps Script', e); }
@@ -614,6 +625,8 @@ function updateLoginFieldsVisibility(){
   const info = document.getElementById('slotsInfo');
   if(role === 'admin'){
     info.textContent = 'Vagas de administrador: ' + userSlots.admins.length + '/' + ADMIN_SLOTS + ' preenchidas';
+  } else if(role === 'diretoria'){
+    info.textContent = 'Vagas de diretoria: ' + userSlots.diretores.length + '/' + DIRETORIA_SLOTS + ' preenchidas';
   } else {
     info.textContent = 'Vagas de técnico: ' + userSlots.tecnicos.length + '/' + TECH_SLOTS + ' preenchidas';
   }
@@ -647,6 +660,17 @@ function confirmCode(){
       persistUserSlots();
     }
     currentUser = {role:'admin', name};
+  } else if(role === 'diretoria'){
+    if(code !== DIRETORIA_CODE){ showLoginError('Código incorreto.'); return; }
+    if(!userSlots.diretores.includes(name)){
+      if(userSlots.diretores.length >= DIRETORIA_SLOTS){
+        showLoginError('Vagas de diretoria esgotadas (' + DIRETORIA_SLOTS + '/' + DIRETORIA_SLOTS + ').');
+        return;
+      }
+      userSlots.diretores.push(name);
+      persistUserSlots();
+    }
+    currentUser = {role:'diretoria', name};
   } else {
     if(code !== TECH_CODE){ showLoginError('Código incorreto.'); return; }
     if(!userSlots.tecnicos.includes(name)){
@@ -666,16 +690,18 @@ function confirmCode(){
 }
 
 function updateModeUI(){
-  let label = 'visitante (só visualização)';
-  if(currentUser?.role === 'admin') label = 'administrador';
-  else if(currentUser?.role === 'tecnico') label = 'técnico (' + currentUser.name + ')';
+  let label = 'nível 4 - observador (só visualização)';
+  if(currentUser?.role === 'admin') label = 'nível 1 - administrador';
+  else if(currentUser?.role === 'diretoria') label = 'nível 3 - diretoria (' + currentUser.name + ')';
+  else if(currentUser?.role === 'tecnico') label = 'nível 2 - técnico (' + currentUser.name + ')';
   document.getElementById('modeLabel').textContent = 'modo: ' + label;
   document.getElementById('btnLock').textContent = currentUser ? 'Sair' : 'Entrar';
 
   const isAdmin = currentUser?.role === 'admin';
+  const isDiretoria = currentUser?.role === 'diretoria';
   const canCreate = currentUser?.role === 'admin' || currentUser?.role === 'tecnico';
   document.getElementById('btnCSV').style.display = isAdmin ? 'inline-flex' : 'none';
-  document.getElementById('btnReport').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('btnReport').style.display = (isAdmin || isDiretoria) ? 'inline-flex' : 'none';
   document.getElementById('btnImport').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnNovaOS').style.display = canCreate ? 'inline-flex' : 'none';
 }
@@ -688,7 +714,18 @@ function getEditPermission(item){
     if(item.criadoPor === currentUser.name) return 'limited';
     return 'none';
   }
-  return 'none';
+  return 'none'; // diretoria e observador: somente leitura
+}
+
+function canDeleteOS(item){
+  if(!currentUser || !item) return false;
+  if(currentUser.role === 'admin') return true;
+  if(currentUser.role === 'tecnico'){
+    const trabalhandoNela = item.tecnico === currentUser.name;
+    const fechada = item.status === 'concluida';
+    return trabalhandoNela && !fechada;
+  }
+  return false;
 }
 
 function openModal(id){
@@ -700,7 +737,7 @@ function openModal(id){
   const readOnly = perm === 'none';
   const limited = perm === 'limited';
 
-  document.getElementById('btnDelete').style.display = (id && currentUser?.role==='admin') ? 'inline-flex' : 'none';
+  document.getElementById('btnDelete').style.display = canDeleteOS(item) ? 'inline-flex' : 'none';
   document.getElementById('btnSave').style.display = readOnly ? 'none' : 'inline-flex';
 
   const lockedInLimited = ['fLocal','fTipo','fPrioridadeM','fSolicitante','fTecnicoM'];
