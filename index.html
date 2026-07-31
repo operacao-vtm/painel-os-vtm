@@ -232,7 +232,7 @@
 <div class="trace"></div>
 
 <div class="stats" id="stats">
-    <div class="stat op"><div class="label">Abertas</div><div class="val mono">2</div></div>
+    <div class="stat op"><div class="label">Abertas</div><div class="val mono">0</div></div>
     <div class="stat and"><div class="label">Em andamento</div><div class="val mono">0</div></div>
     <div class="stat agp"><div class="label">Aguard. peça</div><div class="val mono">0</div></div>
     <div class="stat con"><div class="label">Concluídas</div><div class="val mono">0</div></div>
@@ -247,7 +247,7 @@
     <option value="normal">Normal</option>
     <option value="preventiva">Preventiva</option>
   </select>
-  <select id="fTecnico" onchange="render()"><option value="">Técnico: todos</option><option value="ROBERT">ROBERT</option></select>
+  <select id="fTecnico" onchange="render()"><option value="">Técnico: todos</option></select>
 </div>
 
 <div class="board" id="board">
@@ -255,29 +255,11 @@
         <div class="col-head">
           <div class="dot aberta"></div>
           <div class="col-title">Aberta</div>
-          <div class="count mono">2</div>
+          <div class="count mono">0</div>
         </div>
-        
-      <div class="card prio-urgente" onclick="openModal(&#39;id1785423033041&#39;)">
-        <div class="code mono">OS-0002</div>
-        <div class="loc">T5 - FALHA DE CONECTIVIDADE TOTAL</div>
-        <div class="meta">
-          <span>ROBERT</span>
-          <span class="mono">30/07/2026</span>
-        </div>
+        <div class="empty">Sem OS aqui</div>
       </div>
-    
-      <div class="card prio-normal" onclick="openModal(&#39;id1785422548434&#39;)">
-        <div class="code mono">OS-0001</div>
-        <div class="loc">T1 - FALHA DE CONECTIVIDADE DO LADO A</div>
-        <div class="meta">
-          <span>ROBERT</span>
-          <span class="mono">30/07/2026</span>
-        </div>
-      </div>
-    
-      </div>
-    
+
       <div class="col">
         <div class="col-head">
           <div class="dot andamento"></div>
@@ -464,6 +446,21 @@ const ADMIN_SLOTS = 5;
 const TECH_SLOTS = 10;
 let userSlots = {admins:[], tecnicos:[]};
 let currentUser = null; // null = visitante | {role:'admin', name} | {role:'tecnico', name}
+const SESSION_KEY = 'os_sessao_usuario';
+
+function saveSession(user){
+  try{ window.localStorage.setItem(SESSION_KEY, JSON.stringify(user)); }catch(e){ /* navegador sem suporte */ }
+}
+function clearSession(){
+  try{ window.localStorage.removeItem(SESSION_KEY); }catch(e){ /* ignora */ }
+}
+function loadSession(){
+  try{
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
 let items = [];
 let editingId = null;
 let pendingFotoVerificacao = null;
@@ -597,6 +594,7 @@ function renderConfigNeeded(){
 function handleLoginButton(){
   if(currentUser){
     currentUser = null;
+    clearSession();
     updateModeUI();
     render();
     return;
@@ -662,6 +660,7 @@ function confirmCode(){
     currentUser = {role:'tecnico', name};
   }
   closeCodeModal();
+  saveSession(currentUser);
   updateModeUI();
   render();
 }
@@ -1200,6 +1199,7 @@ function generateReport(filteredItems){
   window.print();
 }
 
+currentUser = loadSession();
 loadData();
 updateModeUI();
 startPolling();
