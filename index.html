@@ -154,12 +154,16 @@
   .empty{color:var(--muted);font-size:12px;text-align:center;padding:20px 0;}
   .overlay{
     display:none;
-    position:relative;
+    position:fixed;
+    inset:0;
     min-height:100vh;
     background:rgba(0,0,0,0.55);
     align-items:flex-start;
     justify-content:center;
     padding-top:40px;
+    overflow-y:auto;
+    z-index:50;
+    -webkit-overflow-scrolling:touch;
   }
   .overlay.show{display:flex;}
   .modal{
@@ -196,6 +200,68 @@
   table.rep-table{width:100%;border-collapse:collapse;font-size:11px;}
   table.rep-table th,table.rep-table td{border:1px solid #999;padding:5px 7px;text-align:left;vertical-align:top;}
   table.rep-table th{background:#eee;}
+  @media (max-width: 720px){
+    body{ padding:16px 14px 40px; }
+
+    header{ align-items:flex-start; gap:10px; }
+    header > div:last-child{ width:100%; display:flex; flex-wrap:wrap; gap:8px; }
+    header > div:last-child .btn{ flex:1 1 auto; justify-content:center; }
+
+    h1{ font-size:17px; }
+    .subtitle{ font-size:12px; }
+
+    .stats{
+      grid-template-columns:repeat(2,1fr);
+      gap:8px;
+      margin-bottom:16px;
+    }
+    .stat{ padding:10px 12px; }
+    .stat .val{ font-size:19px; }
+    .stat:last-child{ grid-column:1 / -1; }
+
+    .toolbar{ gap:8px; margin-bottom:14px; }
+    .toolbar > *{ flex:1 1 100% !important; min-width:0 !important; }
+
+    .board{
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    .col{ padding:10px; min-height:unset; }
+    .card{ padding:10px; }
+
+    input[type=text],select,textarea{
+      font-size:16px; /* evita zoom automático no iOS ao focar o campo */
+      padding:10px 12px;
+    }
+    .btn{
+      padding:11px 16px;
+      font-size:13.5px;
+    }
+
+    .overlay{ padding-top:0; align-items:stretch; }
+    .modal{
+      width:100%;
+      max-width:100%;
+      min-height:100vh;
+      border-radius:0;
+      padding:18px 16px 28px;
+    }
+    .row2{ grid-template-columns:1fr; gap:0; }
+    .modal-actions{
+      flex-wrap:wrap;
+      position:sticky;
+      bottom:-28px;
+      background:var(--panel);
+      padding:12px 0 0;
+      margin-top:14px;
+    }
+    .modal-actions .btn{ flex:1 1 auto; justify-content:center; }
+
+    .letterhead{ flex-wrap:wrap; }
+    .rep-summary{ gap:14px; }
+    table.rep-table{ font-size:10px; }
+  }
+
   @media print{
     body > *:not(#printArea){display:none !important;}
     #printArea{display:block !important;}
@@ -310,6 +376,28 @@
         </select>
       </div>
     </div>
+    <div class="field checkbox-field">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="fEhCompra" onchange="toggleCompraFields()" style="width:auto;">
+        Esta OS envolve compra de material?
+      </label>
+    </div>
+    <div id="compraFieldsWrap" style="display:none;">
+      <div class="row2">
+        <div class="field">
+          <label>Quantidade</label>
+          <input type="number" id="fQuantidade" min="0" step="1" placeholder="0" oninput="recalcularTotalCompra()">
+        </div>
+        <div class="field">
+          <label>Preço unitário (R$)</label>
+          <input type="number" id="fPrecoUnitario" min="0" step="0.01" placeholder="0,00" oninput="recalcularTotalCompra()">
+        </div>
+      </div>
+      <div class="field">
+        <label>Valor total</label>
+        <input type="text" id="fValorTotal" readonly style="background:var(--panel-alt);cursor:not-allowed;" value="R$ 0,00">
+      </div>
+    </div>
     <div class="row2">
       <div class="field">
         <label>Solicitante</label>
@@ -357,6 +445,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn danger" id="btnDelete" style="display: none;" onclick="deleteOS()">Excluir</button>
+      <button class="btn" id="btnImprimirOS" style="display: none;" onclick="imprimirOS()">🖨️ Imprimir OS</button>
       <button class="btn" onclick="closeModal()">Cancelar</button>
       <button class="btn primary" id="btnSave" onclick="saveOS()" style="display: inline-flex;">Salvar</button>
     </div>
@@ -740,9 +829,10 @@ function openModal(id){
   const limited = perm === 'limited';
 
   document.getElementById('btnDelete').style.display = canDeleteOS(item) ? 'inline-flex' : 'none';
+  document.getElementById('btnImprimirOS').style.display = id ? 'inline-flex' : 'none';
   document.getElementById('btnSave').style.display = readOnly ? 'none' : 'inline-flex';
 
-  const lockedInLimited = ['fLocal','fTipo','fPrioridadeM','fSolicitante','fTecnicoM'];
+  const lockedInLimited = ['fLocal','fTipo','fPrioridadeM','fSolicitante','fTecnicoM','fEhCompra','fQuantidade','fPrecoUnitario'];
   const alwaysStatusDiag = ['fStatus','fDiagnostico'];
   if(limited){
     lockedInLimited.forEach(fid=>document.getElementById(fid).disabled = true);
@@ -765,6 +855,11 @@ function openModal(id){
     document.getElementById('fTecnicoM').value = it.tecnico||'';
     document.getElementById('fStatus').value = it.status;
     document.getElementById('fDiagnostico').value = it.diagnostico||'';
+    document.getElementById('fEhCompra').checked = !!it.compraMaterial;
+    document.getElementById('fQuantidade').value = it.quantidade || '';
+    document.getElementById('fPrecoUnitario').value = it.precoUnitario || '';
+    toggleCompraFields();
+    recalcularTotalCompra();
     pendingFotoVerificacao = it.fotoVerificacao || null;
     pendingFotoConclusao = it.fotoConclusao || null;
     renderPhotoPreview('previewVerif', pendingFotoVerificacao, 'verificacao', photosEditable);
@@ -774,11 +869,28 @@ function openModal(id){
     ['fLocal','fTipo','fSolicitante','fTecnicoM','fDiagnostico'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('fPrioridadeM').value = 'normal';
     document.getElementById('fStatus').value = 'aberta';
+    document.getElementById('fEhCompra').checked = false;
+    document.getElementById('fQuantidade').value = '';
+    document.getElementById('fPrecoUnitario').value = '';
+    toggleCompraFields();
+    recalcularTotalCompra();
     pendingFotoVerificacao = null;
     pendingFotoConclusao = null;
     renderPhotoPreview('previewVerif', null, 'verificacao', true);
     renderPhotoPreview('previewConclusao', null, 'conclusao', true);
   }
+}
+
+function toggleCompraFields(){
+  const marcado = document.getElementById('fEhCompra').checked;
+  document.getElementById('compraFieldsWrap').style.display = marcado ? 'block' : 'none';
+}
+
+function recalcularTotalCompra(){
+  const qtd = parseFloat(document.getElementById('fQuantidade').value) || 0;
+  const preco = parseFloat(document.getElementById('fPrecoUnitario').value) || 0;
+  const total = qtd * preco;
+  document.getElementById('fValorTotal').value = 'R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
 function closeModal(){
@@ -879,6 +991,9 @@ async function saveOS(){
     askConfirm('Ainda estamos enviando uma foto para o servidor. Aguarde alguns segundos e tente salvar novamente.', ()=>{});
     return;
   }
+  const ehCompra = document.getElementById('fEhCompra').checked;
+  const quantidade = ehCompra ? (parseFloat(document.getElementById('fQuantidade').value) || 0) : null;
+  const precoUnitario = ehCompra ? (parseFloat(document.getElementById('fPrecoUnitario').value) || 0) : null;
   const data = {
     local,
     tipo: document.getElementById('fTipo').value.trim(),
@@ -889,6 +1004,10 @@ async function saveOS(){
     diagnostico: document.getElementById('fDiagnostico').value.trim(),
     fotoVerificacao: pendingFotoVerificacao,
     fotoConclusao: pendingFotoConclusao,
+    compraMaterial: ehCompra,
+    quantidade: quantidade,
+    precoUnitario: precoUnitario,
+    valorTotal: ehCompra ? (quantidade * precoUnitario) : null,
   };
   if(editingId){
     const it = items.find(x=>x.id===editingId);
@@ -917,6 +1036,61 @@ function deleteOS(){
   backupCSV();
   closeModal();
   render();
+}
+
+function imprimirOS(){
+  const it = items.find(x=>x.id===editingId);
+  if(!it) return;
+
+  const letterheadHTML = document.querySelector('.letterhead').outerHTML;
+
+  const materialHTML = it.compraMaterial ? `
+    <tr><td style="font-weight:600;">Compra de material</td><td>
+      Quantidade: ${it.quantidade||0} · Preço unitário: R$ ${(it.precoUnitario||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} · Total: R$ ${(it.valorTotal||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+    </td></tr>` : '';
+
+  const fotosHTML = (it.fotoVerificacao || it.fotoConclusao) ? `
+    <div style="margin-top:14px;">
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Fotos anexadas</div>
+      <div style="display:flex;gap:14px;">
+        ${it.fotoVerificacao ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Verificação</div><img src="${it.fotoVerificacao}" style="height:120px;width:auto;border:1px solid #999;"></div>` : ''}
+        ${it.fotoConclusao ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Conclusão</div><img src="${it.fotoConclusao}" style="height:120px;width:auto;border:1px solid #999;"></div>` : ''}
+      </div>
+    </div>` : '';
+
+  document.getElementById('printArea').innerHTML = `
+    ${letterheadHTML}
+    <hr style="border:none;border-top:1px solid #999;margin:0 0 14px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+      <h1 style="font-size:20px;margin:0;">Ordem de Serviço ${it.code}</h1>
+      <span style="font-size:12px;color:#555;">Impresso em ${new Date().toLocaleString('pt-BR')}</span>
+    </div>
+    <table class="rep-table" style="margin-bottom:18px;">
+      <tbody>
+        <tr><td style="font-weight:600;width:180px;">Local / equipamento</td><td>${it.local}</td></tr>
+        <tr><td style="font-weight:600;">Tipo de problema</td><td>${it.tipo||'-'}</td></tr>
+        <tr><td style="font-weight:600;">Prioridade</td><td>${prioLabel[it.prioridade]||'-'}</td></tr>
+        <tr><td style="font-weight:600;">Status</td><td>${statusLabel[it.status]||'-'}</td></tr>
+        <tr><td style="font-weight:600;">Solicitante</td><td>${it.solicitante||'-'}</td></tr>
+        <tr><td style="font-weight:600;">Técnico responsável</td><td>${it.tecnico||'-'}</td></tr>
+        <tr><td style="font-weight:600;">Data de abertura</td><td>${fmtDate(it.dataAbertura)}</td></tr>
+        <tr><td style="font-weight:600;">Data de conclusão</td><td>${fmtDate(it.dataConclusao)}</td></tr>
+        <tr><td style="font-weight:600;vertical-align:top;">Diagnóstico / solução aplicada</td><td>${(it.diagnostico||'-').replace(/\n/g,'<br>')}</td></tr>
+        ${materialHTML}
+      </tbody>
+    </table>
+    ${fotosHTML}
+    <div style="margin-top:70px;display:flex;gap:40px;">
+      <div style="flex:1;text-align:center;">
+        <div style="border-top:1px solid #333;padding-top:6px;font-size:11px;">Assinatura do Técnico Responsável</div>
+      </div>
+      <div style="flex:1;text-align:center;">
+        <div style="border-top:1px solid #333;padding-top:6px;font-size:11px;">Assinatura do Colaborador — Ciência</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:#555;">Data: ____ / ____ / ________</div>
+  `;
+  window.print();
 }
 
 function fmtDate(ts){
@@ -1014,10 +1188,14 @@ function csvEscape(v){
 }
 
 function buildCSV(){
-  const header = ['Código','Local','Tipo','Prioridade','Solicitante','Técnico','Status','Data abertura','Data conclusão','Diagnóstico'];
+  const header = ['Código','Local','Tipo','Prioridade','Solicitante','Técnico','Status','Data abertura','Data conclusão','Diagnóstico','Compra de material','Quantidade','Preço unitário','Valor total'];
   const rows = items.map(x=>[
     x.code, x.local, x.tipo, prioLabel[x.prioridade]||x.prioridade, x.solicitante,
-    x.tecnico, statusLabel[x.status]||x.status, fmtDate(x.dataAbertura), fmtDate(x.dataConclusao), x.diagnostico
+    x.tecnico, statusLabel[x.status]||x.status, fmtDate(x.dataAbertura), fmtDate(x.dataConclusao), x.diagnostico,
+    x.compraMaterial ? 'Sim' : 'Não',
+    x.compraMaterial ? x.quantidade : '',
+    x.compraMaterial ? x.precoUnitario : '',
+    x.compraMaterial ? x.valorTotal : '',
   ]);
   return [header, ...rows].map(r=>r.map(csvEscape).join(',')).join('\n');
 }
@@ -1129,7 +1307,11 @@ function parseCSVText(text){
     status: statusReverse[r[6]] || 'aberta',
     dataAbertura: parseDatePt(r[7]) || Date.now(),
     dataConclusao: parseDatePt(r[8]),
-    diagnostico: r[9] || ''
+    diagnostico: r[9] || '',
+    compraMaterial: (r[10]||'').trim().toLowerCase() === 'sim',
+    quantidade: r[11] ? parseFloat(r[11]) : null,
+    precoUnitario: r[12] ? parseFloat(r[12]) : null,
+    valorTotal: r[13] ? parseFloat(r[13]) : null,
   }));
 }
 
@@ -1214,6 +1396,8 @@ function generateReport(filteredItems){
   const tecnicoLinhas = Object.entries(porTecnico).sort((a,b)=>b[1]-a[1])
     .map(([t,n])=>`<div style="font-size:11px;">${t}: <b style="font-size:11px;display:inline;">${n}</b></div>`).join('');
 
+  const totalMateriais = list.reduce((soma,x)=> soma + (x.compraMaterial ? (x.valorTotal||0) : 0), 0);
+
   const sorted = [...list].sort((a,b)=>b.dataAbertura-a.dataAbertura);
   const linhas = sorted.map(x=>`
     <tr>
@@ -1226,6 +1410,7 @@ function generateReport(filteredItems){
       <td>${fmtDate(x.dataAbertura)}</td>
       <td>${fmtDate(x.dataConclusao)}</td>
       <td>${(x.diagnostico||'-').slice(0,120)}</td>
+      <td>${x.compraMaterial ? (x.quantidade+'x · R$ '+(x.valorTotal||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})) : '-'}</td>
       <td>${[
         x.fotoVerificacao ? `<img src="${x.fotoVerificacao}" style="height:50px;width:auto;display:block;margin-bottom:3px;">` : '',
         x.fotoConclusao ? `<img src="${x.fotoConclusao}" style="height:50px;width:auto;display:block;">` : ''
@@ -1251,6 +1436,7 @@ function generateReport(filteredItems){
       <div>Aguardando peça<b>${counts.peca}</b></div>
       <div>Concluídas<b>${counts.concluida}</b></div>
       <div>Tempo médio de execução<b>${avgResolutionTime(list)}</b></div>
+      <div>Total em materiais<b>R$ ${totalMateriais.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></div>
     </div>
     <div style="margin-bottom:16px;">
       <div style="font-size:12px;font-weight:600;margin-bottom:6px;">OS por técnico</div>
@@ -1259,9 +1445,9 @@ function generateReport(filteredItems){
     <table class="rep-table">
       <thead><tr>
         <th>Código</th><th>Local</th><th>Tipo</th><th>Prioridade</th><th>Técnico</th>
-        <th>Status</th><th>Abertura</th><th>Conclusão</th><th>Diagnóstico</th><th>Fotos</th>
+        <th>Status</th><th>Abertura</th><th>Conclusão</th><th>Diagnóstico</th><th>Material</th><th>Fotos</th>
       </tr></thead>
-      <tbody>${linhas || '<tr><td colspan="10">Nenhuma OS registrada</td></tr>'}</tbody>
+      <tbody>${linhas || '<tr><td colspan="11">Nenhuma OS registrada</td></tr>'}</tbody>
     </table>
   `;
   window.print();
