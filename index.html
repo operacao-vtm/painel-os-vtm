@@ -98,7 +98,7 @@
     flex-wrap:wrap;
     align-items:center;
   }
-  input[type=text],select{
+  input[type=text],input[type=number],select{
     background:var(--panel);
     border:1px solid var(--border);
     color:var(--text);
@@ -108,6 +108,10 @@
     font-family:inherit;
   }
   input[type=text]{flex:1;min-width:180px;}
+  .material-row{ display:flex; gap:8px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
+  .material-row .mat-nome{ flex:2 1 160px; }
+  .material-row .mat-qtd{ flex:1 1 70px; }
+  .material-row .mat-remove{ flex:0 0 auto; padding:8px 10px; }
   .board{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -229,7 +233,7 @@
     .col{ padding:10px; min-height:unset; }
     .card{ padding:10px; }
 
-    input[type=text],select,textarea{
+    input[type=text],input[type=number],select,textarea{
       font-size:16px; /* evita zoom automático no iOS ao focar o campo */
       padding:10px 12px;
     }
@@ -383,16 +387,9 @@
       </label>
     </div>
     <div id="compraFieldsWrap" style="display:none;">
-      <div class="row2">
-        <div class="field">
-          <label>Nome do material</label>
-          <input type="text" id="fNomeMaterial" placeholder="Ex: Fonte de alimentação 12V">
-        </div>
-        <div class="field">
-          <label>Quantidade</label>
-          <input type="number" id="fQuantidade" min="0" step="1" placeholder="0">
-        </div>
-      </div>
+      <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px;">Relação de materiais pedidos</label>
+      <div id="materiaisLista"></div>
+      <button type="button" class="btn" id="btnAddMaterial" style="margin-top:4px;margin-bottom:12px;" onclick="adicionarLinhaMaterial()">+ Adicionar material</button>
     </div>
     <div class="row2">
       <div class="field">
@@ -828,7 +825,7 @@ function openModal(id){
   document.getElementById('btnImprimirOS').style.display = id ? 'inline-flex' : 'none';
   document.getElementById('btnSave').style.display = readOnly ? 'none' : 'inline-flex';
 
-  const lockedInLimited = ['fLocal','fTipo','fPrioridadeM','fSolicitante','fTecnicoM','fEhCompra','fNomeMaterial','fQuantidade'];
+  const lockedInLimited = ['fLocal','fTipo','fPrioridadeM','fSolicitante','fTecnicoM','fEhCompra'];
   const alwaysStatusDiag = ['fStatus','fDiagnostico'];
   if(limited){
     lockedInLimited.forEach(fid=>document.getElementById(fid).disabled = true);
@@ -836,6 +833,10 @@ function openModal(id){
   } else {
     [...lockedInLimited, ...alwaysStatusDiag].forEach(fid=>document.getElementById(fid).disabled = !!readOnly);
   }
+  const materiaisBloqueados = limited || readOnly;
+  document.querySelectorAll('#materiaisLista input').forEach(inp=>inp.disabled = materiaisBloqueados);
+  document.querySelectorAll('#materiaisLista .mat-remove').forEach(btn=>btn.style.display = materiaisBloqueados ? 'none' : 'inline-flex');
+  document.getElementById('btnAddMaterial').style.display = materiaisBloqueados ? 'none' : 'inline-flex';
 
   const photosEditable = perm === 'full';
   document.getElementById('fFotoVerif').style.display = photosEditable ? 'flex' : 'none';
@@ -852,9 +853,13 @@ function openModal(id){
     document.getElementById('fStatus').value = it.status;
     document.getElementById('fDiagnostico').value = it.diagnostico||'';
     document.getElementById('fEhCompra').checked = !!it.compraMaterial;
-    document.getElementById('fNomeMaterial').value = it.nomeMaterial || '';
-    document.getElementById('fQuantidade').value = it.quantidade || '';
+    limparListaMateriais();
+    const materiaisExistentes = it.materiais && it.materiais.length ? it.materiais
+      : (it.nomeMaterial ? [{nome: it.nomeMaterial, quantidade: it.quantidade||0}] : []);
+    materiaisExistentes.forEach(m=>adicionarLinhaMaterial(m.nome, m.quantidade));
     toggleCompraFields();
+    document.querySelectorAll('#materiaisLista input').forEach(inp=>inp.disabled = materiaisBloqueados);
+    document.querySelectorAll('#materiaisLista .mat-remove').forEach(btn=>btn.style.display = materiaisBloqueados ? 'none' : 'inline-flex');
     pendingFotoVerificacao = it.fotoVerificacao || null;
     pendingFotoConclusao = it.fotoConclusao || null;
     renderPhotoPreview('previewVerif', pendingFotoVerificacao, 'verificacao', photosEditable);
@@ -865,8 +870,7 @@ function openModal(id){
     document.getElementById('fPrioridadeM').value = 'normal';
     document.getElementById('fStatus').value = 'aberta';
     document.getElementById('fEhCompra').checked = false;
-    document.getElementById('fNomeMaterial').value = '';
-    document.getElementById('fQuantidade').value = '';
+    limparListaMateriais();
     toggleCompraFields();
     pendingFotoVerificacao = null;
     pendingFotoConclusao = null;
@@ -878,6 +882,31 @@ function openModal(id){
 function toggleCompraFields(){
   const marcado = document.getElementById('fEhCompra').checked;
   document.getElementById('compraFieldsWrap').style.display = marcado ? 'block' : 'none';
+  if(marcado && document.getElementById('materiaisLista').children.length === 0){
+    adicionarLinhaMaterial();
+  }
+}
+
+function adicionarLinhaMaterial(nome, quantidade){
+  const wrap = document.createElement('div');
+  wrap.className = 'material-row';
+  wrap.innerHTML = `
+    <input type="text" class="mat-nome" placeholder="Nome do material" value="${nome ? nome.replace(/"/g,'&quot;') : ''}">
+    <input type="number" class="mat-qtd" placeholder="Qtd" min="0" step="1" value="${quantidade || ''}">
+    <button type="button" class="btn danger mat-remove" onclick="this.closest('.material-row').remove()">×</button>
+  `;
+  document.getElementById('materiaisLista').appendChild(wrap);
+}
+
+function limparListaMateriais(){
+  document.getElementById('materiaisLista').innerHTML = '';
+}
+
+function coletarMateriais(){
+  return Array.from(document.querySelectorAll('#materiaisLista .material-row')).map(row=>({
+    nome: row.querySelector('.mat-nome').value.trim(),
+    quantidade: parseFloat(row.querySelector('.mat-qtd').value) || 0
+  })).filter(m=>m.nome !== '');
 }
 
 function closeModal(){
@@ -979,8 +1008,7 @@ async function saveOS(){
     return;
   }
   const ehCompra = document.getElementById('fEhCompra').checked;
-  const nomeMaterial = ehCompra ? document.getElementById('fNomeMaterial').value.trim() : '';
-  const quantidade = ehCompra ? (parseFloat(document.getElementById('fQuantidade').value) || 0) : null;
+  const materiais = ehCompra ? coletarMateriais() : [];
   const data = {
     local,
     tipo: document.getElementById('fTipo').value.trim(),
@@ -991,9 +1019,8 @@ async function saveOS(){
     diagnostico: document.getElementById('fDiagnostico').value.trim(),
     fotoVerificacao: pendingFotoVerificacao,
     fotoConclusao: pendingFotoConclusao,
-    compraMaterial: ehCompra,
-    nomeMaterial: nomeMaterial,
-    quantidade: quantidade,
+    compraMaterial: ehCompra && materiais.length > 0,
+    materiais: materiais,
   };
   if(editingId){
     const it = items.find(x=>x.id===editingId);
@@ -1030,10 +1057,18 @@ function imprimirOS(){
 
   const letterheadHTML = document.querySelector('.letterhead').outerHTML;
 
-  const materialHTML = it.compraMaterial ? `
-    <tr><td style="font-weight:600;">Compra de material</td><td>
-      ${it.nomeMaterial||'-'} — Quantidade: ${it.quantidade||0}
-    </td></tr>` : '';
+  const materiaisArr = it.materiais && it.materiais.length ? it.materiais
+    : (it.nomeMaterial ? [{nome: it.nomeMaterial, quantidade: it.quantidade||0}] : []);
+  const materiaisHTML = (it.compraMaterial && materiaisArr.length) ? `
+    <div style="margin:4px 0 16px;">
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Relação de materiais pedidos</div>
+      <table class="rep-table">
+        <thead><tr><th style="width:75%;">Material</th><th>Quantidade</th></tr></thead>
+        <tbody>
+          ${materiaisArr.map(m=>`<tr><td>${m.nome}</td><td>${m.quantidade}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : '';
 
   const fotosHTML = (it.fotoVerificacao || it.fotoConclusao) ? `
     <div style="margin-top:14px;">
@@ -1062,9 +1097,9 @@ function imprimirOS(){
         <tr><td style="font-weight:600;">Data de abertura</td><td>${fmtDate(it.dataAbertura)}</td></tr>
         <tr><td style="font-weight:600;">Data de conclusão</td><td>${fmtDate(it.dataConclusao)}</td></tr>
         <tr><td style="font-weight:600;vertical-align:top;">Diagnóstico / solução aplicada</td><td>${(it.diagnostico||'-').replace(/\n/g,'<br>')}</td></tr>
-        ${materialHTML}
       </tbody>
     </table>
+    ${materiaisHTML}
     ${fotosHTML}
     <div style="margin-top:70px;display:flex;gap:40px;">
       <div style="flex:1;text-align:center;">
@@ -1173,14 +1208,28 @@ function csvEscape(v){
   return '"' + s.replace(/"/g,'""') + '"';
 }
 
+function materiaisTexto(x){
+  const arr = x.materiais && x.materiais.length ? x.materiais
+    : (x.nomeMaterial ? [{nome:x.nomeMaterial, quantidade:x.quantidade||0}] : []);
+  return arr.map(m=>`${m.nome} x${m.quantidade}`).join('; ');
+}
+
+function materiaisDeTexto(texto){
+  if(!texto || !texto.trim()) return [];
+  return texto.split(';').map(s=>s.trim()).filter(Boolean).map(parte=>{
+    const m = parte.match(/^(.*)\sx(\d+(\.\d+)?)$/i);
+    if(m) return { nome: m[1].trim(), quantidade: parseFloat(m[2]) };
+    return { nome: parte, quantidade: 0 };
+  });
+}
+
 function buildCSV(){
-  const header = ['Código','Local','Tipo','Prioridade','Solicitante','Técnico','Status','Data abertura','Data conclusão','Diagnóstico','Compra de material','Nome do material','Quantidade'];
+  const header = ['Código','Local','Tipo','Prioridade','Solicitante','Técnico','Status','Data abertura','Data conclusão','Diagnóstico','Compra de material','Materiais (nome xQtd; nome xQtd)'];
   const rows = items.map(x=>[
     x.code, x.local, x.tipo, prioLabel[x.prioridade]||x.prioridade, x.solicitante,
     x.tecnico, statusLabel[x.status]||x.status, fmtDate(x.dataAbertura), fmtDate(x.dataConclusao), x.diagnostico,
     x.compraMaterial ? 'Sim' : 'Não',
-    x.compraMaterial ? (x.nomeMaterial||'') : '',
-    x.compraMaterial ? x.quantidade : '',
+    x.compraMaterial ? materiaisTexto(x) : '',
   ]);
   return [header, ...rows].map(r=>r.map(csvEscape).join(',')).join('\n');
 }
@@ -1294,8 +1343,7 @@ function parseCSVText(text){
     dataConclusao: parseDatePt(r[8]),
     diagnostico: r[9] || '',
     compraMaterial: (r[10]||'').trim().toLowerCase() === 'sim',
-    nomeMaterial: r[11] || '',
-    quantidade: r[12] ? parseFloat(r[12]) : null,
+    materiais: materiaisDeTexto(r[11] || ''),
   }));
 }
 
@@ -1394,7 +1442,7 @@ function generateReport(filteredItems){
       <td>${fmtDate(x.dataAbertura)}</td>
       <td>${fmtDate(x.dataConclusao)}</td>
       <td>${(x.diagnostico||'-').slice(0,120)}</td>
-      <td>${x.compraMaterial ? ((x.nomeMaterial||'Material')+' — '+(x.quantidade||0)+'x') : '-'}</td>
+      <td>${x.compraMaterial ? materiaisTexto(x).replace(/;/g,'<br>') : '-'}</td>
       <td>${[
         x.fotoVerificacao ? `<img src="${x.fotoVerificacao}" style="height:50px;width:auto;display:block;margin-bottom:3px;">` : '',
         x.fotoConclusao ? `<img src="${x.fotoConclusao}" style="height:50px;width:auto;display:block;">` : ''
