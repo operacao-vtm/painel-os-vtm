@@ -3,7 +3,7 @@
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
-<title>Painel de Manutenção</title>
+<title>Painel de Manutenção — VTM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com/">
 <link href="./01 PAINEL DE CONTROLE DE OS  30 07 2026_files/css2" rel="stylesheet">
 <style>
@@ -76,7 +76,7 @@
   .btn.primary:hover{background:#F0AC1E;}
   .stats{
     display:grid;
-    grid-template-columns:repeat(5,1fr);
+    grid-template-columns:repeat(6,1fr);
     gap:12px;
     margin-bottom:24px;
   }
@@ -103,15 +103,17 @@
     background:var(--panel);
     border:1px solid var(--border);
     color:var(--text);
-    padding:8px 10px;
+    padding:6px 8px;
     border-radius:4px;
     font-size:13px;
     font-family:inherit;
   }
   input[type=text]{flex:1;min-width:180px;}
-  .material-row{ display:flex; gap:8px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
-  .material-row .mat-nome{ flex:2 1 160px; }
-  .material-row .mat-qtd{ flex:1 1 70px; }
+  .material-row{ display:grid; grid-template-columns:1fr 46px 66px; gap:5px; margin-bottom:5px; align-items:center; }
+  /* o seletor com id vence a regra global input[type=text]{min-width:180px} */
+  #materiaisLista .material-row input{ width:100%; min-width:0; flex:none; box-sizing:border-box; }
+  #materiaisLista .material-row .mat-qtd,
+  #materiaisLista .material-row .mat-un{ text-align:center; padding-left:2px; padding-right:2px; }
   .material-row .mat-remove{ flex:0 0 auto; padding:8px 10px; }
   .board{
     display:grid;
@@ -151,11 +153,20 @@
   }
   .card:hover{border-color:#3D4859;border-left-color:inherit;}
   .card.prio-urgente{border-left-color:var(--red);}
+  .card.prio-maxima{border-left:5px solid var(--red);}
+  .tag-maxima{
+    color:var(--red);font-weight:900;text-transform:uppercase;letter-spacing:0.5px;
+    font-size:9.5px;white-space:nowrap;
+  }
   .card.prio-normal{border-left-color:var(--blue);}
   .card.prio-preventiva{border-left-color:var(--teal);}
   .card .code{font-size:11px;color:var(--muted);margin-bottom:4px;}
   .card .loc{font-size:13px;font-weight:500;margin-bottom:6px;}
   .card .meta{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;}
+  .tag-peca{
+    background:var(--violet-bg);color:var(--violet);border:1px solid var(--violet);
+    border-radius:3px;padding:0 4px;font-size:8.5px;white-space:nowrap;
+  }
   .empty{color:var(--muted);font-size:12px;text-align:center;padding:20px 0;}
   .overlay{
     display:none;
@@ -175,17 +186,20 @@
     background:var(--panel);
     border:1px solid var(--border);
     border-radius:8px;
-    padding:22px 24px;
+    padding:14px 16px 16px;
     width:460px;
     max-width:92vw;
   }
-  .modal h2{font-size:16px;margin:0 0 16px;}
-  .field{margin-bottom:12px;}
-  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+  .modal h2{font-size:16px;margin:0 0 10px;}
+  .field{margin-bottom:8px;}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px;}
   .field input,.field select,.field textarea{width:100%;}
-  .field textarea{min-height:56px;font-family:inherit;resize:vertical;}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .field textarea{min-height:48px;font-family:inherit;resize:vertical;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px;}
+  /* os quatro botões da OS: pequenos, dividindo a largura do modal */
+  .os-acoes{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+  .btn-os{padding:6px 4px;font-size:11px;justify-content:center;}
   .btn.danger{border-color:var(--red);color:var(--red);}
   .letterhead{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
   .logo-mono{
@@ -199,12 +213,121 @@
   .company-name{font-size:13px;font-weight:600;}
   .company-meta{font-size:11px;color:var(--muted);}
   #printArea{display:none;}
+  /* documentos: cabeçalhos e itens principais em maiúscula */
+  h1,
+  #printArea h1,
+  #printArea .sec,
+  #printArea .grp,
+  #printArea table.rep-table th{text-transform:uppercase;}
+
+  /* bloco de materiais: os dois botões vivem dentro da moldura */
+  .cad-abas{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
+  .cad-aba{
+    background:var(--panel-alt);border:1px solid var(--border);color:var(--muted);
+    border-radius:4px;padding:5px 8px;font-size:10.5px;cursor:pointer;
+  }
+  .cad-aba.on{border-color:var(--amber);color:var(--amber);background:var(--amber-bg);font-weight:700;}
+  .cad-linha{display:flex;gap:5px;align-items:center;margin-bottom:4px;border:1px solid transparent;border-radius:4px;padding:2px;cursor:pointer;}
+  .cad-linha.sel{border-color:var(--amber);background:rgba(227,160,8,0.10);}
+  .cad-linha input{flex:1;min-width:0;}
+  .bloco-materiais{
+    border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:5px;
+    background:var(--panel-alt);padding:7px 8px;margin-bottom:8px;
+  }
+  .bloco-materiais-titulo{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;}
+  .bloco-materiais-acoes{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+  .bloco-materiais-dica{font-size:9px;color:var(--muted);margin-top:5px;}
+  .material-row{cursor:pointer;border:1px solid transparent;border-radius:4px;padding:2px;}
+  .material-row.sel{border-color:var(--amber);background:rgba(227,160,8,0.10);}
+  /* pré-visualização na tela: não depende do window.print() do navegador */
+  #printArea.preview{
+    display:block;position:fixed;left:0;right:0;top:44px;bottom:0;z-index:400;
+    background:#fff;color:#111;overflow:auto;padding:18px 20px 40px;
+  }
+  #printArea.preview img{max-width:100%;}
+  #previewDica{display:none;}
+  @media (min-width:760px){ #previewDica{display:inline;} }
+  #previewBar{
+    display:none;position:fixed;left:0;right:0;top:0;height:44px;z-index:401;
+    background:var(--panel);border-bottom:1px solid var(--border);
+    align-items:center;gap:10px;padding:0 12px;font-size:12px;font-weight:600;
+  }
+  #previewBar.show{display:flex;}
+
+  /* ---- ficha de vistoria ---- */
+  .vist-modal{width:760px;max-width:96vw;}
+  .vist-os{
+    background:var(--panel-alt);border:1px solid var(--border);border-left:3px solid var(--amber);
+    border-radius:4px;padding:8px 10px;margin-bottom:12px;font-size:12px;
+  }
+  .vist-os b{color:var(--amber);}
+  .vist-row{
+    border:1px solid var(--border);border-radius:4px;padding:7px 9px;margin-bottom:6px;
+    background:var(--panel-alt);
+  }
+  .vist-row.nc{border-left:3px solid var(--red);}
+  .vist-row.c{border-left:3px solid var(--teal);}
+  .vist-row.na{border-left:3px solid var(--muted);}
+  .vist-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .vist-nome{font-size:11.5px;font-weight:600;flex:1;min-width:120px;line-height:1.25;}
+  .vist-opts{display:flex;gap:4px;}
+  .vist-opt{
+    background:var(--panel);border:1px solid var(--field-border,#3A4553);color:var(--muted);
+    border-radius:4px;padding:5px 9px;font-size:11px;font-weight:600;cursor:pointer;min-width:38px;
+  }
+  .vist-opt.sel-c{background:var(--teal-bg);border-color:var(--teal);color:var(--teal);}
+  .vist-opt.sel-nc{background:var(--red-bg);border-color:var(--red);color:var(--red);}
+  .vist-opt.sel-na{background:var(--panel-alt);border-color:var(--muted);color:var(--text);}
+  .vist-det{margin-top:7px;padding-top:7px;border-top:1px dashed var(--border);}
+  .vist-det label{display:block;font-size:10px;color:var(--muted);margin:0 0 3px;}
+  .vist-det textarea{width:100%;min-height:38px;font-size:11px;margin-bottom:6px;}
+  .vist-fotos{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;}
+  .vist-thumb{position:relative;}
+  .vist-thumb img{height:64px;width:auto;border:1px solid var(--border);border-radius:3px;display:block;}
+  .vist-thumb button{
+    position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border:none;
+    border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;
+  }
+  .vist-cj-head{
+    display:flex;align-items:center;gap:10px;cursor:pointer;
+    background:var(--panel-alt);border:1px solid var(--border);border-left:3px solid var(--amber);
+    border-radius:4px;padding:8px 10px;margin-bottom:5px;
+  }
+  .vist-cj-head:hover{border-color:#3D4859;}
+  .vist-cj-head.aberto{border-radius:4px 4px 0 0;margin-bottom:0;}
+  .vist-cj-cod{font-size:12px;font-weight:700;}
+  .vist-cj-aberto{margin-bottom:8px;}
+  .vist-cj-corpo{
+    border:1px solid var(--border);border-top:none;border-radius:0 0 4px 4px;
+    padding:9px 10px;background:var(--panel);
+  }
+  .vist-grupo{
+    font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;
+    color:var(--amber);margin:10px 0 4px;padding-bottom:2px;border-bottom:1px solid var(--border);
+  }
+  .vist-acoes{display:flex;gap:3px;}
+  .vist-mini{
+    background:var(--panel);border:1px solid var(--field-border,#3A4553);color:var(--muted);
+    border-radius:4px;padding:4px 6px;font-size:11px;line-height:1;cursor:pointer;
+  }
+  .vist-mini.on{border-color:var(--blue);color:var(--blue);background:var(--blue-bg);}
+  .vist-mini.ok{border-color:var(--teal);color:var(--teal);background:var(--teal-bg);}
+  .vist-mini.falta{border-color:var(--amber);color:var(--amber);}
+  .vist-det textarea{min-height:34px;}
+  .vist-resumo{
+    display:flex;gap:14px;flex-wrap:wrap;font-size:11px;margin:10px 0 4px;
+    padding:7px 9px;background:var(--panel-alt);border:1px solid var(--border);border-radius:4px;
+  }
+  .vist-resumo b{font-size:14px;display:block;}
+  @media (max-width:640px){
+    .vist-nome{min-width:calc(100% - 70px);}
+    .vist-opt{flex:1;padding:9px 6px;font-size:12px;}
+    .vist-opts{width:100%;}
+  }
   .rep-summary{display:flex;gap:24px;margin:14px 0 20px;flex-wrap:wrap;}
   .rep-summary div{font-size:12px;}
   .rep-summary b{display:block;font-size:18px;}
   table.rep-table{width:100%;border-collapse:collapse;font-size:11px;}
-  #printArea{ max-width:100%; overflow-x:auto; }
-  #printArea img{ max-width:100%; }
   table.rep-table th,table.rep-table td{border:1px solid #999;padding:5px 7px;text-align:left;vertical-align:top;}
   table.rep-table th{background:#eee;}
   @media (max-width: 720px){
@@ -251,7 +374,7 @@
       max-width:100%;
       min-height:100vh;
       border-radius:0;
-      padding:18px 16px 28px;
+      padding:14px 14px 18px;
     }
     .row2{ grid-template-columns:1fr; gap:0; }
     .modal-actions{
@@ -269,12 +392,18 @@
     table.rep-table{ font-size:10px; }
   }
 
+  @page{size:A4 landscape;margin:10mm;}   /* padrão; cada documento ajusta em #estiloPagina */
   @media print{
     body > *:not(#printArea){display:none !important;}
     #printArea{display:block !important;}
     body{background:#fff;color:#111;padding:0;}
+    #printArea.preview{position:static;top:auto;padding:0;overflow:visible;}
+    #previewBar{display:none !important;}
+    table.rep-table thead{display:table-header-group;}
+    table.rep-table tr{page-break-inside:avoid;}
   }
 </style>
+<style id="estiloPagina">@page{size:A4 landscape;margin:10mm;}</style>
 </head>
 <body>
 
@@ -288,7 +417,7 @@
 
 <header>
   <div>
-    <h1>Painel de manutenção</h1>
+    <h1>Painel de manutenção <span style="font-size:11px;background:#E3A008;color:#241902;padding:1px 6px;border-radius:3px;vertical-align:middle;">TESTE</span></h1>
     <p class="subtitle">Controle de ordens de serviço</p>
   </div>
   <div style="display:flex;gap:10px;align-items:center;">
@@ -297,7 +426,9 @@
     <button class="btn" id="btnLock" onclick="handleLoginButton()">Sair</button>
     <button class="btn" id="btnCSV" onclick="exportCSV()" style="display: inline-flex;">Exportar CSV</button>
     <button class="btn" id="btnSheetExport" onclick="exportarPlanilhaFormatada()" style="display: inline-flex;">Planilha formatada</button>
-    <button class="btn" id="btnReport" onclick="openReportFilter()" style="display: inline-flex;">Gerar relatório</button>
+    <button class="btn" id="btnCadastro" onclick="openCadastro('locais')" style="display: none;">📍 Cadastros</button>
+    <button class="btn" id="btnReport" onclick="openReportFilter('os')" style="display: inline-flex;">Relatório de OS</button>
+    <button class="btn" id="btnReportVist" onclick="openReportFilter('vist')" style="display: inline-flex;">Relatório de vistoria</button>
     <button class="btn" id="btnImport" onclick="document.getElementById(&#39;csvFileInput&#39;).click()" style="display: inline-flex;">Importar CSV</button>
     <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleImportFile(event)">
     <button class="btn primary" id="btnNovaOS" onclick="openModal()" style="display: inline-flex;">+ Nova OS</button>
@@ -305,18 +436,13 @@
 </header>
 <div class="trace"></div>
 
-<div class="stats" id="stats">
-    <div class="stat op"><div class="label">Abertas</div><div class="val mono">0</div></div>
-    <div class="stat and"><div class="label">Em andamento</div><div class="val mono">0</div></div>
-    <div class="stat agp"><div class="label">Aguard. peça</div><div class="val mono">0</div></div>
-    <div class="stat con"><div class="label">Concluídas</div><div class="val mono">0</div></div>
-    <div class="stat"><div class="label">Tempo médio de execução</div><div class="val mono">00:00:00</div></div>
-  </div>
+<div class="stats" id="stats"></div>
 
 <div class="toolbar">
   <input type="text" id="search" placeholder="Buscar por local, código ou técnico..." oninput="render()">
   <select id="fPrioridade" onchange="render()">
     <option value="">Prioridade: todas</option>
+    <option value="maxima">Prioridade Máxima</option>
     <option value="urgente">Urgente</option>
     <option value="normal">Normal</option>
     <option value="preventiva">Preventiva</option>
@@ -324,50 +450,28 @@
   <select id="fTecnico" onchange="render()"><option value="">Técnico: todos</option></select>
 </div>
 
-<div class="board" id="board">
-      <div class="col">
-        <div class="col-head">
-          <div class="dot aberta"></div>
-          <div class="col-title">Aberta</div>
-          <div class="count mono">0</div>
-        </div>
-        <div class="empty">Sem OS aqui</div>
-      </div>
-
-      <div class="col">
-        <div class="col-head">
-          <div class="dot andamento"></div>
-          <div class="col-title">Em andamento</div>
-          <div class="count mono">0</div>
-        </div>
-        <div class="empty">Sem OS aqui</div>
-      </div>
-    
-      <div class="col">
-        <div class="col-head">
-          <div class="dot peca"></div>
-          <div class="col-title">Aguardando peça</div>
-          <div class="count mono">0</div>
-        </div>
-        <div class="empty">Sem OS aqui</div>
-      </div>
-    
-      <div class="col">
-        <div class="col-head">
-          <div class="dot concluida"></div>
-          <div class="col-title">Concluída</div>
-          <div class="count mono">0</div>
-        </div>
-        <div class="empty">Sem OS aqui</div>
-      </div>
-    </div>
+<div class="board" id="board"></div>
 
 <div class="overlay" id="overlay">
   <div class="modal">
-    <h2 id="modalTitle">Nova ordem de serviço</h2>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <h2 id="modalTitle" style="flex:1;margin:0 0 10px;">Nova ordem de serviço</h2>
+      <button class="vist-mini" onclick="closeModal()" title="fechar" style="margin-bottom:10px;">✕</button>
+    </div>
     <div class="field">
-      <label>Local / equipamento</label>
-      <input type="text" id="fLocal" placeholder="Ex: Terminal 3 - totem 2">
+      <label>Local (terminal, estação ou plataforma)</label>
+      <select id="fLocalSel" onchange="onLocalSelChange()"></select>
+      <input type="text" id="fLocal" placeholder="Digite o local" style="margin-top:4px;display:none;">
+      <div id="fLocalInfo" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
+    </div>
+    <div class="field">
+      <label>Ação determinada por esta OS</label>
+      <select id="fAcao" onchange="onAcaoChange()">
+        <option value="visita">📋 Visita técnica — vistoriar e apontar</option>
+        <option value="preventiva">🔧 Manutenção preventiva — conservar</option>
+        <option value="corretiva">🛠️ Manutenção corretiva — reparar</option>
+      </select>
+      <div id="fAcaoInfo" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
     </div>
     <div class="row2">
       <div class="field">
@@ -377,8 +481,9 @@
       <div class="field">
         <label>Prioridade</label>
         <select id="fPrioridadeM">
-          <option value="normal">Normal</option>
+          <option value="maxima">Prioridade Máxima</option>
           <option value="urgente">Urgente</option>
+          <option value="normal" selected>Normal</option>
           <option value="preventiva">Preventiva</option>
         </select>
       </div>
@@ -386,13 +491,31 @@
     <div class="field checkbox-field">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="fEhCompra" onchange="toggleCompraFields()" style="width:auto;">
-        Esta OS envolve compra de material?
+        Esta OS requer compra de material
       </label>
     </div>
     <div id="compraFieldsWrap" style="display:none;">
-      <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:5px;">Relação de materiais pedidos</label>
-      <div id="materiaisLista"></div>
-      <button type="button" class="btn" id="btnAddMaterial" style="margin-top:4px;margin-bottom:12px;" onclick="adicionarLinhaMaterial()">+ Adicionar material</button>
+      <div class="bloco-materiais" style="margin-bottom:8px;">
+        <div style="display:grid;grid-template-columns:1fr 46px 66px;gap:5px;font-size:9px;color:var(--muted);margin-bottom:3px;">
+          <span>MATERIAIS NECESSÁRIOS</span><span style="text-align:center;">QTD</span><span style="text-align:center;">UNID.</span>
+        </div>
+        <div id="materiaisLista"></div>
+        <div class="bloco-materiais-acoes">
+          <button type="button" class="btn" id="btnAddMaterial" onclick="adicionarLinhaMaterial()">+ Adicionar Material</button>
+          <button type="button" class="btn danger" id="btnDelMaterial" onclick="excluirMaterialSelecionado()">− Excluir Material</button>
+        </div>
+        <div class="bloco-materiais-dica" id="matDica">Toque em uma linha para selecioná-la antes de excluir.</div>
+      </div>
+    </div>
+    <div class="field checkbox-field">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="fRequerRelatorio" onchange="toggleRelatorioFields()" style="width:auto;">
+        Esta OS requer relatório técnico
+      </label>
+    </div>
+    <div id="relatorioFieldsWrap" style="display:none;margin-bottom:8px;">
+      <div id="relatorioStatus" style="font-size:11px;border:1px solid var(--border);border-left:3px solid var(--amber);background:var(--panel-alt);border-radius:4px;padding:7px 9px;margin-bottom:6px;"></div>
+      <button class="btn" id="btnVistoria" style="display:none;" onclick="openVistoria()">📋 Abrir relatório</button>
     </div>
     <div class="row2">
       <div class="field">
@@ -406,44 +529,47 @@
     </div>
     <div class="field">
       <label>Status</label>
-      <select id="fStatus">
-        <option value="aberta">Aberta</option>
+      <select id="fStatus" onchange="onStatusChange()">
         <option value="andamento">Em andamento</option>
-        <option value="peca">Aguardando peça</option>
         <option value="concluida">Concluída</option>
       </select>
+      <div style="font-size:9px;color:var(--muted);margin-top:3px;" id="statusDica"></div>
     </div>
-    <div class="field">
-      <label>Diagnóstico / solução aplicada</label>
+    <div class="field checkbox-field">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="fRequerDiagnostico" onchange="toggleDiagnosticoFields()" style="width:auto;">
+        Diagnóstico / Solução Aplicada
+      </label>
+    </div>
+    <div class="field" id="diagnosticoFieldsWrap" style="display:none;">
       <textarea id="fDiagnostico"></textarea>
     </div>
     <div class="row2">
       <div class="field">
         <label>Foto de verificação</label>
         <div id="fFotoVerif" style="display:flex;gap:6px;">
-          <button type="button" class="btn" style="font-size:12px;padding:6px 10px;" onclick="document.getElementById(&#39;fFotoVerifCamera&#39;).click()">📷 Tirar foto</button>
-          <button type="button" class="btn" style="font-size:12px;padding:6px 10px;" onclick="document.getElementById(&#39;fFotoVerifFile&#39;).click()">🖼️ Escolher arquivo</button>
+          <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById(&#39;fFotoVerifCamera&#39;).click()">📷 Tirar foto</button>
+          <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById(&#39;fFotoVerifFile&#39;).click()">🖼️ Escolher arquivo</button>
         </div>
         <input type="file" accept="image/*" capture="environment" id="fFotoVerifCamera" style="display:none" onchange="handlePhotoUpload(event,&#39;verificacao&#39;)">
         <input type="file" accept="image/*" id="fFotoVerifFile" style="display:none" onchange="handlePhotoUpload(event,&#39;verificacao&#39;)">
-        <div id="previewVerif" style="margin-top:6px;"></div>
+        <div id="previewVerif" style="margin-top:4px;"></div>
       </div>
       <div class="field">
         <label>Foto de conclusão</label>
         <div id="fFotoConclusao" style="display:flex;gap:6px;">
-          <button type="button" class="btn" style="font-size:12px;padding:6px 10px;" onclick="document.getElementById(&#39;fFotoConclusaoCamera&#39;).click()">📷 Tirar foto</button>
-          <button type="button" class="btn" style="font-size:12px;padding:6px 10px;" onclick="document.getElementById(&#39;fFotoConclusaoFile&#39;).click()">🖼️ Escolher arquivo</button>
+          <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById(&#39;fFotoConclusaoCamera&#39;).click()">📷 Tirar foto</button>
+          <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById(&#39;fFotoConclusaoFile&#39;).click()">🖼️ Escolher arquivo</button>
         </div>
         <input type="file" accept="image/*" capture="environment" id="fFotoConclusaoCamera" style="display:none" onchange="handlePhotoUpload(event,&#39;conclusao&#39;)">
         <input type="file" accept="image/*" id="fFotoConclusaoFile" style="display:none" onchange="handlePhotoUpload(event,&#39;conclusao&#39;)">
-        <div id="previewConclusao" style="margin-top:6px;"></div>
+        <div id="previewConclusao" style="margin-top:4px;"></div>
       </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn danger" id="btnDelete" style="display: none;" onclick="deleteOS()">Excluir</button>
-      <button class="btn" id="btnImprimirOS" style="display: none;" onclick="imprimirOS()">🖨️ Imprimir OS</button>
-      <button class="btn" onclick="closeModal()">Cancelar</button>
-      <button class="btn primary" id="btnSave" onclick="saveOS()" style="display: inline-flex;">Salvar</button>
+    <div class="modal-actions os-acoes">
+      <button class="btn btn-os danger" id="btnDelete" onclick="deleteOS()">Excluir</button>
+      <button class="btn btn-os primary" id="btnSave" onclick="saveOS()">Salvar</button>
+      <button class="btn btn-os" id="btnImprimirOS" onclick="imprimirOS()">Imprimir</button>
     </div>
   </div>
 </div>
@@ -476,6 +602,75 @@
   </div>
 </div>
 
+<datalist id="listaPlacas"></datalist>
+<datalist id="listaEquipamentos"></datalist>
+
+<div class="overlay" id="vistoriaOverlay">
+  <div class="modal vist-modal">
+    <h2>Relatório de vistoria</h2>
+    <div class="vist-os" id="vistOsRef"></div>
+
+    <div class="row2">
+      <div class="field">
+        <label>Vistoriador</label>
+        <input type="text" id="vistVistoriador" oninput="agendaAutoSalvarVistoria()">
+      </div>
+      <div class="field">
+        <label>Data da vistoria</label>
+        <input type="text" id="vistData" placeholder="dd/mm/aaaa" oninput="agendaAutoSalvarVistoria()">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Sigla do local (ex.: T1 para Terminal 1, E3 para Estação 3, P2 para Plataforma 2)</label>
+      <input type="text" id="vistSigla" placeholder="T1" oninput="setSigla(this.value)">
+    </div>
+
+    <div class="vist-resumo" id="vistResumo"></div>
+
+    <div class="field">
+      <label>Conjuntos de mídia — abra um para preencher o roteiro<br><span id="vistLegenda" style="color:var(--muted);text-transform:none;letter-spacing:0;"></span></label>
+      <div id="vistConjuntos"></div>
+      <button class="btn primary" id="btnAddConjunto" style="margin-top:6px;" onclick="addConjunto()">+ Adicionar conjunto</button>
+      <button class="btn danger" id="btnExcluirConj" style="margin-top:6px;" onclick="excluirConjuntoAberto()">− Excluir conjunto</button>
+    </div>
+
+    <div class="field">
+      <label>Observações gerais da vistoria (do local como um todo)</label>
+      <textarea id="vistObs" oninput="agendaAutoSalvarVistoria()"></textarea>
+    </div>
+
+    <div id="vistAutoSaveInfo" style="font-size:10px;color:var(--muted);margin-bottom:6px;"></div>
+
+    <div class="modal-actions">
+      <button class="btn danger" id="btnVistExcluir" style="display:none;" onclick="excluirVistoria()">Excluir relatório</button>
+      <button class="btn" id="btnVistImprimir" onclick="imprimirVistoria()">🖨️ Imprimir relatório</button>
+      <button class="btn" onclick="closeVistoria()">Fechar</button>
+      <button class="btn primary" id="btnVistSalvar" onclick="salvarVistoria()">Salvar relatório</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="cadastroOverlay">
+  <div class="modal" style="width:440px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <h2 style="flex:1;margin:0 0 10px;">Cadastros</h2>
+      <button class="vist-mini" onclick="closeCadastro()" title="fechar" style="margin-bottom:10px;">✕</button>
+    </div>
+    <div id="cadastroAbas" class="cad-abas"></div>
+    <div class="field">
+      <label id="cadastroCampoLabel">Nome</label>
+      <input type="text" id="cadastroNovo" onkeydown="if(event.key==='Enter'){event.preventDefault();addRegistroCadastro();}">
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;">
+      <button class="btn primary" style="flex:1;justify-content:center;" onclick="addRegistroCadastro()">Criar</button>
+      <button class="btn danger" style="flex:1;justify-content:center;" onclick="excluirRegistroSelecionado()">Excluir</button>
+    </div>
+    <div id="cadastroLista" style="max-height:260px;overflow:auto;"></div>
+    <div id="cadastroDica" style="font-size:9px;color:var(--muted);margin-top:5px;"></div>
+  </div>
+</div>
+
 <div class="overlay" id="confirmOverlay">
   <div class="modal" style="width:360px;">
     <h2>Confirmar ação</h2>
@@ -489,7 +684,51 @@
 
 <div class="overlay" id="reportFilterOverlay">
   <div class="modal" style="width:440px;">
-    <h2>Filtros do relatório</h2>
+    <h2 id="repTitulo">Filtros do relatório</h2>
+    <div id="repAvisoTipo" style="font-size:10px;color:var(--muted);margin:0 0 10px;"></div>
+
+    <div id="repFiltrosVist" style="display:none;">
+      <div class="field">
+        <label>Vistoriador</label>
+        <div id="repVistoriadorChecks" style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;max-height:100px;overflow:auto;"></div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Data da vistoria — de</label>
+          <input type="date" id="repVistDe">
+        </div>
+        <div class="field">
+          <label>até</label>
+          <input type="date" id="repVistAte">
+        </div>
+      </div>
+      <div class="field">
+        <label>Local da vistoria
+          <button class="btn" style="padding:2px 6px;font-size:9px;margin-left:6px;" onclick="marcaLocaisRel(true)">todos</button>
+          <button class="btn" style="padding:2px 6px;font-size:9px;" onclick="marcaLocaisRel(false)">nenhum</button>
+        </label>
+        <div id="repVistLocalChecks" style="display:flex;flex-direction:column;gap:3px;font-size:11px;max-height:120px;overflow:auto;border:1px solid var(--border);border-radius:4px;padding:6px 8px;"></div>
+      </div>
+      <div class="field">
+        <label>Conteúdo do relatório</label>
+        <select id="repVistConteudo" onchange="ajustaConteudoVist()">
+          <option value="full">1. Completo (full) — todos os itens, com a situação de cada um</option>
+          <option value="c">2. Conformidades — só o que está em ordem</option>
+          <option value="nc">3. Não conformidades — só o que precisa de ação</option>
+          <option value="sel">4. Selecionar itens para o relatório</option>
+        </select>
+        <div id="repConteudoNota" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
+      </div>
+      <div class="field" id="repVistItensWrap" style="display:none;">
+        <label>Itens da vistoria — desmarque o que não deve sair
+          <button class="btn" style="padding:2px 6px;font-size:9px;margin-left:6px;" onclick="marcaItensRel(true)">todos</button>
+          <button class="btn" style="padding:2px 6px;font-size:9px;" onclick="marcaItensRel(false)">nenhum</button>
+        </label>
+        <div id="repVistItemChecks" style="max-height:180px;overflow:auto;border:1px solid var(--border);border-radius:4px;padding:7px 9px;"></div>
+      </div>
+    </div>
+
+    <div id="repFiltrosOS">
     <div class="field">
       <label>Status</label>
       <div id="repStatusChecks" style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;"></div>
@@ -512,11 +751,24 @@
         <input type="date" id="repDataAte">
       </div>
     </div>
+    </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeReportFilter()">Cancelar</button>
       <button class="btn primary" onclick="runReport()">Gerar relatório</button>
     </div>
   </div>
+</div>
+
+<div id="previewBar">
+  <span id="previewTitulo">Relatório</span>
+  <span id="previewDica" style="font-weight:400;color:var(--muted);font-size:10px;">
+    Para gerar PDF: no Imprimir, escolha <b style="color:var(--amber);">Destino: Salvar como PDF</b> — não precisa de impressora.
+  </span>
+  <span style="margin-left:auto;display:flex;gap:6px;">
+    <button class="btn primary" onclick="imprimirRelatorio()">🖨️ Imprimir</button>
+    <button class="btn primary" onclick="salvarRelatorio()">💾 Salvar</button>
+    <button class="btn" onclick="fecharPreview()">Fechar</button>
+  </span>
 </div>
 
 <div id="printArea"></div>
@@ -527,6 +779,49 @@
 // Veja o guia de configuração para os passos de implantação.
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyCfw3e-coIkBVTjlU1MC5REjetVXrhEZ5PxAcpDZFwi7hU9Wu1ZtVyNzwBg2zZF0q0LA/exec";
 
+// ============================================================
+//  MODO TESTE  —  desligado (produção)
+//  Com MODO_TESTE = true nada é enviado ao Google Apps Script:
+//  os dados ficam só neste navegador, na chave abaixo.
+//  Para voltar a testar isoladamente, troque para true.
+// ============================================================
+const MODO_TESTE = false;
+const TESTE_KEY = 'painel-os-TESTE';
+
+function testeLoad(){
+  try{
+    const bruto = window.localStorage.getItem(TESTE_KEY);
+    return bruto ? JSON.parse(bruto) : null;
+  }catch(e){ console.error('teste: falha ao ler', e); return null; }
+}
+
+function testeSave(){
+  try{
+    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro }));
+    const el = document.getElementById('syncInfo');
+    if(el){ el.textContent = 'teste · salvo no navegador ' + new Date().toLocaleTimeString('pt-BR'); }
+    return true;
+  }catch(e){
+    console.error('teste: falha ao salvar', e);
+    const el = document.getElementById('syncInfo');
+    if(el){ el.textContent = 'teste · ERRO ao salvar (memória cheia?)'; }
+    return false;
+  }
+}
+
+function testeReset(){
+  askConfirm('Apagar tudo e começar do zero? Saem todas as OS, relatórios, fotos, materiais e o cadastro de locais e conjuntos. ' +
+    'Os códigos de acesso são mantidos. Não afeta o painel oficial.', ()=>{
+    items = [];
+    cadastro = { locais: [], placas: [], equipamentos: [] };
+    // grava o estado vazio: assim os exemplos não voltam no recarregamento
+    try{
+      window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items: [], userSlots, cadastro }));
+    }catch(e){ console.error('teste: falha ao zerar', e); }
+    location.reload();
+  });
+}
+
 const ADMIN_CODE = 'OpecVTM2026!'; // nível 1 - administrador (acesso total)
 const TECH_CODE = 'tecvtm2026'; // nível 2 - técnico (mantido)
 const DIRETORIA_CODE = 'DiretoriaVTM2026'; // nível 3 - diretoria (só relatórios)
@@ -534,8 +829,10 @@ const ADMIN_SLOTS = 5;
 const TECH_SLOTS = 10;
 const DIRETORIA_SLOTS = 5;
 let userSlots = {admins:[], tecnicos:[], diretores:[]};
+// CADASTROS FIXOS: locais, placas de mídia e equipamentos — só o nome, nunca resultado de vistoria.
+let cadastro = { locais: [], placas: [], equipamentos: [] };
 let currentUser = null; // null = visitante | {role:'admin', name} | {role:'tecnico', name}
-const SESSION_KEY = 'os_sessao_usuario';
+const SESSION_KEY = 'os_sessao_usuario_TESTE';
 
 function saveSession(user){
   try{ window.localStorage.setItem(SESSION_KEY, JSON.stringify(user)); }catch(e){ /* navegador sem suporte */ }
@@ -556,55 +853,23 @@ let pendingFotoVerificacao = null;
 let pendingFotoConclusao = null;
 
 function genCode(){
-  const n = (items.length + 1).toString().padStart(4,'0');
-  return 'OS-' + n;
-}
-
-function seedExamples(){
-  const now = Date.now();
-  const day = 86400000;
-  items = [
-    {
-      id:'seed1', code:'OS-0001', local:'Terminal 3 - totens 2 e 4', tipo:'falha de conectividade',
-      prioridade:'urgente', solicitante:'Gustavo', tecnico:'Robert', status:'concluida',
-      diagnostico:'Cabo de rede rompido no rack, substituído e testado com Sitram.',
-      dataAbertura: now - 9*day, dataConclusao: now - 7*day
-    },
-    {
-      id:'seed2', code:'OS-0002', local:'Painel PMV - Av. das Torres', tipo:'atualização de firmware',
-      prioridade:'normal', solicitante:'Fredson', tecnico:'Hélio', status:'andamento',
-      diagnostico:'Aguardando janela de manutenção para atualizar sem interromper veiculação.',
-      dataAbertura: now - 3*day, dataConclusao: null
-    },
-    {
-      id:'seed3', code:'OS-0003', local:'TV Busão - linha 120', tipo:'tela sem sinal',
-      prioridade:'urgente', solicitante:'Jessica', tecnico:'Carlos', status:'peca',
-      diagnostico:'Placa de vídeo com defeito, peça de reposição pedida ao fornecedor.',
-      dataAbertura: now - 5*day, dataConclusao: null
-    },
-    {
-      id:'seed4', code:'OS-0004', local:'Terminal 4 - almoxarifado', tipo:'inventário de bens',
-      prioridade:'preventiva', solicitante:'Carlos', tecnico:'Carlos', status:'aberta',
-      diagnostico:'',
-      dataAbertura: now - 1*day, dataConclusao: null
-    },
-    {
-      id:'seed5', code:'OS-0005', local:'Painel outdoor - Passarela Centro', tipo:'manutenção preventiva',
-      prioridade:'preventiva', solicitante:'Fredson', tecnico:'Robert', status:'concluida',
-      diagnostico:'Limpeza de ventilação e checagem de conexões, sem anomalias.',
-      dataAbertura: now - 15*day, dataConclusao: now - 14*day
-    }
-  ];
-  persist();
+  // maior número já usado + 1: não repete código depois de exclusão
+  let maior = 0;
+  items.forEach(x=>{
+    const m = /^OS-(\d+)$/.exec(x.code || '');
+    if(m) maior = Math.max(maior, parseInt(m[1], 10));
+  });
+  return 'OS-' + (maior + 1).toString().padStart(4,'0');
 }
 
 function gasConfigured(){
+  if(MODO_TESTE) return false; // isola a cópia de testes do painel oficial
   return GAS_URL && GAS_URL.indexOf('COLE_AQUI') === -1 && GAS_URL.indexOf('http') === 0;
 }
 
 let isModalOpen = false;
 function anyModalOpen(){
-  return ['overlay','codeOverlay','reportFilterOverlay'].some(id=>{
+  return ['overlay','codeOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay'].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains('show');
   });
@@ -619,18 +884,37 @@ function normalizeUserSlots(slots){
 }
 
 async function loadData(){
+  if(MODO_TESTE){
+    const d = testeLoad();
+    if(d){
+      items = d.items || [];
+      userSlots = normalizeUserSlots(d.userSlots);
+      cadastro = normalizaCadastro(d.cadastro);
+      migraStatusPeca();
+      render();
+    } else {
+      items = [];
+      userSlots = normalizeUserSlots(userSlots);
+      render();
+    }
+    updateModeUI();
+    const el = document.getElementById('syncInfo');
+    if(el){ el.textContent = 'modo teste · dados só neste navegador'; }
+    return;
+  }
   if(!gasConfigured()){ renderConfigNeeded(); return; }
   try{
     const resp = await fetch(GAS_URL, { method:'GET' });
     const json = await resp.json();
     items = (json && json.items) || [];
     userSlots = normalizeUserSlots(json && json.userSlots);
+    cadastro = normalizaCadastro(json && json.cadastro);
+    migraStatusPeca();
   }catch(e){
     console.error('Erro ao carregar dados do Apps Script', e);
     if(!items) items = [];
     userSlots = normalizeUserSlots(userSlots);
   }
-  if(items.length===0 && !gasConfigured()) seedExamples();
   markSynced();
   render();
   updateModeUI();
@@ -645,12 +929,13 @@ async function persistUserSlots(){
 }
 
 async function pushState(){
+  if(MODO_TESTE){ testeSave(); return; }
   if(!gasConfigured()) return;
   try{
     await fetch(GAS_URL, {
       method:'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS no Apps Script
-      body: JSON.stringify({ action:'save', data: { items, userSlots } })
+      body: JSON.stringify({ action:'save', data: { items, userSlots, cadastro } })
     });
   }catch(e){ console.error('Erro ao salvar no Apps Script', e); }
 }
@@ -789,7 +1074,9 @@ function updateModeUI(){
   document.getElementById('btnCSV').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnSheetExport').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnReport').style.display = (isAdmin || isDiretoria) ? 'inline-flex' : 'none';
+  document.getElementById('btnReportVist').style.display = (isAdmin || isDiretoria) ? 'inline-flex' : 'none';
   document.getElementById('btnImport').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('btnCadastro').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnNovaOS').style.display = canCreate ? 'inline-flex' : 'none';
 }
 
@@ -815,8 +1102,156 @@ function canDeleteOS(item){
   return false;
 }
 
+function preencheSelectLocais(atual){
+  const sel = document.getElementById('fLocalSel');
+  const nomes = nomesCadastro('locais');
+  let opts = '<option value="">— selecione o local —</option>';
+  opts += nomes.map(n=>'<option value="' + escVist(n) + '">' + escVist(n) + '</option>').join('');
+  if(atual && !nomes.includes(atual)){
+    opts += '<option value="' + escVist(atual) + '">' + escVist(atual) + ' (fora do cadastro)</option>';
+  }
+  opts += '<option value="__novo__">— outro local (digitar) —</option>';
+  sel.innerHTML = opts;
+  sel.value = atual || '';
+  onLocalSelChange();
+}
+
+// o status é consequência: compra de material → aguardando peça; salvar → aberta;
+// encerrar → concluída. Só "Em andamento" é escolha do usuário.
+// "aguardando peça" não é etapa da OS: é uma CONDIÇÃO dela.
+// A OS fica na coluna do seu ciclo de vida E na coluna Aguardando peça.
+function aguardandoPeca(x){
+  if(!x) return false;
+  if(x.status === 'concluida') return false;
+  return !!x.compraMaterial;
+}
+
+// em que colunas do quadro esta OS aparece
+function colunasDe(x){
+  const cols = [x.status];
+  if(aguardandoPeca(x)) cols.push('peca');
+  return cols;
+}
+
+function statusTexto(x){
+  return (statusLabel[x.status] || x.status) + (aguardandoPeca(x) ? ' + aguardando peça' : '');
+}
+
+function statusAutomatico(){
+  const sel = document.getElementById('fStatus');
+  const it = editingId ? items.find(x=>x.id===editingId) : null;
+  if(it && it.status === 'concluida') return 'concluida';
+  if(sel.selectedIndex >= 0 && sel.value === 'andamento') return 'andamento';
+  return 'aberta';
+}
+
+function onStatusChange(){
+  const sel = document.getElementById('fStatus');
+  const atual = editingId ? items.find(x=>x.id===editingId) : null;
+  if(sel.value === 'andamento' && atual && atual.status === 'concluida'){
+    sel.value = 'concluida';
+    if(currentUser?.role !== 'admin'){
+      askConfirm('Esta OS está encerrada. Só o administrador pode reabri-la.', ()=>{});
+      return;
+    }
+    reabrirOS();
+    return;
+  }
+  if(sel.value === 'concluida'){
+    if(!editingId){
+      sel.selectedIndex = -1;
+      askConfirm('Salve a OS primeiro. O encerramento é feito depois, quando o serviço estiver concluído.', ()=>{});
+      return;
+    }
+    const it = items.find(x=>x.id===editingId);
+    if(it && it.status === 'andamento') sel.value = 'andamento'; else sel.selectedIndex = -1;
+    encerrarOS();
+    return;
+  }
+  atualizaStatusDica();
+}
+
+function atualizaStatusDica(){
+  const novo = statusAutomatico();
+  const sel = document.getElementById('fStatus');
+  if(novo === 'andamento' || novo === 'concluida') sel.value = novo;
+  else sel.selectedIndex = -1;      // OS aberta: nenhuma das duas foi declarada ainda
+  const dica = document.getElementById('statusDica');
+  if(!dica) return;
+  const compra = document.getElementById('fEhCompra').checked;
+  const cond = (compra && novo !== 'concluida')
+    ? ' Como requer compra de material, ela aparece <b>também</b> em Aguardando peça.' : '';
+  if(novo === 'concluida') dica.innerHTML = 'OS encerrada. Para mexer, use <b>↩ Reabrir OS</b>.';
+  else if(novo === 'andamento') dica.innerHTML = 'Início dos trabalhos registrado nesta OS.' + cond;
+  else dica.innerHTML = 'Emitida e aguardando início. O técnico marca <b>Em andamento</b> quando começa o serviço.' + cond;
+}
+
+function onAcaoChange(){
+  const acao = document.getElementById('fAcao').value;
+  const it = editingId ? items.find(x=>x.id===editingId) : null;
+  const info = document.getElementById('fAcaoInfo');
+  const trocou = it && it.acao && it.acao !== acao && it.vistoria;
+  info.innerHTML = trocou
+    ? '<span style="color:var(--red);">Atenção: já existe ' + (ACOES[it.acao]||ACOES.visita).rel.toLowerCase() +
+      ' preenchido nesta OS. Trocar a ação exige apagar o relatório atual, porque o roteiro é diferente.</span>'
+    : 'Define qual relatório esta OS abre: ' + (ACOES[acao]||ACOES.visita).rel + '.';
+  atualizaBotaoVistoria();
+}
+
+function onLocalSelChange(){
+  const sel = document.getElementById('fLocalSel');
+  const txt = document.getElementById('fLocal');
+  const info = document.getElementById('fLocalInfo');
+  const novo = sel.value === '__novo__';
+  txt.style.display = novo ? 'block' : 'none';
+  if(!novo) txt.value = sel.value;
+  if(novo){
+    info.textContent = 'Local fora do cadastro. Se ele é permanente, cadastre em "📍 Cadastros".';
+  } else {
+    info.textContent = nomesCadastro('locais').length ? '' : 'Nenhum local cadastrado. Cadastre em "📍 Cadastros".';
+  }
+}
+
+// libera os campos conforme a permissão do usuário nesta OS
+function aplicaModoEdicao(){
+  const it = editingId ? items.find(x=>x.id===editingId) : null;
+  const perm = it ? getEditPermission(it) : 'full';
+  const soLeitura = perm === 'none';
+  const limited = perm === 'limited';
+
+  const campos = ['fLocalSel','fLocal','fAcao','fTipo','fPrioridadeM','fSolicitante','fTecnicoM',
+                  'fEhCompra','fRequerRelatorio','fRequerDiagnostico','fStatus','fDiagnostico'];
+  const soDoTecnico = ['fStatus','fDiagnostico','fRequerDiagnostico'];
+  campos.forEach(fid=>{
+    const el = document.getElementById(fid);
+    if(!el) return;
+    if(limited) el.disabled = !soDoTecnico.includes(fid);
+    else el.disabled = soLeitura;
+  });
+
+  const matBloq = soLeitura || limited;
+  document.querySelectorAll('#materiaisLista input').forEach(inp=>inp.disabled = matBloq);
+  const bAdd = document.getElementById('btnAddMaterial');
+  const bDel = document.getElementById('btnDelMaterial');
+  if(bAdd) bAdd.style.display = matBloq ? 'none' : 'inline-flex';
+  if(bDel) bDel.style.display = matBloq ? 'none' : 'inline-flex';
+
+  document.getElementById('btnSave').style.display = soLeitura ? 'none' : 'inline-flex';
+  document.getElementById('btnDelete').style.display =
+    (it && typeof canDeleteOS === 'function' && canDeleteOS(it)) ? 'inline-flex' : 'none';
+  document.getElementById('btnImprimirOS').style.display = it ? 'inline-flex' : 'none';
+
+  // quando um botão não se aplica, os outros esticam para preencher a largura
+  const visiveis = ['btnDelete','btnSave','btnImprimirOS']
+    .filter(id=>document.getElementById(id).style.display !== 'none').length;
+  document.querySelector('.os-acoes').style.gridTemplateColumns = 'repeat(' + Math.max(1, visiveis) + ',1fr)';
+}
+
 function openModal(id){
   if(!id && !currentUser) return;
+  relatorioAvisado = false;
+
+  encerramentoAvisado = false;
   editingId = id || null;
   document.getElementById('overlay').classList.add('show');
   const item = id ? items.find(x=>x.id===id) : null;
@@ -824,22 +1259,17 @@ function openModal(id){
   const readOnly = perm === 'none';
   const limited = perm === 'limited';
 
-  document.getElementById('btnDelete').style.display = canDeleteOS(item) ? 'inline-flex' : 'none';
-  document.getElementById('btnImprimirOS').style.display = id ? 'inline-flex' : 'none';
-  document.getElementById('btnSave').style.display = readOnly ? 'none' : 'inline-flex';
+  const chkRel = document.getElementById('fRequerRelatorio');
+  chkRel.checked = !!(item && (item.requerRelatorio || item.vistoria));
+  chkRel.disabled = readOnly;
+  document.getElementById('relatorioFieldsWrap').style.display = chkRel.checked ? 'block' : 'none';
+  atualizaBlocoRelatorio();
+  atualizaBotaoVistoria();
+  atualizaDicaMaterial();
+  atualizaStatusDica();
 
-  const lockedInLimited = ['fLocal','fTipo','fPrioridadeM','fSolicitante','fTecnicoM','fEhCompra'];
+  const lockedInLimited = ['fLocal','fLocalSel','fAcao','fTipo','fPrioridadeM','fSolicitante','fTecnicoM','fEhCompra'];
   const alwaysStatusDiag = ['fStatus','fDiagnostico'];
-  if(limited){
-    lockedInLimited.forEach(fid=>document.getElementById(fid).disabled = true);
-    alwaysStatusDiag.forEach(fid=>document.getElementById(fid).disabled = false);
-  } else {
-    [...lockedInLimited, ...alwaysStatusDiag].forEach(fid=>document.getElementById(fid).disabled = !!readOnly);
-  }
-  const materiaisBloqueados = limited || readOnly;
-  document.querySelectorAll('#materiaisLista input').forEach(inp=>inp.disabled = materiaisBloqueados);
-  document.querySelectorAll('#materiaisLista .mat-remove').forEach(btn=>btn.style.display = materiaisBloqueados ? 'none' : 'inline-flex');
-  document.getElementById('btnAddMaterial').style.display = materiaisBloqueados ? 'none' : 'inline-flex';
 
   const photosEditable = perm === 'full';
   document.getElementById('fFotoVerif').style.display = photosEditable ? 'flex' : 'none';
@@ -849,20 +1279,23 @@ function openModal(id){
     const it = items.find(x=>x.id===id);
     document.getElementById('modalTitle').textContent = it.code;
     document.getElementById('fLocal').value = it.local;
+  preencheSelectLocais(it.local);
+  document.getElementById('fAcao').value = it.acao || 'visita';
     document.getElementById('fTipo').value = it.tipo;
     document.getElementById('fPrioridadeM').value = it.prioridade;
     document.getElementById('fSolicitante').value = it.solicitante||'';
     document.getElementById('fTecnicoM').value = it.tecnico||'';
-    document.getElementById('fStatus').value = it.status;
+    if(it.status === 'andamento' || it.status === 'concluida') document.getElementById('fStatus').value = it.status;
+  else document.getElementById('fStatus').selectedIndex = -1;
     document.getElementById('fDiagnostico').value = it.diagnostico||'';
+    document.getElementById('fRequerDiagnostico').checked = !!(it.requerDiagnostico || (it.diagnostico && it.diagnostico.trim()));
+    toggleDiagnosticoFields();
     document.getElementById('fEhCompra').checked = !!it.compraMaterial;
     limparListaMateriais();
     const materiaisExistentes = it.materiais && it.materiais.length ? it.materiais
       : (it.nomeMaterial ? [{nome: it.nomeMaterial, quantidade: it.quantidade||0}] : []);
-    materiaisExistentes.forEach(m=>adicionarLinhaMaterial(m.nome, m.quantidade));
+    materiaisExistentes.forEach(m=>adicionarLinhaMaterial(m.nome, m.quantidade, m.unidade));
     toggleCompraFields();
-    document.querySelectorAll('#materiaisLista input').forEach(inp=>inp.disabled = materiaisBloqueados);
-    document.querySelectorAll('#materiaisLista .mat-remove').forEach(btn=>btn.style.display = materiaisBloqueados ? 'none' : 'inline-flex');
     pendingFotoVerificacao = it.fotoVerificacao || null;
     pendingFotoConclusao = it.fotoConclusao || null;
     renderPhotoPreview('previewVerif', pendingFotoVerificacao, 'verificacao', photosEditable);
@@ -870,9 +1303,13 @@ function openModal(id){
   } else {
     document.getElementById('modalTitle').textContent = 'Nova ordem de serviço';
     ['fLocal','fTipo','fSolicitante','fTecnicoM','fDiagnostico'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fAcao').value = 'visita';
+    preencheSelectLocais('');
     document.getElementById('fPrioridadeM').value = 'normal';
-    document.getElementById('fStatus').value = 'aberta';
+    document.getElementById('fStatus').selectedIndex = -1;
     document.getElementById('fEhCompra').checked = false;
+    document.getElementById('fRequerDiagnostico').checked = false;
+    toggleDiagnosticoFields();
     limparListaMateriais();
     toggleCompraFields();
     pendingFotoVerificacao = null;
@@ -882,27 +1319,86 @@ function openModal(id){
   }
 }
 
+function toggleDiagnosticoFields(){
+  const marcado = document.getElementById('fRequerDiagnostico').checked;
+  document.getElementById('diagnosticoFieldsWrap').style.display = marcado ? 'block' : 'none';
+}
+
 function toggleCompraFields(){
   const marcado = document.getElementById('fEhCompra').checked;
   document.getElementById('compraFieldsWrap').style.display = marcado ? 'block' : 'none';
   if(marcado && document.getElementById('materiaisLista').children.length === 0){
     adicionarLinhaMaterial();
   }
-  const fStatus = document.getElementById('fStatus');
-  if(marcado && fStatus.value === 'aberta'){
-    fStatus.value = 'peca';
-  }
+  atualizaDicaMaterial();
+  atualizaStatusDica();
+  aplicaModoEdicao();
 }
 
-function adicionarLinhaMaterial(nome, quantidade){
+
+function adicionarLinhaMaterial(nome, quantidade, unidade){
   const wrap = document.createElement('div');
   wrap.className = 'material-row';
+  wrap.onclick = function(){ selecionaLinhaMaterial(wrap); };
   wrap.innerHTML = `
-    <input type="text" class="mat-nome" placeholder="Nome do material" value="${nome ? nome.replace(/"/g,'&quot;') : ''}">
-    <input type="number" class="mat-qtd" placeholder="Qtd" min="0" step="1" value="${quantidade || ''}">
-    <button type="button" class="btn danger mat-remove" onclick="this.closest('.material-row').remove()">×</button>
+    <input type="text" class="mat-nome" value="${nome ? nome.replace(/"/g,'&quot;') : ''}">
+    <input type="text" class="mat-qtd" inputmode="numeric" maxlength="5" value="${quantidade || ''}">
+    <input type="text" class="mat-un" maxlength="8" value="${unidade ? unidade.replace(/"/g,'&quot;') : ''}">
   `;
+  // quantidade: só dígitos, digitados
+  wrap.querySelector('.mat-qtd').addEventListener('input', function(){
+    const limpo = this.value.replace(/\D+/g,'');
+    if(this.value !== limpo) this.value = limpo;
+  });
+  // a dica acompanha o que está sendo digitado
+  wrap.querySelectorAll('input,select').forEach(el=>{
+    el.addEventListener('input', ()=>{ selecionaLinhaMaterial(wrap); });
+    el.addEventListener('focus', ()=>{ selecionaLinhaMaterial(wrap); });
+  });
   document.getElementById('materiaisLista').appendChild(wrap);
+  selecionaLinhaMaterial(wrap);
+  return wrap;
+}
+
+function selecionaLinhaMaterial(linha){
+  document.querySelectorAll('#materiaisLista .material-row').forEach(l=>l.classList.remove('sel'));
+  if(linha) linha.classList.add('sel');
+  atualizaDicaMaterial();
+}
+
+function atualizaDicaMaterial(){
+  const dica = document.getElementById('matDica');
+  if(!dica) return;
+  const total = document.querySelectorAll('#materiaisLista .material-row').length;
+  const sel = document.querySelector('#materiaisLista .material-row.sel');
+  const nome = sel ? ((sel.querySelector('.mat-nome').value.trim() || 'linha em branco') +
+    (sel.querySelector('.mat-qtd').value ? ' — ' + sel.querySelector('.mat-qtd').value + ' ' + sel.querySelector('.mat-un').value : '')) : null;
+  dica.textContent = !total
+    ? 'Nenhum material na lista. Use Adicionar Material.'
+    : (sel ? total + ' material(is) na lista · selecionado: ' + nome
+           : total + ' material(is) na lista · toque em uma linha para selecioná-la antes de excluir.');
+}
+
+function excluirMaterialSelecionado(){
+  const linhas = [...document.querySelectorAll('#materiaisLista .material-row')];
+  if(!linhas.length){
+    askConfirm('Não há material na lista para excluir.', ()=>{});
+    return;
+  }
+  const sel = document.querySelector('#materiaisLista .material-row.sel');
+  if(!sel){
+    askConfirm('Toque na linha do material que deseja excluir e clique novamente em Excluir Material.', ()=>{});
+    return;
+  }
+  const nome = sel.querySelector('.mat-nome').value.trim();
+  const remove = ()=>{
+    const idx = linhas.indexOf(sel);
+    sel.remove();
+    const restantes = [...document.querySelectorAll('#materiaisLista .material-row')];
+    selecionaLinhaMaterial(restantes[Math.min(idx, restantes.length-1)] || null);
+  };
+  if(nome) askConfirm('Excluir o material "' + escVist(nome) + '" desta OS?', remove);
+  else remove();
 }
 
 function limparListaMateriais(){
@@ -912,11 +1408,13 @@ function limparListaMateriais(){
 function coletarMateriais(){
   return Array.from(document.querySelectorAll('#materiaisLista .material-row')).map(row=>({
     nome: row.querySelector('.mat-nome').value.trim(),
-    quantidade: parseFloat(row.querySelector('.mat-qtd').value) || 0
+    quantidade: parseInt(row.querySelector('.mat-qtd').value, 10) || 0,
+    unidade: row.querySelector('.mat-un').value.trim() || 'und'
   })).filter(m=>m.nome !== '');
 }
 
 function closeModal(){
+  fecharPreview();
   document.getElementById('overlay').classList.remove('show');
 }
 
@@ -1010,13 +1508,34 @@ function renderPhotoPreview(containerId, dataUrl, kind, showRemove, uploading){
 }
 
 async function saveOS(){
-  const local = document.getElementById('fLocal').value.trim();
-  if(!local){ document.getElementById('fLocal').focus(); return; }
+  const sel = document.getElementById('fLocalSel');
+  const local = (sel.value === '__novo__' ? document.getElementById('fLocal').value : sel.value).trim();
+  if(!local){
+    askConfirm('Selecione o local da OS. Uma OS é sempre de um único local, para os relatórios por local e por conjunto fecharem.', ()=>{});
+    return;
+  }
   if(photosUploading > 0){
     askConfirm('Ainda estamos enviando uma foto para o servidor. Aguarde alguns segundos e tente salvar novamente.', ()=>{});
     return;
   }
+  const acaoEscolhida = document.getElementById('fAcao').value;
+  if(editingId){
+    const atual = items.find(x=>x.id===editingId);
+    if(atual && atual.vistoria && (atual.acao||'visita') !== acaoEscolhida){
+      askConfirm('Esta OS já tem ' + (ACOES[atual.acao||'visita']).rel.toLowerCase() +
+        ' preenchido. Para mudar a ação é preciso primeiro excluir o relatório atual, no botão do rodapé — o roteiro de cada ação é diferente.', ()=>{});
+      return;
+    }
+  }
   const ehCompra = document.getElementById('fEhCompra').checked;
+  const requerRelatorio = document.getElementById('fRequerRelatorio').checked;
+  const statusEscolhido = statusAutomatico();
+  const jaTemRelatorio = !!(editingId && (items.find(x=>x.id===editingId)||{}).vistoria);
+  if(requerRelatorio && !jaTemRelatorio && statusEscolhido === 'concluida' && !relatorioAvisado){
+    relatorioAvisado = true;
+    askConfirm('Esta OS exige relatório técnico e o formulário ainda não foi preenchido. Concluir assim mesmo? Se preferir, cancele, preencha em "📋 Relatório técnico" e salve depois.', ()=>{ saveOS(); });
+    return;
+  }
   const materiais = ehCompra ? coletarMateriais() : [];
   const data = {
     local,
@@ -1024,18 +1543,31 @@ async function saveOS(){
     prioridade: document.getElementById('fPrioridadeM').value,
     solicitante: document.getElementById('fSolicitante').value.trim(),
     tecnico: document.getElementById('fTecnicoM').value.trim(),
-    status: document.getElementById('fStatus').value,
-    diagnostico: document.getElementById('fDiagnostico').value.trim(),
+    status: statusEscolhido,
+    requerDiagnostico: document.getElementById('fRequerDiagnostico').checked,
+    diagnostico: document.getElementById('fRequerDiagnostico').checked
+      ? document.getElementById('fDiagnostico').value.trim() : '',
     fotoVerificacao: pendingFotoVerificacao,
     fotoConclusao: pendingFotoConclusao,
     compraMaterial: ehCompra && materiais.length > 0,
+    requerRelatorio: requerRelatorio,
+    acao: acaoEscolhida,
     materiais: materiais,
   };
   if(editingId){
     const it = items.find(x=>x.id===editingId);
+    const statusAnterior = it.status;
     Object.assign(it, data);
-    if(data.status==='concluida' && !it.dataConclusao) it.dataConclusao = Date.now();
-    if(data.status!=='concluida') it.dataConclusao = null;
+    // marcar Em andamento pela primeira vez = o técnico assumiu a OS
+    if(data.status === 'andamento' && !it.dataInicio){
+      it.dataInicio = Date.now();
+      it.iniciadoPor = currentUser ? currentUser.name : null;
+    }
+    // encerramento é ato explícito: salvar não conclui nem reabre
+    if(statusAnterior === 'concluida' && data.status !== 'concluida'){
+      it.dataConclusao = null;
+      it.encerradoPor = null;
+    }
   } else {
     items.push({
       id: 'id'+Date.now(),
@@ -1060,21 +1592,7 @@ function deleteOS(){
   render();
 }
 
-function aguardarImagens(container, timeoutMs){
-  const imgs = Array.from(container.querySelectorAll('img'));
-  if(imgs.length === 0) return Promise.resolve();
-  const promessas = imgs.map(img => {
-    if(img.complete && img.naturalWidth > 0) return Promise.resolve();
-    return new Promise(resolve => {
-      img.addEventListener('load', resolve, {once:true});
-      img.addEventListener('error', resolve, {once:true}); // não trava a impressão se uma foto falhar
-    });
-  });
-  const timeout = new Promise(resolve => setTimeout(resolve, timeoutMs || 6000));
-  return Promise.race([Promise.all(promessas), timeout]);
-}
-
-async function imprimirOS(){
+function imprimirOS(){
   const it = items.find(x=>x.id===editingId);
   if(!it) return;
 
@@ -1084,18 +1602,18 @@ async function imprimirOS(){
     : (it.nomeMaterial ? [{nome: it.nomeMaterial, quantidade: it.quantidade||0}] : []);
   const materiaisHTML = (it.compraMaterial && materiaisArr.length) ? `
     <div style="margin:4px 0 16px;">
-      <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Relação de materiais pedidos</div>
+      <div class="sec" style="font-size:12px;font-weight:600;margin-bottom:6px;">Relação de materiais pedidos</div>
       <table class="rep-table">
         <thead><tr><th style="width:75%;">Material</th><th>Quantidade</th></tr></thead>
         <tbody>
-          ${materiaisArr.map(m=>`<tr><td>${m.nome}</td><td>${m.quantidade}</td></tr>`).join('')}
+          ${materiaisArr.map(m=>`<tr><td>${m.nome}</td><td>${m.quantidade} ${m.unidade||'und'}</td></tr>`).join('')}
         </tbody>
       </table>
     </div>` : '';
 
   const fotosHTML = (it.fotoVerificacao || it.fotoConclusao) ? `
     <div style="margin-top:14px;">
-      <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Fotos anexadas</div>
+      <div class="sec" style="font-size:12px;font-weight:600;margin-bottom:6px;">Fotos anexadas</div>
       <div style="display:flex;gap:14px;">
         ${it.fotoVerificacao ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Verificação</div>${fotoImgTag(it.fotoVerificacao, 120)}</div>` : ''}
         ${it.fotoConclusao ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Conclusão</div>${fotoImgTag(it.fotoConclusao, 120)}</div>` : ''}
@@ -1114,11 +1632,13 @@ async function imprimirOS(){
         <tr><td style="font-weight:600;width:180px;">Local / equipamento</td><td>${it.local}</td></tr>
         <tr><td style="font-weight:600;">Tipo de problema</td><td>${it.tipo||'-'}</td></tr>
         <tr><td style="font-weight:600;">Prioridade</td><td>${prioLabel[it.prioridade]||'-'}</td></tr>
-        <tr><td style="font-weight:600;">Status</td><td>${statusLabel[it.status]||'-'}</td></tr>
+        <tr><td style="font-weight:600;">Status</td><td>${statusTexto(it)}</td></tr>
         <tr><td style="font-weight:600;">Solicitante</td><td>${it.solicitante||'-'}</td></tr>
         <tr><td style="font-weight:600;">Técnico responsável</td><td>${it.tecnico||'-'}</td></tr>
-        <tr><td style="font-weight:600;">Data de abertura</td><td>${fmtDate(it.dataAbertura)}</td></tr>
-        <tr><td style="font-weight:600;">Data de conclusão</td><td>${fmtDate(it.dataConclusao)}</td></tr>
+        <tr><td style="font-weight:600;">Emissão (data e hora)</td><td>${fmtDataHora(it.dataAbertura)}${it.criadoPor ? ' — ' + it.criadoPor : ''}</td></tr>
+      <tr><td style="font-weight:600;">Início dos trabalhos</td><td>${it.dataInicio ? fmtDataHora(it.dataInicio) + (it.iniciadoPor ? ' — ' + it.iniciadoPor : '') : 'não iniciada'}${tempoAteInicio(it) != null ? ' (' + fmtDuracao(tempoAteInicio(it)) + ' após a emissão)' : ''}</td></tr>
+        <tr><td style="font-weight:600;">Encerramento (data e hora)</td><td>${fmtDataHora(it.dataConclusao)}${it.encerradoPor ? ' — ' + it.encerradoPor : ''}</td></tr>
+      <tr><td style="font-weight:600;">Tempos</td><td>até o início: ${fmtDuracao(tempoAteInicio(it))} · execução: ${fmtDuracao(tempoExecucao(it))} · total desde a emissão: ${fmtDuracao(tempoTotal(it))}</td></tr>
         <tr><td style="font-weight:600;vertical-align:top;">Diagnóstico / solução aplicada</td><td>${(it.diagnostico||'-').replace(/\n/g,'<br>')}</td></tr>
       </tbody>
     </table>
@@ -1134,8 +1654,69 @@ async function imprimirOS(){
     </div>
     <div style="margin-top:12px;font-size:11px;color:#555;">Data: ____ / ____ / ________</div>
   `;
-  await aguardarImagens(document.getElementById('printArea'));
-  window.print();
+  // OS normal sai em retrato; a que envolve vistoria segue em paisagem
+  mostrarPreview('Ordem de serviço', it.vistoria ? 'landscape' : 'portrait');
+}
+
+// ============================================================
+//  TRÊS MARCOS DA OS
+//  Emissão   -> o start da diretoria (dataAbertura / criadoPor)
+//  Assumida  -> o start do técnico   (dataInicio / iniciadoPor)
+//  Encerramento -> conclusão         (dataConclusao / encerradoPor)
+//  Dois tempos: fila (emissão→assumida) e execução (assumida→encerrada).
+// ============================================================
+function fmtDuracao(ms){
+  if(ms == null || ms < 0) return '-';
+  let min = Math.round(ms/60000);
+  const d = Math.floor(min/1440); min -= d*1440;
+  const h = Math.floor(min/60); min -= h*60;
+  return (d ? d + 'd ' : '') + (h || d ? h + 'h ' : '') + min + 'min';
+}
+
+// da emissão até o técnico declarar o início
+function tempoAteInicio(it){
+  if(!it || !it.dataAbertura) return null;
+  const fim = it.dataInicio || null;
+  if(!fim) return null;
+  return fim - it.dataAbertura;
+}
+
+// do início dos trabalhos até o encerramento
+function tempoExecucao(it){
+  if(!it || !it.dataConclusao) return null;
+  const ini = it.dataInicio || it.dataAbertura;   // sem marco de início, conta da emissão
+  return it.dataConclusao - ini;
+}
+
+// da emissão até encerrar — é o que responde ao cliente
+function tempoTotal(it){
+  if(!it || !it.dataConclusao || !it.dataAbertura) return null;
+  return it.dataConclusao - it.dataAbertura;
+}
+
+function mediaDuracao(lista, fn){
+  const vals = lista.map(fn).filter(v=>v != null && v >= 0);
+  if(!vals.length) return '-';
+  return fmtDuracao(vals.reduce((a,b)=>a+b, 0) / vals.length);
+}
+
+function duracaoOS(it){
+  if(!it || !it.dataConclusao) return '-';
+  let min = Math.max(0, Math.round((it.dataConclusao - it.dataAbertura)/60000));
+  const d = Math.floor(min/1440); min -= d*1440;
+  const h = Math.floor(min/60); min -= h*60;
+  return (d ? d + 'd ' : '') + (h || d ? h + 'h ' : '') + min + 'min';
+}
+
+function fmtDataHora(ts){
+  if(!ts) return '-';
+  const d = new Date(ts);
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+}
+
+function fmtHora(ts){
+  if(!ts) return '';
+  return new Date(ts).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
 }
 
 function driveImgUrl(url){
@@ -1176,7 +1757,7 @@ function avgResolutionTime(list){
 function populateTecnicoFilter(){
   const sel = document.getElementById('fTecnico');
   const current = sel.value;
-  const tecnicos = [...new Set(items.map(x=>x.tecnico).filter(Boolean))].sort();
+  const tecnicos = ordenaNomes([...new Set(items.map(x=>x.tecnico).filter(Boolean))]);
   sel.innerHTML = '<option value="">Técnico: todos</option>' + tecnicos.map(t=>`<option value="${t}">${t}</option>`).join('');
   sel.value = current;
 }
@@ -1185,14 +1766,18 @@ function render(){
   populateTecnicoFilter();
 
   const counts = {aberta:0, andamento:0, peca:0, concluida:0};
-  items.forEach(x=>counts[x.status]++);
+  items.forEach(x=>{
+    if(counts[x.status] !== undefined) counts[x.status]++;
+    if(aguardandoPeca(x)) counts.peca++;
+  });
 
   document.getElementById('stats').innerHTML = `
     <div class="stat op"><div class="label">Abertas</div><div class="val mono">${counts.aberta}</div></div>
     <div class="stat and"><div class="label">Em andamento</div><div class="val mono">${counts.andamento}</div></div>
     <div class="stat agp"><div class="label">Aguard. peça</div><div class="val mono">${counts.peca}</div></div>
     <div class="stat con"><div class="label">Concluídas</div><div class="val mono">${counts.concluida}</div></div>
-    <div class="stat"><div class="label">Tempo médio de execução</div><div class="val mono">${avgResolutionTime()}</div></div>
+    <div class="stat"><div class="label">Médio até o início</div><div class="val mono">${mediaDuracao(items, tempoAteInicio)}</div></div>
+    <div class="stat"><div class="label">Médio de execução</div><div class="val mono">${mediaDuracao(items, tempoExecucao)}</div></div>
   `;
 
   const q = document.getElementById('search').value.toLowerCase();
@@ -1214,15 +1799,22 @@ function render(){
   ];
 
   document.getElementById('board').innerHTML = cols.map(col=>{
-    const colItems = filtered.filter(x=>x.status===col.key).sort((a,b)=>b.dataAbertura-a.dataAbertura);
+    const colItems = filtered.filter(x=>colunasDe(x).includes(col.key)).sort((a,b)=>{
+      const ma = a.prioridade==='maxima' ? 0 : 1, mb = b.prioridade==='maxima' ? 0 : 1;
+      if(ma !== mb) return ma - mb;                 // prioridade máxima primeiro
+      return b.dataAbertura - a.dataAbertura;
+    });
     const cards = colItems.length ? colItems.map(it=>`
       <div class="card prio-${it.prioridade}" onclick="openModal('${it.id}')">
-        <div class="code mono">${it.code}${(it.fotoVerificacao||it.fotoConclusao) ? ' 📷' : ''}</div>
+        ${it.prioridade==='maxima' ? '<div class="tag-maxima">PRIORIDADE MÁXIMA!!!!</div>' : ''}
+        <div class="code mono">${it.code}${(it.fotoVerificacao||it.fotoConclusao) ? ' 📷' : ''}${it.vistoria ? ' 📋' + contaConjuntos(it) + 'c' + (contaNC(it) ? '/' + contaNC(it) + 'NC' : '') : (it.requerRelatorio ? ' 📋?' : '')}</div>
         <div class="loc">${it.local}</div>
+        <div class="meta" style="color:var(--amber);"><span>${(ACOES[it.acao||'visita']||ACOES.visita).icone} ${(ACOES[it.acao||'visita']||ACOES.visita).curto}</span><span>${aguardandoPeca(it) ? '<span class="tag-peca">aguardando peça</span>' : ''}</span></div>
         <div class="meta">
           <span>${it.tecnico||'sem técnico'}</span>
-          <span class="mono">${fmtDate(it.dataAbertura)}</span>
+          <span class="mono" title="abertura">${fmtDate(it.dataAbertura)} ${fmtHora(it.dataAbertura)}</span>
         </div>
+        ${it.dataConclusao ? `<div class="meta" style="color:var(--teal);"><span>✓ concluída</span><span class="mono">${fmtDate(it.dataConclusao)} ${fmtHora(it.dataConclusao)}</span></div>` : ''}
       </div>
     `).join('') : '<div class="empty">Sem OS aqui</div>';
 
@@ -1240,7 +1832,7 @@ function render(){
 }
 
 const statusLabel = {aberta:'Aberta', andamento:'Em andamento', peca:'Aguardando peça', concluida:'Concluída'};
-const prioLabel = {urgente:'Urgente', normal:'Normal', preventiva:'Preventiva'};
+const prioLabel = {maxima:'PRIORIDADE MÁXIMA!!!!', urgente:'Urgente', normal:'Normal', preventiva:'Preventiva'};
 
 function csvEscape(v){
   const s = (v===undefined||v===null) ? '' : String(v);
@@ -1250,23 +1842,26 @@ function csvEscape(v){
 function materiaisTexto(x){
   const arr = x.materiais && x.materiais.length ? x.materiais
     : (x.nomeMaterial ? [{nome:x.nomeMaterial, quantidade:x.quantidade||0}] : []);
-  return arr.map(m=>`${m.nome} x${m.quantidade}`).join('; ');
+  return arr.map(m=>`${m.nome} x${m.quantidade} ${m.unidade||'und'}`).join('; ');
 }
 
 function materiaisDeTexto(texto){
   if(!texto || !texto.trim()) return [];
   return texto.split(';').map(s=>s.trim()).filter(Boolean).map(parte=>{
-    const m = parte.match(/^(.*)\sx(\d+(\.\d+)?)$/i);
-    if(m) return { nome: m[1].trim(), quantidade: parseFloat(m[2]) };
-    return { nome: parte, quantidade: 0 };
+    const m = parte.match(/^(.*?)\s*x\s*(\d+)\s*(\S*)$/);
+    if(m) return { nome: m[1].trim(), quantidade: parseInt(m[2], 10) || 0, unidade: (m[3]||'').trim() || 'und' };
+    return { nome: parte, quantidade: 0, unidade: 'und' };
   });
 }
 
 function buildCSV(){
-  const header = ['Código','Local','Tipo','Prioridade','Solicitante','Técnico','Status','Data abertura','Data conclusão','Diagnóstico','Compra de material','Materiais (nome xQtd; nome xQtd)'];
+  const header = ['Código','Local','Tipo','Prioridade','Solicitante','Técnico','Status','Emissão','Emitida por','Início em','Início por','Encerramento em','Encerramento por','Tempo até o início','Tempo de execução','Diagnóstico','Compra de material','Materiais (nome xQtd un; nome xQtd un)'];
   const rows = items.map(x=>[
     x.code, x.local, x.tipo, prioLabel[x.prioridade]||x.prioridade, x.solicitante,
-    x.tecnico, statusLabel[x.status]||x.status, fmtDate(x.dataAbertura), fmtDate(x.dataConclusao), x.diagnostico,
+    x.tecnico, statusTexto(x), fmtDataHora(x.dataAbertura), x.criadoPor||'',
+      x.dataInicio ? fmtDataHora(x.dataInicio) : '', x.iniciadoPor||'',
+      x.dataConclusao ? fmtDataHora(x.dataConclusao) : '', x.encerradoPor||'',
+      fmtDuracao(tempoAteInicio(x)), fmtDuracao(tempoExecucao(x)), x.diagnostico,
     x.compraMaterial ? 'Sim' : 'Não',
     x.compraMaterial ? materiaisTexto(x) : '',
   ]);
@@ -1323,6 +1918,1123 @@ function exportCSV(){
 }
 
 let confirmCallback = null;
+// ============================================================
+//  RELATORIO DE VISTORIA  —  1 OS por local, N conjuntos dentro dela
+//  Estrutura: it.vistoria = { vistoriador, data, sigla, obsGerais,
+//                             conjuntos: [ { id, codigo, itens[], fotosGerais[], obs } ] }
+//  A quantidade de conjuntos e aberta: adiciona-se em campo conforme encontra.
+// ============================================================
+// ============================================================
+//  A OS DETERMINA A AÇÃO. CADA AÇÃO TEM SEU PRÓPRIO RELATÓRIO.
+//  visita     = vistoria técnica  (verifica: conforme / não conforme)
+//  preventiva = manutenção preventiva (executa: executado / pendente)
+//  corretiva  = manutenção corretiva  (repara: concluído / pendente)
+// ============================================================
+const ACOES = {
+  visita:     { nome:'Visita técnica',          curto:'Visita',     rel:'Relatório de visita técnica',          icone:'📋' },
+  preventiva: { nome:'Manutenção preventiva',   curto:'Preventiva', rel:'Relatório de manutenção preventiva',   icone:'🔧' },
+  corretiva:  { nome:'Manutenção corretiva',    curto:'Corretiva',  rel:'Relatório de manutenção corretiva',    icone:'🛠️' },
+};
+
+// estados de cada roteiro: [código, rótulo curto, classe]  — o 2º é sempre o crítico (exige descrição, solução e foto)
+const ESTADOS_ACAO = {
+  visita:     [['C','C','c'],  ['NC','NC','nc'], ['NA','NA','na']],
+  preventiva: [['EX','EX','c'],['PE','PE','nc'], ['NN','NN','na']],
+  corretiva:  [['OK','OK','c'],['PE','PE','nc'], ['NA','NA','na']],
+};
+
+const LEGENDA_ACAO = {
+  visita:     'C = conforme · NC = não conforme · NA = não se aplica',
+  preventiva: 'EX = executado · PE = pendente · NN = não necessário',
+  corretiva:  'OK = concluído · PE = pendente · NA = não se aplica',
+};
+
+const ROTULOS_CRITICO = {
+  visita:     { titulo:'Problema encontrado', solucao:'Solução proposta' },
+  preventiva: { titulo:'Por que ficou pendente', solucao:'O que precisa para executar' },
+  corretiva:  { titulo:'Por que ficou pendente', solucao:'O que falta para concluir' },
+};
+
+const ROTEIRO_PREVENTIVA = [
+  { id:'p_video',     grupo:'Veiculação da mídia', nome:'Teste de reprodução do vídeo e da playlist', foto:true },
+  { id:'p_player',    grupo:'Veiculação da mídia', nome:'Limpeza e reinício do TV Box / player' },
+  { id:'p_tela',      grupo:'Veiculação da mídia', nome:'Limpeza da tela e ajuste de brilho' },
+  { id:'p_eletrica',  grupo:'Elétrica', nome:'Revisão da ligação elétrica e reaperto de conexões', foto:true },
+  { id:'p_eletroduto',grupo:'Elétrica', nome:'Revisão e refixação do eletroduto', foto:true },
+  { id:'p_lampada',   grupo:'Elétrica', nome:'Teste e troca de lâmpadas da iluminação interna' },
+  { id:'p_base_limp', grupo:'Base do tótem', nome:'Limpeza da base', foto:true },
+  { id:'p_base_pint', grupo:'Base do tótem', nome:'Retoque de pintura da base', foto:true },
+  { id:'p_base_ferr', grupo:'Base do tótem', nome:'Tratamento de corrosão e ferrugem', foto:true },
+  { id:'p_reaperto',  grupo:'Base do tótem', nome:'Reaperto de parafusos e verificação do prumo' },
+  { id:'p_vedacao',   grupo:'Estrutura', nome:'Vedação e revisão da fechadura' },
+  { id:'p_lona',      grupo:'Estrutura', nome:'Revisão da lona / adesivo publicitário' },
+  { id:'p_vidro',     grupo:'Estrutura', nome:'Limpeza do vidro ou acrílico' },
+  { id:'p_etiqueta',  grupo:'Estrutura', nome:'Conferência da etiqueta patrimonial' },
+  { id:'p_entorno',   grupo:'Estrutura', nome:'Limpeza do entorno' },
+];
+
+const ROTEIRO_CORRETIVA = [
+  { id:'r_problema',  grupo:'Diagnóstico', nome:'Problema relatado confirmado no local', foto:true },
+  { id:'r_causa',     grupo:'Diagnóstico', nome:'Causa identificada' },
+  { id:'r_desligar',  grupo:'Execução', nome:'Desenergização e segurança antes do serviço' },
+  { id:'r_servico',   grupo:'Execução', nome:'Serviço de reparo executado', foto:true },
+  { id:'r_pecas',     grupo:'Execução', nome:'Peças substituídas' },
+  { id:'r_eletrica',  grupo:'Execução', nome:'Reparo elétrico / eletroduto' },
+  { id:'r_base',      grupo:'Execução', nome:'Reparo na base ou estrutura' },
+  { id:'r_teste',     grupo:'Encerramento', nome:'Teste de funcionamento após o reparo', foto:true },
+  { id:'r_video',     grupo:'Encerramento', nome:'Vídeo voltou a ser veiculado normalmente', foto:true },
+  { id:'r_limpeza',   grupo:'Encerramento', nome:'Limpeza e retirada de material do local' },
+];
+
+// grupo = seção do relatório | foto:true = foto obrigatória mesmo estando conforme
+const ROTEIRO_VISTORIA = [
+  // --- veiculação da mídia (é o que o cliente paga) ---
+  { id:'tela_liga',   grupo:'Veiculação da mídia', nome:'Tela ligada e com imagem', foto:true },
+  { id:'video_exec',  grupo:'Veiculação da mídia', nome:'Vídeo em execução conforme a playlist contratada' },
+  { id:'video_trava', grupo:'Veiculação da mídia', nome:'Reprodução sem travamento ou tela preta (observar 1 minuto)' },
+  { id:'qualidade',   grupo:'Veiculação da mídia', nome:'Qualidade da imagem (linhas, manchas, pixels queimados, cor)' },
+  { id:'player',      grupo:'Veiculação da mídia', nome:'TV Box / player respondendo' },
+  // --- elétrica ---
+  { id:'ligacao',     grupo:'Elétrica', nome:'Ligação elétrica (fiação, emendas, disjuntor)', foto:true },
+  { id:'eletroduto',  grupo:'Elétrica', nome:'Eletroduto (fixação, integridade, vedação)', foto:true },
+  { id:'iluminacao',  grupo:'Elétrica', nome:'Iluminação interna' },
+  // --- base (ponto crônico) ---
+  { id:'base_limpeza',grupo:'Base do tótem', nome:'Base — limpeza', foto:true },
+  { id:'base_pintura',grupo:'Base do tótem', nome:'Base — pintura', foto:true },
+  { id:'base_ferrugem',grupo:'Base do tótem', nome:'Base — corrosão e ferrugem', foto:true },
+  { id:'base_reparo', grupo:'Base do tótem', nome:'Base — integridade estrutural e necessidade de reparo' },
+  { id:'fixacao',     grupo:'Base do tótem', nome:'Fixação do conjunto (parafusos, prumo, suporte)' },
+  // --- aparência e entorno ---
+  { id:'lona',        grupo:'Aparência e entorno', nome:'Lona / adesivo da peça publicitária' },
+  { id:'vidro',       grupo:'Aparência e entorno', nome:'Vidro ou acrílico (trinca, sujeira, pichação)' },
+  { id:'fechadura',   grupo:'Aparência e entorno', nome:'Fechadura e vedação (infiltração)' },
+  { id:'gabinete',    grupo:'Aparência e entorno', nome:'Gabinete e pintura do tótem' },
+  { id:'limpeza',     grupo:'Aparência e entorno', nome:'Limpeza geral' },
+  { id:'etiqueta',    grupo:'Aparência e entorno', nome:'Etiqueta patrimonial legível' },
+  { id:'entorno',     grupo:'Aparência e entorno', nome:'Entorno (lixo, obstrução da visão)' },
+];
+
+function roteiroDe(acao){
+  if(acao === 'preventiva') return ROTEIRO_PREVENTIVA;
+  if(acao === 'corretiva') return ROTEIRO_CORRETIVA;
+  return ROTEIRO_VISTORIA;
+}
+
+// ação do relatório em edição (ou de um registro já salvo)
+function acaoAtual(){
+  if(vistoriaAtual && vistoriaAtual.acao) return vistoriaAtual.acao;
+  const it = items.find(x=>x.id === (vistoriaOsId || editingId));
+  return (it && it.acao) || 'visita';
+}
+
+function acaoDe(itOuVist){
+  if(!itOuVist) return 'visita';
+  if(itOuVist.acao) return itOuVist.acao;
+  if(itOuVist.vistoria && itOuVist.vistoria.acao) return itOuVist.vistoria.acao;
+  return 'visita';
+}
+
+function estadosDe(acao){ return ESTADOS_ACAO[acao] || ESTADOS_ACAO.visita; }
+function estadoCritico(acao){ return estadosDe(acao)[1][0]; }   // NC / PE / PE
+function estadoOk(acao){ return estadosDe(acao)[0][0]; }        // C / EX / OK
+function estadoNA(acao){ return estadosDe(acao)[2][0]; }        // NA / NN / NA
+
+function metaRoteiro(id, acao){
+  const lista = roteiroDe(acao || acaoAtual());
+  const achado = lista.find(r=>r.id===id);
+  if(achado) return achado;
+  // procura nos outros roteiros, para registros antigos
+  for(const a of ['visita','preventiva','corretiva']){
+    const r = roteiroDe(a).find(x=>x.id===id);
+    if(r) return r;
+  }
+  return { grupo:'Outros', nome:id, foto:false };
+}
+function fotoObrigatoria(id, acao){ return !!metaRoteiro(id, acao).foto; }
+
+let repModo = 'os';
+let relatorioAvisado = false;
+let encerramentoAvisado = false;
+let vistoriaAtual = null;      // rascunho em edição
+let vistoriaOsId = null;       // OS geradora
+let vistoriaSomenteLeitura = false;
+let conjuntoAberto = null;     // índice do conjunto expandido
+const obsAbertas = new Set();  // itens com campo de observação ativado manualmente
+let autoSaveVistTimer = null;  // debounce do salvamento automático da vistoria
+
+function escVist(t){
+  return String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function itensNovos(acao){
+  return roteiroDe(acao || acaoAtual()).map(r=>({ id:r.id, nome:r.nome, grupo:r.grupo, estado:'', obs:'', solucao:'', foto:null }));
+}
+
+function novoConjunto(codigo, acao){
+  return { id:'cj'+Date.now()+Math.floor(Math.random()*1000), codigo:codigo||'', itens:itensNovos(acao), fotosGerais:[], obs:'' };
+}
+
+// aceita o formato antigo (ficha unica) e devolve sempre o novo
+function normalizaVistoria(v){
+  if(!v) return null;
+  if(Array.isArray(v.conjuntos)) return v;
+  const cj = novoConjunto('');
+  cj.itens = v.itens || itensNovos();
+  cj.fotosGerais = v.fotosGerais || [];
+  return { vistoriador:v.vistoriador||'', data:v.data||Date.now(), sigla:'', obsGerais:v.obsGerais||'', conjuntos:[cj] };
+}
+
+function contaNC(it){
+  const v = it && it.vistoria; if(!v) return 0;
+  const crit = estadoCritico(acaoDe(it));
+  if(Array.isArray(v.conjuntos)) return v.conjuntos.reduce((n,c)=>n + c.itens.filter(x=>x.estado===crit).length, 0);
+  if(Array.isArray(v.itens)) return v.itens.filter(x=>x.estado===crit).length;
+  return 0;
+}
+
+function contaConjuntos(it){
+  const v = it && it.vistoria; if(!v) return 0;
+  if(Array.isArray(v.conjuntos)) return v.conjuntos.length;
+  return 1;
+}
+
+function conjuntoTemMarcacao(cj){
+  return cj.itens.some(x=>x.estado) || (cj.fotosGerais||[]).length > 0;
+}
+
+// ---------- controle do campo "requer relatorio tecnico" ----------
+// registros antigos: 'peca' era status; agora é condição
+function migraStatusPeca(){
+  let n = 0;
+  items.forEach(x=>{
+    if(x.status === 'peca'){
+      x.status = 'aberta';
+      x.compraMaterial = true;
+      n++;
+    }
+  });
+  return n;
+}
+
+// ============================================================
+//  CADASTROS INDEPENDENTES
+//  Locais, Placas de mídia e Equipamentos são cadastrados cada um
+//  por si, com um campo só: o nome. Na hora de usar, combinam-se
+//  livremente — a mesma placa pode ser usada em qualquer local.
+// ============================================================
+// ordem alfabética com números lidos como números:
+// Terminal 2 vem antes de Terminal 10, e acento ou maiúscula não atrapalham
+const ORDEM_PT = new Intl.Collator('pt-BR', { numeric:true, sensitivity:'base' });
+function ordenaNomes(lista){ return [...lista].sort((a,b)=>ORDEM_PT.compare(a,b)); }
+function ordenaPorNome(lista){ return lista.sort((a,b)=>ORDEM_PT.compare(a.nome||'', b.nome||'')); }
+function ordenaPorCodigo(lista){ return [...lista].sort((a,b)=>ORDEM_PT.compare(a.codigo||'', b.codigo||'')); }
+
+const CADASTROS = {
+  locais:       { titulo:'Locais',           campo:'Nome do local',           singular:'local',       icone:'📍' },
+  placas:       { titulo:'Placas de mídia',  campo:'Nome da placa de mídia',  singular:'placa',       icone:'🪧' },
+  equipamentos: { titulo:'Equipamentos',     campo:'Nome do equipamento',     singular:'equipamento', icone:'🔌' },
+};
+
+let cadastroAba = 'locais';
+let cadastroSelecionado = -1;
+
+function normalizaCadastro(c){
+  const base = { locais: [], placas: [], equipamentos: [] };
+  if(!c) return base;
+
+  const limpaLista = (arr)=> (Array.isArray(arr) ? arr : []).map(x=>({
+    id: (x && x.id) || 'reg'+Math.random().toString(36).slice(2,8),
+    nome: (typeof x === 'string' ? x : (x && x.nome) || '').trim()
+  })).filter(x=>x.nome);
+
+  base.locais = ordenaPorNome(limpaLista(c.locais));
+  base.placas = ordenaPorNome(limpaLista(c.placas));
+  base.equipamentos = ordenaPorNome(limpaLista(c.equipamentos));
+
+  // formato antigo: as placas ficavam dentro de cada local
+  (Array.isArray(c.locais) ? c.locais : []).forEach(l=>{
+    (l && Array.isArray(l.conjuntos) ? l.conjuntos : []).forEach(cj=>{
+      const nome = (cj.codigo || '').trim();
+      if(nome && !base.placas.some(p=>p.nome === nome)){
+        base.placas.push({ id:'reg'+Math.random().toString(36).slice(2,8), nome });
+      }
+    });
+  });
+  ordenaPorNome(base.placas);
+  return base;
+}
+
+function listaCadastro(tipo){
+  if(!cadastro[tipo]) cadastro[tipo] = [];
+  return cadastro[tipo];
+}
+
+function nomesCadastro(tipo){
+  return ordenaNomes(listaCadastro(tipo).map(x=>x.nome).filter(Boolean));
+}
+
+function openCadastro(tipo){
+  if(currentUser?.role !== 'admin') return;
+  cadastroAba = CADASTROS[tipo] ? tipo : 'locais';
+  cadastroSelecionado = -1;
+  document.getElementById('cadastroNovo').value = '';
+  renderCadastro();
+  document.getElementById('cadastroOverlay').classList.add('show');
+}
+
+function closeCadastro(){
+  document.getElementById('cadastroOverlay').classList.remove('show');
+}
+
+function trocaAbaCadastro(tipo){
+  cadastroAba = tipo;
+  cadastroSelecionado = -1;
+  document.getElementById('cadastroNovo').value = '';
+  renderCadastro();
+}
+
+function addRegistroCadastro(){
+  const campo = document.getElementById('cadastroNovo');
+  const nome = campo.value.trim();
+  const meta = CADASTROS[cadastroAba];
+  if(!nome){
+    askConfirm('Digite o ' + meta.campo.toLowerCase() + ' antes de incluir.', ()=>{});
+    return;
+  }
+  const lista = listaCadastro(cadastroAba);
+  if(lista.some(x=>x.nome.toLowerCase() === nome.toLowerCase())){
+    askConfirm('"' + escVist(nome) + '" já está cadastrado em ' + meta.titulo + '.', ()=>{});
+    return;
+  }
+  const novo = { id:'reg'+Date.now(), nome };
+  lista.push(novo);
+  ordenaPorNome(lista);
+  cadastroSelecionado = lista.indexOf(novo);
+  campo.value = '';
+  persist();
+  renderCadastro();
+  campo.focus();
+}
+
+function editaRegistroCadastro(idx, valor){
+  const lista = listaCadastro(cadastroAba);
+  const nome = valor.trim();
+  if(!nome){ renderCadastro(); return; }
+  if(lista.some((x,i)=>i !== idx && x.nome.toLowerCase() === nome.toLowerCase())){
+    askConfirm('"' + escVist(nome) + '" já está cadastrado.', ()=>{});
+    renderCadastro();
+    return;
+  }
+  const reg = lista[idx];
+  reg.nome = nome;
+  ordenaPorNome(lista);
+  cadastroSelecionado = lista.indexOf(reg);
+  persist();
+  renderCadastro();
+}
+
+function renderCadastro(){
+  const meta = CADASTROS[cadastroAba];
+  document.getElementById('cadastroAbas').innerHTML = Object.keys(CADASTROS).map(tipo=>{
+    const m = CADASTROS[tipo];
+    const n = listaCadastro(tipo).length;
+    return '<button class="cad-aba' + (tipo === cadastroAba ? ' on' : '') + '" onclick="trocaAbaCadastro(\'' + tipo + '\')">' +
+      m.icone + ' ' + m.titulo + ' <span style="opacity:0.7;">(' + n + ')</span></button>';
+  }).join('');
+
+  document.getElementById('cadastroCampoLabel').textContent = meta.campo;
+  document.getElementById('cadastroNovo').placeholder = '';
+
+  const lista = listaCadastro(cadastroAba);
+  document.getElementById('cadastroLista').innerHTML = lista.length
+    ? lista.map((reg, idx)=>
+        '<div class="cad-linha' + (idx === cadastroSelecionado ? ' sel' : '') + '" onclick="selecionaRegistro(' + idx + ')">' +
+          '<input type="text" value="' + escVist(reg.nome) + '" onchange="editaRegistroCadastro(' + idx + ',this.value)">' +
+        '</div>').join('')
+    : '<div style="font-size:11px;color:var(--muted);padding:6px 0;">Nenhum ' + meta.singular + ' cadastrado.</div>';
+  atualizaDicaCadastro();
+}
+
+function selecionaRegistro(idx){
+  cadastroSelecionado = idx;
+  document.querySelectorAll('#cadastroLista .cad-linha').forEach((l,i)=>l.classList.toggle('sel', i === idx));
+  atualizaDicaCadastro();
+}
+
+function atualizaDicaCadastro(){
+  const dica = document.getElementById('cadastroDica');
+  if(!dica) return;
+  const meta = CADASTROS[cadastroAba];
+  const lista = listaCadastro(cadastroAba);
+  const reg = lista[cadastroSelecionado];
+  dica.textContent = !lista.length
+    ? 'Digite o nome e use Criar.'
+    : (reg ? lista.length + ' cadastrado(s) · selecionado: ' + reg.nome
+           : lista.length + ' cadastrado(s) · toque em uma linha para selecioná-la antes de excluir.');
+}
+
+function excluirRegistroSelecionado(){
+  const lista = listaCadastro(cadastroAba);
+  const meta = CADASTROS[cadastroAba];
+  if(!lista.length){
+    askConfirm('Não há ' + meta.singular + ' cadastrado para excluir.', ()=>{});
+    return;
+  }
+  const reg = lista[cadastroSelecionado];
+  if(!reg){
+    askConfirm('Toque na linha do ' + meta.singular + ' que deseja excluir e clique novamente em Excluir.', ()=>{});
+    return;
+  }
+  const usos = (cadastroAba === 'locais') ? items.filter(x=>x.local === reg.nome).length : 0;
+  askConfirm('Excluir "' + escVist(reg.nome) + '" do cadastro de ' + meta.titulo + '?' +
+    (usos ? ' Existem ' + usos + ' OS com este local — elas não serão alteradas.' : ''), ()=>{
+    lista.splice(cadastroSelecionado, 1);
+    cadastroSelecionado = Math.min(cadastroSelecionado, lista.length - 1);
+    persist();
+    renderCadastro();
+  });
+}
+
+function toggleRelatorioFields(){
+  const marcado = document.getElementById('fRequerRelatorio').checked;
+  document.getElementById('relatorioFieldsWrap').style.display = marcado ? 'block' : 'none';
+  atualizaBlocoRelatorio();
+  atualizaBotaoVistoria();
+  atualizaStatusDica();
+}
+
+function atualizaBlocoRelatorio(){
+  const wrap = document.getElementById('relatorioStatus');
+  if(!wrap) return;
+  const it = editingId ? items.find(x=>x.id===editingId) : null;
+  if(!editingId){
+    wrap.innerHTML = 'Salve a OS primeiro. Depois o botão <b>📋 Relatório técnico</b>, no rodapé, abre o formulário.';
+    return;
+  }
+  if(it && it.vistoria){
+    wrap.innerHTML = '<span style="color:var(--teal);">✓ Relatório iniciado</span> em ' + fmtDate(it.vistoria.data) +
+      ' por ' + escVist(it.vistoria.vistoriador || 'não informado') + ' — <b>' + contaConjuntos(it) +
+      '</b> conjunto(s), <b>' + contaNC(it) + '</b> não conformidade(s).';
+  } else {
+    wrap.innerHTML = '<span style="color:var(--amber);">⚠ Relatório pendente.</span> ' +
+      'Abra o formulário em <b>📋 Relatório técnico</b>, no rodapé desta janela.';
+  }
+}
+
+function atualizaBotaoVistoria(){
+  const btn = document.getElementById('btnVistoria');
+  if(!btn) return;
+  const marcado = document.getElementById('fRequerRelatorio').checked;
+  if(!editingId || !marcado){ btn.style.display = 'none'; return; }
+  const it = items.find(x=>x.id===editingId);
+  const acao = document.getElementById('fAcao').value || 'visita';
+  const meta = ACOES[acao] || ACOES.visita;
+  const crit = estadoCritico(acao);
+  btn.style.display = 'inline-flex';
+  if(it && it.vistoria){
+    btn.textContent = meta.icone + ' ' + meta.rel.replace('Relatório de ','Relatório: ') +
+      ' (' + contaConjuntos(it) + ' conj · ' + contaNC(it) + ' ' + crit + ')';
+    btn.classList.remove('primary');
+  } else {
+    btn.textContent = meta.icone + ' Preencher ' + meta.rel.toLowerCase();
+    btn.classList.add('primary');
+  }
+
+}
+
+function encerrarOS(){
+  const it = items.find(x=>x.id===editingId);
+  if(!it) return;
+  const acao = it.acao || 'visita';
+  const meta = ACOES[acao] || ACOES.visita;
+
+  if(!it.vistoria){
+    askConfirm('Esta OS ainda não tem ' + meta.rel.toLowerCase() + ' preenchido. ' +
+      'O encerramento sem relatório deixa a execução sem registro. Encerrar mesmo assim?', ()=>gravaEncerramento(it));
+    return;
+  }
+  const crit = estadoCritico(acao);
+  const pend = contaNC(it);
+  const incompletos = conjuntosDe(it).filter(cj=>cj.itens.some(x=>!x.estado)).length;
+  if(incompletos){
+    askConfirm('Há ' + incompletos + ' conjunto(s) com roteiro incompleto no relatório. Encerrar a OS assim mesmo?', ()=>gravaEncerramento(it));
+    return;
+  }
+  if(pend && acao !== 'visita'){
+    askConfirm('O relatório aponta ' + pend + ' item(ns) em ' + crit + ' (pendente). ' +
+      'Em manutenção, pendência costuma significar serviço não terminado. Encerrar mesmo assim?', ()=>gravaEncerramento(it));
+    return;
+  }
+  askConfirm('Encerrar a ' + it.code + '? Fica registrado quem encerrou, com data e hora. ' +
+    (pend ? 'O relatório aponta ' + pend + ' não conformidade(s), que seguem para providência.' : ''), ()=>gravaEncerramento(it));
+}
+
+function gravaEncerramento(it){
+  if(!it.dataInicio){
+    it.dataInicio = Date.now();
+    it.iniciadoPor = currentUser ? currentUser.name : null;
+  }
+  it.status = 'concluida';
+  it.dataConclusao = Date.now();
+  it.encerradoPor = currentUser ? currentUser.name : null;
+  persist();
+  render();
+  closeModal();
+}
+
+function reabrirOS(){
+  const it = items.find(x=>x.id===editingId);
+  if(!it) return;
+  askConfirm('Reabrir a ' + it.code + '? A data de encerramento anterior será apagada e a OS volta para "Em andamento".', ()=>{
+    it.status = 'andamento';
+    it.dataConclusao = null;
+    it.reabertoPor = currentUser ? currentUser.name : null;   // o marco de início original é preservado
+    it.dataReabertura = Date.now();
+    persist();
+    render();
+    closeModal();
+  });
+}
+
+// ---------- abertura ----------
+function openVistoria(){
+  const it = items.find(x=>x.id===editingId);
+  if(!it) return;
+  vistoriaOsId = it.id;
+  vistoriaSomenteLeitura = (getEditPermission(it) === 'none');
+  const acao = it.acao || 'visita';
+  vistoriaAtual = it.vistoria
+    ? normalizaVistoria(JSON.parse(JSON.stringify(it.vistoria)))
+    : { vistoriador: currentUser ? currentUser.name : '', data: Date.now(), sigla:'', obsGerais:'', conjuntos:[], acao: acao };
+  if(!vistoriaAtual.acao) vistoriaAtual.acao = acao;
+
+  // roteiro pode ter crescido depois do relatório ter sido criado
+  vistoriaAtual.conjuntos.forEach(cj=>{
+    roteiroDe(vistoriaAtual.acao).forEach(r=>{
+      if(!cj.itens.some(i=>i.id===r.id)){
+        cj.itens.push({ id:r.id, nome:r.nome, grupo:r.grupo, estado:'', obs:'', solucao:'', foto:null });
+      }
+    });
+  });
+
+  document.querySelector('#vistoriaOverlay h2').textContent = (ACOES[vistoriaAtual.acao]||ACOES.visita).rel;
+  document.getElementById('vistOsRef').innerHTML =
+    '<b style="color:var(--amber);">' + (ACOES[vistoriaAtual.acao]||ACOES.visita).nome + '</b><br>' +
+    'Relatório vinculado à <b>' + it.code + '</b> — ' + escVist(it.local) +
+    '<br><span style="color:var(--muted);">tipo: ' + (escVist(it.tipo) || 'não informado') +
+    ' · encarregado: ' + (escVist(it.tecnico) || 'não definido') +
+    ' · aberta em ' + fmtDataHora(it.dataAbertura) +
+    (it.dataConclusao ? ' · concluída em ' + fmtDataHora(it.dataConclusao) : '') + '</span>';
+
+  document.getElementById('vistVistoriador').value = vistoriaAtual.vistoriador || '';
+  document.getElementById('vistData').value = fmtDate(vistoriaAtual.data || Date.now());
+  document.getElementById('vistSigla').value = vistoriaAtual.sigla || '';
+  document.getElementById('vistObs').value = vistoriaAtual.obsGerais || '';
+  document.getElementById('btnVistExcluir').style.display = (it.vistoria && !vistoriaSomenteLeitura) ? 'inline-flex' : 'none';
+  document.getElementById('btnVistSalvar').style.display = vistoriaSomenteLeitura ? 'none' : 'inline-flex';
+  document.getElementById('btnAddConjunto').style.display = vistoriaSomenteLeitura ? 'none' : 'inline-flex';
+  document.getElementById('btnExcluirConj').style.display = vistoriaSomenteLeitura ? 'none' : 'inline-flex';
+  ['vistVistoriador','vistData','vistObs','vistSigla'].forEach(id=>{
+    document.getElementById(id).disabled = vistoriaSomenteLeitura;
+  });
+
+  obsAbertas.clear();
+  document.getElementById('vistLegenda').textContent = LEGENDA_ACAO[vistoriaAtual.acao] || LEGENDA_ACAO.visita;
+  document.getElementById('listaPlacas').innerHTML = nomesCadastro('placas').map(n=>'<option value="' + escVist(n) + '">').join('');
+  document.getElementById('listaEquipamentos').innerHTML = nomesCadastro('equipamentos').map(n=>'<option value="' + escVist(n) + '">').join('');
+  conjuntoAberto = vistoriaAtual.conjuntos.length ? 0 : null;
+  if(autoSaveVistTimer){ clearTimeout(autoSaveVistTimer); autoSaveVistTimer = null; }
+  const info = document.getElementById('vistAutoSaveInfo');
+  if(info) info.textContent = '';
+  renderVistoria();
+  document.getElementById('vistoriaOverlay').classList.add('show');
+}
+
+function closeVistoria(){
+  if(autoSaveVistTimer){ clearTimeout(autoSaveVistTimer); autoSalvarVistoria(); }
+  document.getElementById('vistoriaOverlay').classList.remove('show');
+  vistoriaAtual = null;
+  vistoriaOsId = null;
+  conjuntoAberto = null;
+  obsAbertas.clear();
+}
+
+function setSigla(v){
+  if(!vistoriaAtual) return;
+  vistoriaAtual.sigla = v.trim().toUpperCase();
+  agendaAutoSalvarVistoria();
+}
+
+// ---------- conjuntos ----------
+function proximoCodigo(){
+  return '';   // a placa é escolhida no cadastro, não gerada automaticamente
+}
+
+function addConjunto(){
+  if(vistoriaSomenteLeitura) return;
+  vistoriaAtual.conjuntos.push(novoConjunto(proximoCodigo(), vistoriaAtual.acao));
+  conjuntoAberto = vistoriaAtual.conjuntos.length - 1;
+  renderVistoria();
+  agendaAutoSalvarVistoria();
+}
+
+function excluirConjuntoAberto(){
+  if(vistoriaSomenteLeitura) return;
+  if(!vistoriaAtual.conjuntos.length){
+    askConfirm('Não há conjunto para excluir.', ()=>{});
+    return;
+  }
+  if(conjuntoAberto === null){
+    askConfirm('Abra o conjunto que deseja excluir e clique novamente em Excluir conjunto.', ()=>{});
+    return;
+  }
+  removeConjunto(conjuntoAberto);
+}
+
+function removeConjunto(ci){
+  const cj = vistoriaAtual.conjuntos[ci];
+  askConfirm('Remover o conjunto ' + (cj.codigo || '(sem código)') + ' deste relatório? As marcações e fotos dele serão perdidas.', ()=>{
+    vistoriaAtual.conjuntos.splice(ci,1);
+    if(conjuntoAberto !== null && conjuntoAberto >= vistoriaAtual.conjuntos.length) conjuntoAberto = null;
+    renderVistoria();
+    agendaAutoSalvarVistoria();
+  });
+}
+
+function abreConjunto(ci){
+  conjuntoAberto = (conjuntoAberto === ci) ? null : ci;
+  renderVistoria();
+}
+
+function setCodigoConjunto(ci, v){
+  vistoriaAtual.conjuntos[ci].codigo = v.trim().toUpperCase();
+  atualizaResumoVist();
+  agendaAutoSalvarVistoria();
+}
+
+function setObsConjunto(ci, v){
+  vistoriaAtual.conjuntos[ci].obs = v;
+  agendaAutoSalvarVistoria();
+}
+
+function toggleObs(ci, idx){
+  if(vistoriaSomenteLeitura) return;
+  const chave = ci + '_' + idx;
+  const it = vistoriaAtual.conjuntos[ci].itens[idx];
+  if(obsAbertas.has(chave)){
+    obsAbertas.delete(chave);
+    if(!it.obs && !it.solucao){ it.obs = ''; it.solucao = ''; }   // fechou sem escrever: não guarda nada
+  } else {
+    obsAbertas.add(chave);
+  }
+  renderVistoria();
+}
+
+function marcarTudoConforme(ci){
+  if(vistoriaSomenteLeitura) return;
+  const ok = estadoOk(vistoriaAtual.acao || 'visita');
+  vistoriaAtual.conjuntos[ci].itens.forEach(x=>{ if(!x.estado){ x.estado = ok; } });
+  renderVistoria();
+  agendaAutoSalvarVistoria();
+}
+
+function setEstadoVist(ci, idx, estado){
+  if(vistoriaSomenteLeitura) return;
+  const acao = vistoriaAtual.acao || 'visita';
+  const it = vistoriaAtual.conjuntos[ci].itens[idx];
+  it.estado = (it.estado === estado) ? '' : estado;
+  if(it.estado !== estadoCritico(acao)){ it.solucao = ''; }
+  if(it.estado === estadoNA(acao)){ it.foto = null; it.obs = ''; }
+  renderVistoria();
+  agendaAutoSalvarVistoria();
+}
+
+function setCampoVist(ci, idx, campo, valor){
+  vistoriaAtual.conjuntos[ci].itens[idx][campo] = valor;
+  atualizaResumoVist();
+  agendaAutoSalvarVistoria();
+}
+
+// ---------- render ----------
+function renderVistoria(){
+  const ro = vistoriaSomenteLeitura ? 'disabled' : '';
+  const cont = document.getElementById('vistConjuntos');
+
+  if(!vistoriaAtual.conjuntos.length){
+    cont.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:8px 0;">' +
+      'Nenhum conjunto ainda. Use <b>+ Adicionar conjunto</b> para lançar o primeiro (o código é sugerido automaticamente, ex.: TELA1-T1).</div>';
+    atualizaResumoVist();
+    return;
+  }
+
+  cont.innerHTML = vistoriaAtual.conjuntos.map((cj, ci)=>{
+    const critCj = estadoCritico(vistoriaAtual.acao || 'visita');
+    const nc = cj.itens.filter(x=>x.estado===critCj).length;
+    const marcados = cj.itens.filter(x=>x.estado).length;
+    const pend = cj.itens.length - marcados;
+    const semFoto = !(cj.fotosGerais||[]).length;
+    const situacao = !conjuntoTemMarcacao(cj)
+      ? '<span style="color:var(--muted);">não iniciado</span>'
+      : (pend || semFoto
+          ? '<span style="color:var(--amber);">incompleto</span>'
+          : (nc ? '<span style="color:var(--red);">' + nc + ' ' + critCj + '</span>'
+                : '<span style="color:var(--teal);">' + (vistoriaAtual.acao==='visita' ? 'conforme' : 'concluído') + '</span>'));
+
+    if(conjuntoAberto !== ci){
+      return '<div class="vist-cj-head" onclick="abreConjunto(' + ci + ')">' +
+        '<span class="vist-cj-cod mono">' + (escVist(cj.codigo) || '(sem código)') + '</span>' +
+        '<span style="font-size:10px;">' + situacao + '</span>' +
+        '<span style="font-size:10px;color:var(--muted);margin-left:auto;">' + marcados + '/' + cj.itens.length +
+        ' · ' + ((cj.fotosGerais||[]).length + cj.itens.filter(x=>x.foto).length) + ' fotos ▸</span></div>';
+    }
+
+    let grupoAtual = '';
+    const linhas = cj.itens.map((it, idx)=>{
+      const acao = vistoriaAtual.acao || 'visita';
+      const ests = estadosDe(acao);
+      const crit = estadoCritico(acao);
+      const na = estadoNA(acao);
+      const achou = ests.find(e=>e[0] === it.estado);
+      const cls = achou ? achou[2] : '';
+      const obrig = fotoObrigatoria(it.id, acao);
+      const grupo = it.grupo || metaRoteiro(it.id, acao).grupo;
+      const cabGrupo = (grupo !== grupoAtual) ? (grupoAtual = grupo, '<div class="vist-grupo">' + escVist(grupo) + '</div>') : '';
+      const chave = ci + '_' + idx;
+
+      // o detalhe só ocupa espaço quando há conteúdo ou quando o usuário ativou
+      const ehNC   = it.estado === crit;
+      const temObs = !!(it.obs || it.solucao);
+      const obsAberta = ehNC || temObs || obsAbertas.has(chave);
+      const fotoVisivel = !!it.foto;
+      const detalheVisivel = obsAberta || fotoVisivel;
+      const podeFoto = it.estado !== na && !vistoriaSomenteLeitura;
+
+      const btnObs = vistoriaSomenteLeitura ? '' :
+        '<button class="vist-mini' + (obsAberta ? ' on' : '') + '" title="observação" onclick="toggleObs(' + ci + ',' + idx + ')">📝</button>';
+      const btnFoto = !podeFoto ? '' :
+        '<input type="file" id="fotoItem' + chave + '" accept="image/*" capture="environment" style="display:none" onchange="addFotoItem(event,' + ci + ',' + idx + ')">' +
+        '<button class="vist-mini' + (it.foto ? ' ok' : (obrig ? ' falta' : '')) + '" title="' +
+          (obrig ? 'foto obrigatória' : 'foto') + '" onclick="document.getElementById(\'fotoItem' + chave + '\').click()">📷' +
+          (obrig && !it.foto ? '!' : '') + (it.foto ? '✓' : '') + '</button>';
+
+      let det = '';
+      if(detalheVisivel){
+        det = '<div class="vist-det">';
+        if(obsAberta){
+          det += '<label>' + (ehNC ? (ROTULOS_CRITICO[acao]||ROTULOS_CRITICO.visita).titulo : 'Observação') + '</label>' +
+                 '<textarea ' + ro + ' oninput="setCampoVist(' + ci + ',' + idx + ',\'obs\',this.value)">' + escVist(it.obs) + '</textarea>';
+          if(ehNC){
+            det += '<label>' + (ROTULOS_CRITICO[acao]||ROTULOS_CRITICO.visita).solucao + '</label>' +
+                   '<textarea ' + ro + ' oninput="setCampoVist(' + ci + ',' + idx + ',\'solucao\',this.value)">' + escVist(it.solucao) + '</textarea>';
+          }
+        }
+        if(fotoVisivel){
+          det += '<div class="vist-fotos"><div class="vist-thumb"><img src="' + driveImgUrl(it.foto) + '">' +
+                 (vistoriaSomenteLeitura ? '' : '<button onclick="removeFotoItem(' + ci + ',' + idx + ')" title="remover">×</button>') +
+                 '</div></div>';
+        }
+        det += '</div>';
+      }
+
+      return cabGrupo + '<div class="vist-row ' + cls + '">' +
+        '<div class="vist-head">' +
+          '<span class="vist-nome">' + escVist(it.nome) + '</span>' +
+          '<span class="vist-acoes">' + btnObs + btnFoto + '</span>' +
+          '<span class="vist-opts">' +
+            ests.map(e=>'<button class="vist-opt ' + (it.estado===e[0] ? 'sel-'+e[2] : '') +
+              '" onclick="setEstadoVist(' + ci + ',' + idx + ',\'' + e[0] + '\')">' + e[1] + '</button>').join('') +
+          '</span>' +
+        '</div>' + det + '</div>';
+    }).join('');
+
+    const fotos = (cj.fotosGerais||[]).map((f,i)=>
+      '<div class="vist-thumb"><img src="' + driveImgUrl(f) + '">' +
+      (vistoriaSomenteLeitura ? '' : '<button onclick="removeFotoGeral(' + ci + ',' + i + ')" title="remover">×</button>') + '</div>'
+    ).join('') || '<span style="font-size:10px;color:var(--muted);">nenhuma foto — obrigatória pelo menos uma</span>';
+
+    return '<div class="vist-cj-aberto">' +
+      '<div class="vist-cj-head aberto" onclick="abreConjunto(' + ci + ')">' +
+        '<span class="vist-cj-cod mono">' + (escVist(cj.codigo) || '(sem código)') + '</span>' +
+        '<span style="font-size:10px;">' + situacao + '</span>' +
+        '<span style="font-size:10px;color:var(--muted);margin-left:auto;">▾ fechar</span>' +
+      '</div>' +
+      '<div class="vist-cj-corpo">' +
+        '<div class="row2">' +
+          '<div class="field"><label>Equipamento / Localização</label>' +
+            '<input type="text" ' + ro + ' list="listaPlacas" value="' + escVist(cj.codigo) + '" onchange="setCodigoConjunto(' + ci + ',this.value)"></div>' +
+          '<div class="field"><label>Número de Patrimônio</label>' +
+            '<input type="text" ' + ro + ' value="' + escVist(cj.obs) + '" onchange="setObsConjunto(' + ci + ',this.value)"></div>' +
+        '</div>' +
+        '<div class="field"><label>Fotos gerais do conjunto (obrigatória pelo menos uma)</label>' +
+          '<div class="vist-fotos">' + fotos + '</div>' +
+          (vistoriaSomenteLeitura ? '' :
+            '<input type="file" id="fotoGeral' + ci + '" accept="image/*" capture="environment" style="display:none" onchange="addFotoGeral(event,' + ci + ')">' +
+            '<button class="btn" style="margin-top:6px;" onclick="document.getElementById(\'fotoGeral' + ci + '\').click()">📷 Adicionar foto geral</button>') +
+        '</div>' +
+        (vistoriaSomenteLeitura ? '' :
+          '<button class="btn" style="margin-bottom:8px;" onclick="marcarTudoConforme(' + ci + ')">✓ Marcar todos como ' +
+          estadosDe(vistoriaAtual.acao||'visita')[0][1] + '</button>') +
+        linhas +
+      '</div></div>';
+  }).join('');
+
+  atualizaResumoVist();
+}
+
+function atualizaResumoVist(){
+  const cjs = vistoriaAtual.conjuntos;
+  const acaoR = vistoriaAtual.acao || 'visita';
+  const critR = estadoCritico(acaoR);
+  const nc = cjs.reduce((n,c)=>n + c.itens.filter(x=>x.estado===critR).length, 0);
+  const fotos = cjs.reduce((n,c)=>n + (c.fotosGerais||[]).length + c.itens.filter(x=>x.foto).length, 0);
+  const prontos = cjs.filter(c=>conjuntoTemMarcacao(c) && !c.itens.some(x=>!x.estado) && (c.fotosGerais||[]).length).length;
+  const abertos = cjs.length - prontos;
+  document.getElementById('vistResumo').innerHTML =
+    '<div><b>' + cjs.length + '</b>conjuntos</div>' +
+    '<div><b style="color:var(--teal)">' + prontos + '</b>completos</div>' +
+    '<div><b style="color:var(--amber)">' + abertos + '</b>pendentes</div>' +
+    '<div><b style="color:var(--red)">' + nc + '</b>' + (acaoR==='visita' ? 'não conformidades' : 'pendências') + '</div>' +
+    '<div><b>' + fotos + '</b>fotos</div>';
+}
+
+// ---------- fotos ----------
+async function addFotoGeral(event, ci){
+  const file = event.target.files[0];
+  if(!file) return;
+  event.target.value = '';
+  const dataUrl = await resizeImage(file, 700, 0.65);
+  photosUploading++;
+  const url = await uploadPhotoToBackend(dataUrl, 'vistoria-geral');
+  photosUploading = Math.max(0, photosUploading - 1);
+  if(!vistoriaAtual || !vistoriaAtual.conjuntos[ci]) return;
+  vistoriaAtual.conjuntos[ci].fotosGerais = vistoriaAtual.conjuntos[ci].fotosGerais || [];
+  vistoriaAtual.conjuntos[ci].fotosGerais.push(url);
+  renderVistoria();
+  agendaAutoSalvarVistoria();
+}
+
+async function addFotoItem(event, ci, idx){
+  const file = event.target.files[0];
+  if(!file) return;
+  event.target.value = '';
+  const dataUrl = await resizeImage(file, 700, 0.65);
+  photosUploading++;
+  const url = await uploadPhotoToBackend(dataUrl, 'vistoria-item');
+  photosUploading = Math.max(0, photosUploading - 1);
+  if(!vistoriaAtual || !vistoriaAtual.conjuntos[ci]) return;
+  vistoriaAtual.conjuntos[ci].itens[idx].foto = url;
+  renderVistoria();
+  agendaAutoSalvarVistoria();
+}
+
+function removeFotoGeral(ci, i){
+  vistoriaAtual.conjuntos[ci].fotosGerais.splice(i,1);
+  renderVistoria();
+  agendaAutoSalvarVistoria();
+}
+
+function removeFotoItem(ci, idx){
+  vistoriaAtual.conjuntos[ci].itens[idx].foto = null;
+  renderVistoria();
+  agendaAutoSalvarVistoria();
+}
+
+// ---------- salvamento automático (rascunho) ----------
+function agendaAutoSalvarVistoria(){
+  if(!vistoriaAtual || vistoriaSomenteLeitura) return;
+  if(autoSaveVistTimer) clearTimeout(autoSaveVistTimer);
+  autoSaveVistTimer = setTimeout(autoSalvarVistoria, 800);
+}
+
+function autoSalvarVistoria(){
+  autoSaveVistTimer = null;
+  if(!vistoriaAtual || vistoriaSomenteLeitura) return;
+  const it = items.find(x=>x.id===vistoriaOsId);
+  if(!it) return;
+
+  const campoVistoriador = document.getElementById('vistVistoriador');
+  const campoData = document.getElementById('vistData');
+  const campoObs = document.getElementById('vistObs');
+  const campoSigla = document.getElementById('vistSigla');
+  if(campoVistoriador) vistoriaAtual.vistoriador = campoVistoriador.value.trim();
+  if(campoObs) vistoriaAtual.obsGerais = campoObs.value.trim();
+  if(campoSigla) vistoriaAtual.sigla = campoSigla.value.trim().toUpperCase();
+  if(campoData){
+    const dt = parseDatePt ? parseDatePt(campoData.value.trim()) : null;
+    if(dt) vistoriaAtual.data = dt;
+  }
+
+  it.vistoria = JSON.parse(JSON.stringify(vistoriaAtual));
+  persist();
+  const info = document.getElementById('vistAutoSaveInfo');
+  if(info){ info.textContent = 'rascunho salvo automaticamente às ' + new Date().toLocaleTimeString('pt-BR'); }
+}
+
+function salvarVistoria(){
+  if(photosUploading > 0){
+    askConfirm('Ainda estamos enviando uma foto. Aguarde alguns segundos e salve novamente.', ()=>{});
+    return;
+  }
+  const it = items.find(x=>x.id===vistoriaOsId);
+  if(!it) return;
+
+  vistoriaAtual.vistoriador = document.getElementById('vistVistoriador').value.trim();
+  vistoriaAtual.obsGerais = document.getElementById('vistObs').value.trim();
+  vistoriaAtual.sigla = document.getElementById('vistSigla').value.trim().toUpperCase();
+  const dt = parseDatePt ? parseDatePt(document.getElementById('vistData').value.trim()) : null;
+  if(dt) vistoriaAtual.data = dt;
+
+  if(!vistoriaAtual.vistoriador){
+    askConfirm('Informe o nome do vistoriador antes de salvar o relatório.', ()=>{});
+    return;
+  }
+  if(!vistoriaAtual.conjuntos.length){
+    askConfirm('Adicione pelo menos um conjunto de mídia ao relatório.', ()=>{});
+    return;
+  }
+  const semCodigo = vistoriaAtual.conjuntos.filter(c=>!c.codigo);
+  if(semCodigo.length){
+    askConfirm('Há ' + semCodigo.length + ' conjunto(s) sem Equipamento / Localização. Preencha o campo (ex.: TELA1-T3) antes de salvar.', ()=>{});
+    return;
+  }
+  const dup = vistoriaAtual.conjuntos.map(c=>c.codigo).filter((c,i,a)=>a.indexOf(c)!==i);
+  if(dup.length){
+    askConfirm('Equipamento / Localização repetido no relatório: ' + [...new Set(dup)].join(', ') + '. Cada conjunto precisa do seu.', ()=>{});
+    return;
+  }
+  // nao conformidade sem descricao/solucao/foto nao serve de prova
+  const acaoV = vistoriaAtual.acao || 'visita';
+  const critV = estadoCritico(acaoV);
+  const naV = estadoNA(acaoV);
+  const falhas = [];
+  vistoriaAtual.conjuntos.forEach(cj=>{
+    cj.itens.forEach(x=>{
+      if(x.estado===critV && (!x.obs || !x.solucao || !x.foto)) falhas.push(cj.codigo + ' → ' + x.nome);
+      else if(x.estado && x.estado!==naV && fotoObrigatoria(x.id, acaoV) && !x.foto) falhas.push(cj.codigo + ' → foto de ' + x.nome);
+    });
+    if(conjuntoTemMarcacao(cj) && !(cj.fotosGerais||[]).length) falhas.push(cj.codigo + ' → falta foto geral');
+  });
+  if(falhas.length){
+    askConfirm('Pendências obrigatórias (item marcado como ' + critV + ' exige descrição, providência e foto; conjunto iniciado exige foto geral): ' +
+      falhas.slice(0,6).join('; ') + (falhas.length>6 ? ' e mais ' + (falhas.length-6) : ''), ()=>{});
+    return;
+  }
+
+  const incompletos = vistoriaAtual.conjuntos.filter(c=>!conjuntoTemMarcacao(c) || c.itens.some(x=>!x.estado)).length;
+  const gravar = ()=>{
+    it.vistoria = vistoriaAtual;
+    it.requerRelatorio = true;
+    persist();
+    render();
+    closeVistoria();
+    closeModal();
+  };
+  if(incompletos){
+    askConfirm('Há ' + incompletos + ' conjunto(s) com roteiro incompleto. Salvar o parcial? Você pode voltar e continuar depois.', gravar);
+  } else {
+    gravar();
+  }
+}
+
+function excluirVistoria(){
+  askConfirm('Excluir o relatório de vistoria desta OS, com todos os conjuntos e fotos?', ()=>{
+    const it = items.find(x=>x.id===vistoriaOsId);
+    if(it) delete it.vistoria;
+    persist();
+    render();
+    closeVistoria();
+  });
+}
+
+// ---------- impressao: resumo do local + uma pagina por conjunto ----------
+function imprimirVistoria(){
+  const os = items.find(x=>x.id===vistoriaOsId);
+  if(!os || !vistoriaAtual) return;
+  const v = vistoriaAtual;
+  const letterheadHTML = document.querySelector('.letterhead').outerHTML;
+  const totalNC = v.conjuntos.reduce((n,c)=>n + c.itens.filter(x=>x.estado==='NC').length, 0);
+
+  const resumo = ordenaPorCodigo(v.conjuntos).map(cj=>{
+    const nc = cj.itens.filter(x=>x.estado==='NC').length;
+    const pend = cj.itens.filter(x=>!x.estado).length;
+    const sit = pend ? 'incompleto' : (nc ? nc + ' NC' : 'conforme');
+    return '<tr><td>' + escVist(cj.codigo) + '</td><td>' + escVist(cj.obs) + '</td>' +
+      '<td style="text-align:center;">' + sit + '</td>' +
+      '<td style="text-align:center;">' + ((cj.fotosGerais||[]).length + cj.itens.filter(x=>x.foto).length) + '</td></tr>';
+  }).join('');
+
+  const detalhes = ordenaPorCodigo(v.conjuntos).map((cj, i)=>{
+    const nc = cj.itens.filter(x=>x.estado==='NC');
+    let g = '';
+    const linhas = cj.itens.map(x=>{
+      const grp = x.grupo || metaRoteiro(x.id).grupo;
+      const cab = (grp !== g) ? (g = grp, '<tr><td colspan="5" class="grp" style="background:#eee;font-weight:bold;">' + escVist(grp) + '</td></tr>') : '';
+      return cab + '<tr><td>' + escVist(x.nome) + '</td><td style="text-align:center;font-weight:bold;">' + (x.estado||'—') + '</td>' +
+        '<td>' + escVist(x.obs) + '</td><td>' + escVist(x.solucao) + '</td>' +
+        '<td style="text-align:center;">' + (x.foto ? '<img src="' + driveImgUrl(x.foto) + '" style="height:52px;border:1px solid #999;">' : '—') + '</td></tr>';
+    }).join('');
+    const achados = nc.length ? nc.map((x,k)=>
+      '<div style="margin:0 0 12px;page-break-inside:avoid;">' +
+        '<div style="font-size:12px;font-weight:600;">' + (k+1) + '. ' + escVist(x.nome) + '</div>' +
+        '<div style="font-size:11px;"><b>Problema:</b> ' + escVist(x.obs) + '</div>' +
+        '<div style="font-size:11px;"><b>Solução proposta:</b> ' + escVist(x.solucao) + '</div>' +
+        (x.foto ? '<img src="' + driveImgUrl(x.foto) + '" style="height:140px;border:1px solid #999;margin-top:4px;">' : '') +
+      '</div>').join('') : '<div style="font-size:11px;">Nenhuma não conformidade neste conjunto.</div>';
+    return '<div style="' + (i ? 'page-break-before:always;' : '') + 'padding-top:8px;">' +
+      '<div class="sec" style="font-size:14px;font-weight:bold;border-bottom:1px solid #999;padding-bottom:3px;margin-bottom:8px;">' +
+        'Conjunto ' + escVist(cj.codigo) + (cj.obs ? ' — ' + escVist(cj.obs) : '') + '</div>' +
+      '<table class="rep-table"><thead><tr><th style="width:28%;">Item verificado</th><th style="width:7%;">Situação</th>' +
+      '<th style="width:24%;">Problema</th><th style="width:26%;">Solução proposta</th><th style="width:15%;">Foto</th></tr></thead><tbody>' +
+      linhas + '</tbody></table>' +
+      '<div class="sec" style="font-size:12px;font-weight:600;margin:12px 0 6px;">Não conformidades e registro fotográfico</div>' + achados +
+      ((cj.fotosGerais||[]).length ? '<div class="sec" style="font-size:12px;font-weight:600;margin:10px 0 6px;">Fotos gerais do conjunto</div><div>' +
+        cj.fotosGerais.map(f=>'<img src="' + driveImgUrl(f) + '" style="height:140px;border:1px solid #999;margin:0 8px 8px 0;">').join('') + '</div>' : '') +
+      '</div>';
+  }).join('');
+
+  document.getElementById('printArea').innerHTML =
+    letterheadHTML +
+    '<hr style="border:none;border-top:1px solid #999;margin:0 0 14px;">' +
+    '<h1 style="font-size:20px;margin:0 0 2px;">Relatório de vistoria</h1>' +
+    '<div style="font-size:12px;color:#555;margin-bottom:12px;">Vinculado à ordem de serviço <b>' + os.code + '</b> — ' + escVist(os.local) + '</div>' +
+    '<div style="font-size:11px;margin-bottom:12px;">' +
+      '<b>Vistoriador:</b> ' + escVist(v.vistoriador) + ' &nbsp;·&nbsp; <b>Data:</b> ' + fmtDate(v.data) +
+      ' &nbsp;·&nbsp; <b>Local:</b> ' + (escVist(v.sigla) || escVist(os.local)) +
+      ' &nbsp;·&nbsp; <b>Conjuntos vistoriados:</b> ' + v.conjuntos.length +
+      ' &nbsp;·&nbsp; <b>Total de não conformidades:</b> ' + totalNC + '</div>' +
+    '<div style="font-size:11px;margin:-6px 0 12px;">' +
+      '<b>OS aberta em:</b> ' + fmtDataHora(os.dataAbertura) +
+      ' &nbsp;·&nbsp; <b>OS fechada em:</b> ' + (os.dataConclusao ? fmtDataHora(os.dataConclusao) : 'em aberto') +
+      (os.dataConclusao ? ' &nbsp;·&nbsp; <b>Tempo de atendimento:</b> ' + duracaoOS(os) : '') + '</div>' +
+    '<div class="sec" style="font-size:12px;font-weight:600;margin:0 0 6px;">Resumo por conjunto</div>' +
+    '<table class="rep-table"><thead><tr><th style="width:34%;">Equipamento / Localização</th><th style="width:32%;">Número de Patrimônio</th>' +
+    '<th style="width:17%;">Situação</th><th style="width:17%;">Fotos</th></tr></thead><tbody>' + resumo + '</tbody></table>' +
+    legendaSituacao([v.acao || 'visita']) +
+    (v.obsGerais ? '<div style="font-size:11px;margin-top:10px;"><b>Observações gerais:</b> ' + escVist(v.obsGerais) + '</div>' : '') +
+    '<div style="margin-top:30px;font-size:11px;">______________________________________<br>' + escVist(v.vistoriador) + ' — vistoriador</div>' +
+    detalhes;
+  mostrarPreview('Relatório de vistoria — ' + os.code);
+}
+
+// ---------- pré-visualização ----------
+let orientacaoRelatorio = 'landscape';
+
+function mostrarPreview(titulo, orientacao){
+  orientacaoRelatorio = (orientacao === 'portrait') ? 'portrait' : 'landscape';
+  document.getElementById('estiloPagina').textContent =
+    '@page{size:A4 ' + orientacaoRelatorio + ';margin:10mm;}';
+  document.getElementById('previewTitulo').textContent = titulo || 'Relatório';
+  document.getElementById('printArea').classList.add('preview');
+  document.getElementById('previewBar').classList.add('show');
+  document.body.classList.add('modal-open');
+  document.getElementById('printArea').scrollTop = 0;
+}
+
+function fecharPreview(){
+  document.getElementById('printArea').classList.remove('preview');
+  document.getElementById('previewBar').classList.remove('show');
+  document.body.classList.remove('modal-open');
+}
+
+// CSS do documento gerado — independente do tema escuro do painel
+const CSS_RELATORIO =
+  'body{font-family:Segoe UI,system-ui,Arial,sans-serif;font-size:12px;color:#111;background:#fff;margin:0;padding:14px 16px;}' +
+  'h1{font-size:20px;margin:0 0 2px;text-transform:uppercase;}' +
+  '.sec,.grp{text-transform:uppercase;}' +
+  'img{max-width:100%;}' +
+  '.letterhead{display:flex;align-items:center;gap:14px;margin-bottom:12px;}' +
+  '.letterhead img{height:46px;width:auto;}' +
+  '.company-name{font-size:13px;font-weight:600;}' +
+  '.company-meta{font-size:11px;color:#555;}' +
+  '.rep-summary{display:flex;gap:22px;flex-wrap:wrap;margin:12px 0 16px;}' +
+  '.rep-summary div{font-size:12px;}' +
+  '.rep-summary b{display:block;font-size:18px;}' +
+  'table.rep-table{width:100%;border-collapse:collapse;font-size:11px;}' +
+  'table.rep-table th,table.rep-table td{border:1px solid #999;padding:5px 7px;text-align:left;vertical-align:top;}' +
+  'table.rep-table th{background:#eee;text-transform:uppercase;}' +
+  'thead{display:table-header-group;}' +
+  'tr{page-break-inside:avoid;}' +
+  '@media print{.tela-aviso{display:none !important;}}';
+
+function nomeArquivoRelatorio(){
+  const t = (document.getElementById('previewTitulo').textContent || 'relatorio')
+    .toLowerCase()
+    .replace(/[áàâã]/g,'a').replace(/[éê]/g,'e').replace(/í/g,'i')
+    .replace(/[óôõ]/g,'o').replace(/[úü]/g,'u').replace(/ç/g,'c')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const d = new Date();
+  const dd = String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear() +
+             '_' + String(d.getHours()).padStart(2,'0') + 'h' + String(d.getMinutes()).padStart(2,'0');
+  return t + '_' + dd + '.html';
+}
+
+// monta um arquivo HTML completo, com as fotos embutidas
+function htmlRelatorio(comAutoImpressao){
+  const titulo = document.getElementById('previewTitulo').textContent || 'Relatório';
+  const conteudo = document.getElementById('printArea').innerHTML;
+  const aviso = comAutoImpressao ? '' :
+    '<div class="tela-aviso" style="font-size:11px;background:#fff8e1;border:1px solid #e3a008;padding:7px 9px;margin-bottom:12px;">' +
+    'Documento gerado pelo painel de manutenção. <b>Para gerar PDF:</b> use Imprimir do navegador (Ctrl+P) e, em <b>Destino</b>, escolha <b>Salvar como PDF</b>. Não é necessário ter impressora instalada.</div>';
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<title>' + titulo + '</title><style>' +
+    '@page{size:A4 ' + orientacaoRelatorio + ';margin:10mm;}' + CSS_RELATORIO +
+    '</style></head><body>' +
+    aviso + conteudo +
+    (comAutoImpressao ? '<script>window.onload=function(){setTimeout(function(){window.print();},300);};<\/script>' : '') +
+    '</body></html>';
+}
+
+function urlDoRelatorio(html){
+  try{
+    const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    return { url: URL.createObjectURL(blob), tipo:'blob' };
+  }catch(e){
+    return { url: 'data:text/html;charset=utf-8,' + encodeURIComponent(html), tipo:'data' };
+  }
+}
+
+// IMPRIMIR: abre o documento em outra aba, que já chama a impressão
+function imprimirRelatorio(){
+  const html = htmlRelatorio(true);
+  const alvo = urlDoRelatorio(html);
+  let janela = null;
+  try{ janela = window.open(alvo.url, '_blank'); }catch(e){ janela = null; }
+  if(janela){
+    if(alvo.tipo === 'blob'){ setTimeout(()=>{ try{ URL.revokeObjectURL(alvo.url); }catch(e){} }, 60000); }
+    return;
+  }
+  // pop-up bloqueado: tenta a impressão da própria página
+  let tentou = false;
+  try{ window.print(); tentou = true; }catch(e){ tentou = false; }
+  if(!tentou){
+    askConfirm('O navegador bloqueou a abertura do documento. Use o botão 💾 Salvar: o arquivo baixado abre e imprime normalmente.', ()=>{});
+  }
+}
+
+// SALVAR: baixa o relatório como arquivo, com as fotos dentro
+function salvarRelatorio(){
+  const html = htmlRelatorio(false);
+  const nome = nomeArquivoRelatorio();
+  const alvo = urlDoRelatorio(html);
+  const a = document.createElement('a');
+  a.href = alvo.url;
+  a.download = nome;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{
+    try{ document.body.removeChild(a); }catch(e){}
+    if(alvo.tipo === 'blob'){ try{ URL.revokeObjectURL(alvo.url); }catch(e){} }
+  }, 4000);
+  const el = document.getElementById('previewTitulo');
+  const antigo = el.textContent;
+  el.textContent = 'arquivo salvo: ' + nome;
+  setTimeout(()=>{ el.textContent = antigo; }, 6000);
+}
+
 function askConfirm(msg, cb){
   document.getElementById('confirmMsg').textContent = msg;
   confirmCallback = cb;
@@ -1339,9 +3051,10 @@ function runConfirm(){
 
 function parseDatePt(s){
   if(!s || s==='-') return null;
-  const m = s.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const m = s.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})(?:[ ,]+(\d{1,2}):(\d{2}))?$/);
   if(!m) return null;
-  return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1])).getTime();
+  return new Date(parseInt(m[3]), parseInt(m[2])-1, parseInt(m[1]),
+                  m[4] ? parseInt(m[4]) : 0, m[5] ? parseInt(m[5]) : 0).getTime();
 }
 
 function parseCSVText(text){
@@ -1366,7 +3079,7 @@ function parseCSVText(text){
   if(rows.length && rows[0][0]) rows[0][0] = rows[0][0].replace(/^\ufeff/, '');
 
   const dataRows = rows.slice(1).filter(r => r.length > 1 || (r.length===1 && r[0].trim() !== ''));
-  const prioReverse = {'Urgente':'urgente', 'Normal':'normal', 'Preventiva':'preventiva'};
+  const prioReverse = {'PRIORIDADE MÁXIMA!!!!':'maxima', 'Prioridade Máxima':'maxima', 'Urgente':'urgente', 'Normal':'normal', 'Preventiva':'preventiva'};
   const statusReverse = {'Aberta':'aberta', 'Em andamento':'andamento', 'Aguardando peça':'peca', 'Concluída':'concluida'};
 
   return dataRows.map((r, idx) => ({
@@ -1406,24 +3119,69 @@ function handleImportFile(event){
   reader.readAsText(file, 'UTF-8');
 }
 
-function openReportFilter(){
-  const statusOpts = [['aberta','Aberta'],['andamento','Em andamento'],['peca','Aguardando peça'],['concluida','Concluída']];
+function openReportFilter(modo){
+  repModo = (modo === 'vist') ? 'vist' : 'os';
+
+  const statusOpts = [['aberta','Aberta'],['andamento','Em andamento'],['peca','Aguardando peça (condição)'],['concluida','Concluída']];
   document.getElementById('repStatusChecks').innerHTML = statusOpts.map(([v,l])=>
     `<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="repStatus" value="${v}" checked>${l}</label>`
   ).join('');
 
-  const prioOpts = [['urgente','Urgente'],['normal','Normal'],['preventiva','Preventiva']];
+  const prioOpts = [['maxima','Prioridade Máxima'],['urgente','Urgente'],['normal','Normal'],['preventiva','Preventiva']];
   document.getElementById('repPrioChecks').innerHTML = prioOpts.map(([v,l])=>
     `<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="repPrio" value="${v}" checked>${l}</label>`
   ).join('');
 
-  const tecnicos = [...new Set(items.map(x=>x.tecnico).filter(Boolean))].sort();
+  const tecnicos = ordenaNomes([...new Set(items.map(x=>x.tecnico).filter(Boolean))]);
   document.getElementById('repTecnicoChecks').innerHTML = tecnicos.length
     ? tecnicos.map(t=>`<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="repTecnico" value="${t}" checked>${t}</label>`).join('')
     : '<span style="font-size:12px;color:var(--muted);">Nenhum técnico registrado</span>';
 
   document.getElementById('repDataDe').value = '';
   document.getElementById('repDataAte').value = '';
+
+  // --- filtros próprios da vistoria técnica ---
+  const vistoriadores = ordenaNomes([...new Set(items.filter(x=>x.vistoria).map(x=>x.vistoria.vistoriador).filter(Boolean))]);
+  document.getElementById('repVistoriadorChecks').innerHTML = vistoriadores.length
+    ? vistoriadores.map(t=>`<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="repVistoriador" value="${escVist(t)}" checked>${escVist(t)}</label>`).join('')
+    : '<span style="font-size:12px;color:var(--muted);">Nenhuma vistoria registrada</span>';
+
+  // lista completa do roteiro, agrupada, para o usuário escolher item por item
+  let gAtual = '';
+  document.getElementById('repVistItemChecks').innerHTML = ROTEIRO_VISTORIA.map(r=>{
+    const cab = (r.grupo !== gAtual)
+      ? (gAtual = r.grupo,
+         '<div style="display:flex;align-items:center;gap:6px;margin:7px 0 3px;">' +
+           '<input type="checkbox" class="repVistGrupoTodos" data-grupo="' + escVist(r.grupo) + '" checked onchange="marcaGrupoRel(this)">' +
+           '<span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--amber);">' + escVist(r.grupo) + '</span></div>')
+      : '';
+    return cab + '<label style="display:flex;align-items:center;gap:5px;font-size:11px;margin:2px 0 2px 18px;">' +
+      '<input type="checkbox" class="repVistItem" value="' + r.id + '" data-grupo="' + escVist(r.grupo) + '" checked>' +
+      escVist(r.nome) + (r.foto ? ' 📷' : '') + '</label>';
+  }).join('');
+  document.getElementById('repVistConteudo').value = 'full';
+  document.getElementById('repVistItensWrap').style.display = 'none';
+
+  const locaisVist = ordenaNomes([...new Set(items.filter(x=>x.vistoria).map(x=>x.local).filter(Boolean))]);
+  document.getElementById('repVistLocalChecks').innerHTML = locaisVist.length
+    ? locaisVist.map(l=>{
+        const n = items.filter(x=>x.vistoria && x.local === l).length;
+        return '<label style="display:flex;align-items:center;gap:5px;">' +
+          '<input type="checkbox" class="repVistLocal" value="' + escVist(l) + '" checked>' +
+          escVist(l) + ' <span style="color:var(--muted);">(' + n + ')</span></label>';
+      }).join('')
+    : '<span style="color:var(--muted);">Nenhuma vistoria registrada</span>';
+
+  document.getElementById('repVistDe').value = '';
+  document.getElementById('repVistAte').value = '';
+  ajustaConteudoVist();
+
+  document.getElementById('repFiltrosOS').style.display = repModo === 'os' ? 'block' : 'none';
+  document.getElementById('repFiltrosVist').style.display = repModo === 'vist' ? 'block' : 'none';
+  document.getElementById('repTitulo').textContent = repModo === 'os'
+    ? 'Relatório de OS — filtros'
+    : 'Relatório de vistoria técnica — filtros';
+  ajustaFiltrosPorTipo();
 
   document.getElementById('reportFilterOverlay').classList.add('show');
 }
@@ -1432,7 +3190,64 @@ function closeReportFilter(){
   document.getElementById('reportFilterOverlay').classList.remove('show');
 }
 
+function ajustaConteudoVist(){
+  const modo = document.getElementById('repVistConteudo').value;
+  document.getElementById('repVistItensWrap').style.display = (modo === 'sel') ? 'block' : 'none';
+  const nota = document.getElementById('repConteudoNota');
+  if(modo === 'full') nota.textContent = 'Sai o roteiro inteiro de cada conjunto: conforme, não conforme e não se aplica.';
+  else if(modo === 'c') nota.textContent = 'Sai apenas o que foi marcado como conforme — serve para comprovar o que está em ordem.';
+  else if(modo === 'nc') nota.textContent = 'Sai a lista de trabalho: cada não conformidade com problema, solução, foto, encarregado e coluna para dar baixa.';
+  else nota.textContent = 'Escolha abaixo, item por item, o que deve sair no relatório.';
+}
+
+function marcaLocaisRel(valor){
+  document.querySelectorAll('.repVistLocal').forEach(c=>c.checked = valor);
+}
+
+function marcaItensRel(valor){
+  document.querySelectorAll('.repVistItem').forEach(c=>c.checked = valor);
+  document.querySelectorAll('.repVistGrupoTodos').forEach(c=>c.checked = valor);
+}
+
+function marcaGrupoRel(el){
+  document.querySelectorAll('.repVistItem[data-grupo="' + el.dataset.grupo + '"]').forEach(c=>c.checked = el.checked);
+}
+
+function ajustaFiltrosPorTipo(){
+  const aviso = document.getElementById('repAvisoTipo');
+  if(repModo === 'os'){
+    aviso.textContent = 'Ordens de serviço e sua execução: status, prioridade, técnico e data de abertura da OS.';
+  } else {
+    const n = items.filter(x=>x.vistoria).length;
+    aviso.textContent = 'Vistoria técnica: filtra pela data da vistoria, pelo vistoriador e pelos grupos do roteiro. ' +
+      n + ' OS com vistoria registrada.';
+  }
+}
+
+// legenda da coluna Situação, conforme as ações presentes no documento
+function legendaSituacao(acoes){
+  const unicas = [...new Set(acoes)];
+  const linhas = unicas.map(a=>{
+    const meta = ACOES[a] || ACOES.visita;
+    return '<b>' + escVist(meta.nome) + ':</b> ' + (LEGENDA_ACAO[a] || LEGENDA_ACAO.visita);
+  });
+  return '<div style="font-size:10px;color:#444;border:1px solid #999;padding:5px 7px;margin:6px 0 12px;">' +
+    '<span class="sec" style="font-weight:bold;">Legenda da situação</span><br>' +
+    linhas.join('<br>') +
+    '<br><b>Resumo por conjunto:</b> conforme = todos os itens verificados sem apontamento · ' +
+    'n NC = quantidade de não conformidades · incompleto = há itens sem marcação no roteiro' +
+    '</div>';
+}
+
+function conjuntosDe(it){
+  const v = it && it.vistoria; if(!v) return [];
+  if(Array.isArray(v.conjuntos)) return v.conjuntos;
+  return normalizaVistoria(v).conjuntos;
+}
+
 function runReport(){
+  if(repModo === 'vist'){ runReportVistoria(); return; }
+
   const statusSel = [...document.querySelectorAll('.repStatus:checked')].map(el=>el.value);
   const prioSel = [...document.querySelectorAll('.repPrio:checked')].map(el=>el.value);
   const tecnicoBoxes = document.querySelectorAll('.repTecnico');
@@ -1443,7 +3258,7 @@ function runReport(){
   const ateTs = ateVal ? new Date(ateVal + 'T23:59:59').getTime() : null;
 
   const filtered = items.filter(x=>{
-    if(statusSel.length && !statusSel.includes(x.status)) return false;
+    if(statusSel.length && !colunasDe(x).some(c=>statusSel.includes(c))) return false;
     if(prioSel.length && !prioSel.includes(x.prioridade)) return false;
     if(tecnicoBoxes.length && !tecnicoSel.includes(x.tecnico)) return false;
     if(deTs && x.dataAbertura < deTs) return false;
@@ -1455,10 +3270,251 @@ function runReport(){
   generateReport(filtered);
 }
 
-async function generateReport(filteredItems){
+function runReportVistoria(){
+  const vistBoxes = document.querySelectorAll('.repVistoriador');
+  const vistSel = vistBoxes.length ? [...document.querySelectorAll('.repVistoriador:checked')].map(el=>el.value) : null;
+  const conteudo = document.getElementById('repVistConteudo').value;
+  const itensSel = (conteudo === 'sel')
+    ? [...document.querySelectorAll('.repVistItem:checked')].map(el=>el.value)
+    : ROTEIRO_VISTORIA.map(r=>r.id);
+  if(conteudo === 'sel' && !itensSel.length){
+    askConfirm('Selecione pelo menos um item da vistoria para sair no relatório.', ()=>{});
+    return;
+  }
+  const localBoxes = document.querySelectorAll('.repVistLocal');
+  const locaisSel = [...document.querySelectorAll('.repVistLocal:checked')].map(el=>el.value);
+  if(localBoxes.length && !locaisSel.length){
+    askConfirm('Selecione pelo menos um local da vistoria.', ()=>{});
+    return;
+  }
+  const deVal = document.getElementById('repVistDe').value;
+  const ateVal = document.getElementById('repVistAte').value;
+  const deTs = deVal ? new Date(deVal + 'T00:00:00').getTime() : null;
+  const ateTs = ateVal ? new Date(ateVal + 'T23:59:59').getTime() : null;
+
+  const dados = [];
+  items.filter(x=>x.vistoria).forEach(it=>{
+    const v = it.vistoria;
+    if(vistBoxes.length && !vistSel.includes(v.vistoriador)) return;
+    if(deTs && (v.data||0) < deTs) return;
+    if(ateTs && (v.data||0) > ateTs) return;
+    if(localBoxes.length && !locaisSel.includes(it.local)) return;
+
+    let cjs = conjuntosDe(it).map(cj=>{
+      let itens = cj.itens.filter(x=>itensSel.includes(x.id));
+      if(conteudo === 'c') itens = itens.filter(x=>x.estado === 'C');
+      return Object.assign({}, cj, { itens });
+    });
+    if(conteudo === 'c') cjs = cjs.filter(cj=>cj.itens.length);
+    if(!cjs.length) return;
+    dados.push({ it, cjs });
+  });
+
+  if(!dados.length){
+    askConfirm(conteudo === 'c'
+      ? 'Nenhum item conforme encontrado com esses filtros. Verifique se as vistorias do período têm itens marcados como C.'
+      : 'Nenhuma vistoria encontrada com esses filtros. Ajuste o período, o vistoriador ou o local e tente novamente.', ()=>{});
+    return;
+  }
+
+  const periodo = (deVal || ateVal)
+    ? 'Vistorias de ' + (deVal ? fmtDate(deTs) : 'início') + ' a ' + (ateVal ? fmtDate(ateTs) : 'hoje')
+    : 'Vistorias: todas as datas';
+  const recorte = [
+    (localBoxes.length && locaisSel.length < localBoxes.length) ? 'locais: ' + locaisSel.join(', ') : null,
+    conteudo === 'nc' ? 'somente não conformidades' : null,
+    conteudo === 'c' ? 'somente conformidades' : null,
+    conteudo === 'full' ? 'roteiro completo' : null,
+    conteudo === 'sel' ? itensSel.length + ' de ' + ROTEIRO_VISTORIA.length + ' itens selecionados' : null
+  ].filter(Boolean).join(' · ');
+
+  closeReportFilter();
+  // o próprio conteúdo escolhido define o documento: não conformidades saem como lista de trabalho
+  if(conteudo === 'nc') gerarRelatorioNC(dados, periodo + (recorte ? ' · ' + recorte : ''));
+  else gerarRelatorioVistorias(dados, periodo + (recorte ? ' · ' + recorte : ''), conteudo);
+}
+
+// ---------- consolidado de vistorias ----------
+function gerarRelatorioVistorias(dados, periodo, conteudo){
+  const letterheadHTML = document.querySelector('.letterhead').outerHTML;
+  const ordenada = [...dados].sort((a,b)=>
+    ORDEM_PT.compare(a.it.local||'', b.it.local||'') || (b.it.vistoria.data||0)-(a.it.vistoria.data||0));
+
+  let totConj = 0, totNC = 0, totC = 0, totFotos = 0;
+  ordenada.forEach(d=>{
+    d.cjs.forEach(cj=>{
+      totConj++;
+      totNC += cj.itens.filter(x=>x.estado==='NC').length;
+      totC  += cj.itens.filter(x=>x.estado==='C').length;
+      totFotos += (cj.fotosGerais||[]).length + cj.itens.filter(x=>x.foto).length;
+    });
+  });
+  const rotuloConteudo = conteudo === 'c' ? 'Conformidades — itens em ordem'
+    : conteudo === 'nc' ? 'Não conformidades por conjunto'
+    : conteudo === 'sel' ? 'Itens selecionados'
+    : 'Roteiro completo';
+
+  const resumoGeral = ordenada.map(({it, cjs})=>{
+    const nc = cjs.reduce((n,c)=>n + c.itens.filter(x=>x.estado==='NC').length, 0);
+    return '<tr><td>' + it.code + '</td><td>' + escVist(it.local) + '</td>' +
+      '<td>' + fmtDate(it.vistoria.data) + '</td>' +
+      '<td>' + escVist(it.vistoria.vistoriador||'-') + '</td>' +
+      '<td style="text-align:center;">' + cjs.length + '</td>' +
+      '<td style="text-align:center;font-weight:bold;">' + nc + '</td>' +
+      '<td>' + escVist(it.tecnico||'-') + '</td></tr>';
+  }).join('');
+
+  const detalhe = ordenada.map(({it, cjs}, i)=>{
+    // modo 'nc' = resumo por conjunto; 'full' e 'sel' = roteiro item a item
+    let linhasCj;
+    const cjsOrd = ordenaPorCodigo(cjs);
+    if(conteudo === 'nc'){
+      linhasCj = cjsOrd.map(cj=>{
+        const nc = cj.itens.filter(x=>x.estado==='NC');
+        const pend = cj.itens.filter(x=>!x.estado).length;
+        const sit = pend ? 'incompleto (' + pend + ' sem marcação)' : (nc.length ? nc.length + ' NC' : 'conforme');
+        const achados = nc.length
+          ? '<ul style="margin:3px 0 0 16px;padding:0;font-size:10px;">' + nc.map(x=>
+              '<li><b>' + escVist(x.nome) + ':</b> ' + escVist(x.obs) + ' → <i>' + escVist(x.solucao) + '</i>' +
+              (x.foto ? ' <img src="' + driveImgUrl(x.foto) + '" style="height:44px;border:1px solid #999;vertical-align:middle;margin-left:4px;">' : '') + '</li>'
+            ).join('') + '</ul>'
+          : '';
+        return '<tr><td>' + escVist(cj.codigo) + '</td><td>' + escVist(cj.obs) + '</td>' +
+          '<td style="text-align:center;">' + sit + '</td><td>' + (achados || '—') + '</td></tr>';
+      }).join('');
+    } else {
+      linhasCj = cjsOrd.map(cj=>{
+        const cab = '<tr><td colspan="4" class="grp" style="background:#e8e8e8;font-weight:bold;">' +
+          escVist(cj.codigo) + (cj.obs ? ' — ' + escVist(cj.obs) : '') + '</td></tr>';
+        const linhas = cj.itens.map(x=>
+          '<tr><td style="padding-left:14px;">' + escVist(x.nome) + '</td>' +
+          '<td style="text-align:center;font-weight:bold;">' + (x.estado||'—') + '</td>' +
+          '<td>' + escVist(x.obs) + (x.solucao ? ' → <i>' + escVist(x.solucao) + '</i>' : '') + '</td>' +
+          '<td style="text-align:center;">' + (x.foto ? '<img src="' + driveImgUrl(x.foto) + '" style="height:44px;border:1px solid #999;">' : '—') + '</td></tr>'
+        ).join('');
+        return cab + linhas;
+      }).join('');
+    }
+
+    return '<div style="' + (i ? 'page-break-before:always;' : '') + 'padding-top:8px;">' +
+      '<div class="sec" style="font-size:13px;font-weight:bold;border-bottom:1px solid #999;padding-bottom:3px;margin-bottom:6px;">' +
+        it.code + ' — ' + escVist(it.local) + '</div>' +
+      '<div style="font-size:10px;color:#555;margin-bottom:8px;">' +
+        'Vistoria em ' + fmtDataHora(it.vistoria.data) + ' por ' + escVist(it.vistoria.vistoriador||'-') +
+        ' · OS aberta em ' + fmtDataHora(it.dataAbertura) +
+        ' · OS fechada em ' + (it.dataConclusao ? fmtDataHora(it.dataConclusao) : 'em aberto') +
+        ' · encarregado: ' + escVist(it.tecnico||'não definido') + '</div>' +
+      (it.vistoria.obsGerais ? '<div style="font-size:10px;margin-bottom:6px;"><b>Observações:</b> ' + escVist(it.vistoria.obsGerais) + '</div>' : '') +
+      (conteudo === 'nc'
+        ? '<table class="rep-table"><thead><tr><th style="width:20%;">Equipamento / Localização</th><th style="width:15%;">Número de Patrimônio</th>' +
+          '<th style="width:15%;">Situação</th><th style="width:50%;">Não conformidades e soluções propostas</th></tr></thead><tbody>'
+        : conteudo === 'c'
+          ? '<table class="rep-table"><thead><tr><th style="width:44%;">Conjunto / item verificado</th><th style="width:10%;">Situação</th>' +
+            '<th style="width:31%;">Observação</th><th style="width:15%;">Foto</th></tr></thead><tbody>'
+          : '<table class="rep-table"><thead><tr><th style="width:38%;">Conjunto / item verificado</th><th style="width:9%;">Situação</th>' +
+            '<th style="width:38%;">Observação e solução proposta</th><th style="width:15%;">Foto</th></tr></thead><tbody>') +
+      linhasCj + '</tbody></table></div>';
+  }).join('');
+
+  document.getElementById('printArea').innerHTML =
+    letterheadHTML +
+    '<hr style="border:none;border-top:1px solid #999;margin:0 0 14px;">' +
+    '<h1 style="font-size:20px;margin:0 0 2px;">Relatório de vistoria técnica</h1>' +
+    '<div style="font-size:11px;color:#555;margin:0 0 2px;">Consolidado por local e conjunto de mídia · ' + rotuloConteudo + '</div>' +
+    '<div style="font-size:11px;color:#555;margin-bottom:12px;">' + periodo +
+      ' · emitido em ' + fmtDataHora(Date.now()) + '</div>' +
+    '<div class="rep-summary">' +
+      '<div><b>' + ordenada.length + '</b>locais vistoriados</div>' +
+      '<div><b>' + totConj + '</b>conjuntos</div>' +
+      (conteudo === 'c'
+        ? '<div><b>' + totC + '</b>itens conformes</div>'
+        : '<div><b>' + totNC + '</b>não conformidades</div>' +
+          (conteudo === 'full' || conteudo === 'sel' ? '<div><b>' + totC + '</b>itens conformes</div>' : '')) +
+      '<div><b>' + totFotos + '</b>fotos</div>' +
+    '</div>' +
+    '<div class="sec" style="font-size:12px;font-weight:600;margin:0 0 6px;">Resumo por local</div>' +
+    '<table class="rep-table"><thead><tr><th>OS</th><th>Local</th><th>Data</th><th>Vistoriador</th>' +
+    '<th style="text-align:center;">Conj.</th><th style="text-align:center;">NC</th><th>Encarregado</th></tr></thead><tbody>' +
+    resumoGeral + '</tbody></table>' +
+    legendaSituacao(ordenada.map(d=>acaoDe(d.it))) + detalhe;
+  mostrarPreview('Relatório de vistoria técnica');
+}
+
+// ---------- lista de trabalho das nao conformidades ----------
+function gerarRelatorioNC(dados, periodo){
+  const letterheadHTML = document.querySelector('.letterhead').outerHTML;
+  const achados = [];
+  dados.forEach(({it, cjs})=>{
+    cjs.forEach(cj=>{
+      cj.itens.filter(x=>x.estado==='NC').forEach(x=>{
+        achados.push({
+          os: it.code, local: it.local, encarregado: it.tecnico || 'não definido',
+          data: it.vistoria.data, conjunto: cj.codigo, onde: cj.obs || '',
+          grupo: x.grupo || metaRoteiro(x.id).grupo, item: x.nome,
+          problema: x.obs, solucao: x.solucao, foto: x.foto
+        });
+      });
+    });
+  });
+
+  if(!achados.length){
+    askConfirm('Nenhuma não conformidade registrada nas vistorias filtradas. Nada a encaminhar.', ()=>{});
+    return;
+  }
+
+  achados.sort((a,b)=> ORDEM_PT.compare(a.local, b.local) || ORDEM_PT.compare(a.conjunto, b.conjunto));
+
+  const porGrupo = {};
+  achados.forEach(a=>{ porGrupo[a.grupo] = (porGrupo[a.grupo]||0) + 1; });
+  const resumoGrupo = Object.entries(porGrupo).sort((a,b)=>b[1]-a[1])
+    .map(([g,n])=>'<div><b>' + n + '</b>' + escVist(g) + '</div>').join('');
+
+  const porEncarregado = {};
+  achados.forEach(a=>{ porEncarregado[a.encarregado] = (porEncarregado[a.encarregado]||0) + 1; });
+  const linhasEnc = Object.entries(porEncarregado).sort((a,b)=>b[1]-a[1])
+    .map(([e,n])=>'<div style="font-size:11px;">' + escVist(e) + ': <b style="font-size:11px;display:inline;">' + n + '</b></div>').join('');
+
+  const linhas = achados.map((a,i)=>
+    '<tr>' +
+      '<td style="text-align:center;">' + (i+1) + '</td>' +
+      '<td>' + escVist(a.local) + '<div style="font-size:9px;color:#555;">' + a.os + '</div></td>' +
+      '<td>' + escVist(a.conjunto) + (a.onde ? '<div style="font-size:9px;color:#555;">' + escVist(a.onde) + '</div>' : '') + '</td>' +
+      '<td>' + escVist(a.grupo) + '</td>' +
+      '<td>' + escVist(a.item) + '</td>' +
+      '<td>' + escVist(a.problema) + '</td>' +
+      '<td>' + escVist(a.solucao) + '</td>' +
+      '<td>' + escVist(a.encarregado) + '</td>' +
+      '<td style="text-align:center;">' + (a.foto ? '<img src="' + driveImgUrl(a.foto) + '" style="height:48px;border:1px solid #999;">' : '—') + '</td>' +
+      '<td style="text-align:center;width:52px;">&nbsp;</td>' +
+    '</tr>').join('');
+
+  document.getElementById('printArea').innerHTML =
+    letterheadHTML +
+    '<hr style="border:none;border-top:1px solid #999;margin:0 0 14px;">' +
+    '<h1 style="font-size:20px;margin:0 0 2px;">Vistoria técnica — não conformidades</h1>' +
+    '<div style="font-size:11px;color:#555;margin:0 0 2px;">Lista de trabalho para encaminhamento ao responsável</div>' +
+    '<div style="font-size:11px;color:#555;margin-bottom:12px;">' + periodo +
+      ' · emitido em ' + fmtDataHora(Date.now()) + '</div>' +
+    '<div class="rep-summary"><div><b>' + achados.length + '</b>não conformidades</div>' + resumoGrupo + '</div>' +
+    '<div class="sec" style="font-size:12px;font-weight:600;margin:10px 0 4px;">Por encarregado</div>' + linhasEnc +
+    '<table class="rep-table" style="margin-top:10px;"><thead><tr>' +
+      '<th style="width:3%;">#</th><th style="width:12%;">Local</th><th style="width:11%;">Conjunto</th>' +
+      '<th style="width:10%;">Grupo</th><th style="width:14%;">Item</th><th style="width:15%;">Problema</th>' +
+      '<th style="width:15%;">Solução proposta</th><th style="width:9%;">Encarregado</th>' +
+      '<th style="width:7%;">Foto</th><th style="width:4%;">OK</th>' +
+    '</tr></thead><tbody>' + linhas + '</tbody></table>' +
+    '<div style="font-size:9px;color:#555;margin-top:6px;">Coluna OK: marcar em campo à medida que cada item for resolvido.</div>' +
+    legendaSituacao(dados.map(d=>acaoDe(d.it)));
+  mostrarPreview('Vistoria técnica — não conformidades');
+}
+
+function generateReport(filteredItems){
   const list = filteredItems || items;
   const counts = {aberta:0, andamento:0, peca:0, concluida:0};
-  list.forEach(x=>counts[x.status]++);
+  list.forEach(x=>{
+    if(counts[x.status] !== undefined) counts[x.status]++;
+    if(aguardandoPeca(x)) counts.peca++;
+  });
   const porTecnico = {};
   list.forEach(x=>{
     const t = x.tecnico || 'Sem técnico';
@@ -1477,9 +3533,12 @@ async function generateReport(filteredItems){
       <td>${x.tipo||'-'}</td>
       <td>${prioLabel[x.prioridade]||'-'}</td>
       <td>${x.tecnico||'-'}</td>
-      <td>${statusLabel[x.status]}</td>
-      <td>${fmtDate(x.dataAbertura)}</td>
-      <td>${fmtDate(x.dataConclusao)}</td>
+      <td>${statusTexto(x)}</td>
+      <td>${fmtDataHora(x.dataAbertura)}</td>
+      <td>${x.dataInicio ? fmtDataHora(x.dataInicio) + (x.iniciadoPor ? '<br>' + x.iniciadoPor : '') : '—'}</td>
+      <td>${x.dataConclusao ? fmtDataHora(x.dataConclusao) + (x.encerradoPor ? '<br>' + x.encerradoPor : '') : '—'}</td>
+      <td>${fmtDuracao(tempoAteInicio(x))}</td>
+      <td>${fmtDuracao(tempoExecucao(x))}</td>
       <td>${(x.diagnostico||'-').slice(0,120)}</td>
       <td>${x.compraMaterial ? materiaisTexto(x).replace(/;/g,'<br>') : '-'}</td>
       <td>${[
@@ -1506,23 +3565,23 @@ async function generateReport(filteredItems){
       <div>Em andamento<b>${counts.andamento}</b></div>
       <div>Aguardando peça<b>${counts.peca}</b></div>
       <div>Concluídas<b>${counts.concluida}</b></div>
-      <div>Tempo médio de execução<b>${avgResolutionTime(list)}</b></div>
+      <div>Tempo médio até o início<b>${mediaDuracao(list, tempoAteInicio)}</b></div>
+      <div>Tempo médio de execução<b>${mediaDuracao(list, tempoExecucao)}</b></div>
       <div>OS com compra de material<b>${totalItensMaterial}</b></div>
     </div>
     <div style="margin-bottom:16px;">
-      <div style="font-size:12px;font-weight:600;margin-bottom:6px;">OS por técnico</div>
+      <div class="sec" style="font-size:12px;font-weight:600;margin-bottom:6px;">OS por técnico</div>
       ${tecnicoLinhas || '<div style="font-size:11px;">Nenhum técnico registrado</div>'}
     </div>
     <table class="rep-table">
       <thead><tr>
         <th>Código</th><th>Local</th><th>Tipo</th><th>Prioridade</th><th>Técnico</th>
-        <th>Status</th><th>Abertura</th><th>Conclusão</th><th>Diagnóstico</th><th>Material</th><th>Fotos</th>
+        <th>Status</th><th>Emissão</th><th>Início</th><th>Encerramento</th><th>Até o início</th><th>Execução</th><th>Diagnóstico</th><th>Material</th><th>Fotos</th>
       </tr></thead>
       <tbody>${linhas || '<tr><td colspan="11">Nenhuma OS registrada</td></tr>'}</tbody>
     </table>
   `;
-  await aguardarImagens(document.getElementById('printArea'));
-  window.print();
+  mostrarPreview('Relatório de manutenção — ordens de serviço');
 }
 
 currentUser = loadSession();
