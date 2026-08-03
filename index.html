@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <!-- saved from url=(0065)file:///C:/Users/Carlos/Desktop/controle-manutencao000000000.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 
 <title>Painel de Manutenção</title>
 <link rel="preconnect" href="https://fonts.googleapis.com/">
@@ -202,6 +203,8 @@
   .rep-summary div{font-size:12px;}
   .rep-summary b{display:block;font-size:18px;}
   table.rep-table{width:100%;border-collapse:collapse;font-size:11px;}
+  #printArea{ max-width:100%; overflow-x:auto; }
+  #printArea img{ max-width:100%; }
   table.rep-table th,table.rep-table td{border:1px solid #999;padding:5px 7px;text-align:left;vertical-align:top;}
   table.rep-table th{background:#eee;}
   @media (max-width: 720px){
@@ -885,6 +888,10 @@ function toggleCompraFields(){
   if(marcado && document.getElementById('materiaisLista').children.length === 0){
     adicionarLinhaMaterial();
   }
+  const fStatus = document.getElementById('fStatus');
+  if(marcado && fStatus.value === 'aberta'){
+    fStatus.value = 'peca';
+  }
 }
 
 function adicionarLinhaMaterial(nome, quantidade){
@@ -995,7 +1002,9 @@ function removePhoto(kind){
 function renderPhotoPreview(containerId, dataUrl, kind, showRemove, uploading){
   const el = document.getElementById(containerId);
   if(!dataUrl){ el.innerHTML = ''; return; }
-  el.innerHTML = `<img src="${dataUrl}" style="max-width:100%;max-height:110px;border-radius:4px;border:1px solid var(--border);display:block;margin-bottom:5px;">` +
+  const safeSrc = driveImgUrl(dataUrl);
+  el.innerHTML = `<img src="${safeSrc}" referrerpolicy="no-referrer" style="max-width:100%;max-height:110px;border-radius:4px;border:1px solid var(--border);display:block;margin-bottom:5px;"
+      onerror="this.outerHTML='<a href=&quot;${dataUrl}&quot; target=&quot;_blank&quot; style=&quot;font-size:11px;color:#E3574C;&quot;>⚠️ Foto não carregou — abrir link original</a>'">` +
     (uploading ? `<span style="font-size:11px;color:var(--muted);">Enviando foto…</span>` : '') +
     (showRemove && !uploading ? `<button type="button" class="btn" style="padding:4px 8px;font-size:11px;" onclick="removePhoto('${kind}')">Remover foto</button>` : '');
 }
@@ -1051,7 +1060,21 @@ function deleteOS(){
   render();
 }
 
-function imprimirOS(){
+function aguardarImagens(container, timeoutMs){
+  const imgs = Array.from(container.querySelectorAll('img'));
+  if(imgs.length === 0) return Promise.resolve();
+  const promessas = imgs.map(img => {
+    if(img.complete && img.naturalWidth > 0) return Promise.resolve();
+    return new Promise(resolve => {
+      img.addEventListener('load', resolve, {once:true});
+      img.addEventListener('error', resolve, {once:true}); // não trava a impressão se uma foto falhar
+    });
+  });
+  const timeout = new Promise(resolve => setTimeout(resolve, timeoutMs || 6000));
+  return Promise.race([Promise.all(promessas), timeout]);
+}
+
+async function imprimirOS(){
   const it = items.find(x=>x.id===editingId);
   if(!it) return;
 
@@ -1074,8 +1097,8 @@ function imprimirOS(){
     <div style="margin-top:14px;">
       <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Fotos anexadas</div>
       <div style="display:flex;gap:14px;">
-        ${it.fotoVerificacao ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Verificação</div><img src="${it.fotoVerificacao}" style="height:120px;width:auto;border:1px solid #999;"></div>` : ''}
-        ${it.fotoConclusao ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Conclusão</div><img src="${it.fotoConclusao}" style="height:120px;width:auto;border:1px solid #999;"></div>` : ''}
+        ${it.fotoVerificacao ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Verificação</div>${fotoImgTag(it.fotoVerificacao, 120)}</div>` : ''}
+        ${it.fotoConclusao ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Conclusão</div>${fotoImgTag(it.fotoConclusao, 120)}</div>` : ''}
       </div>
     </div>` : '';
 
@@ -1111,7 +1134,23 @@ function imprimirOS(){
     </div>
     <div style="margin-top:12px;font-size:11px;color:#555;">Data: ____ / ____ / ________</div>
   `;
+  await aguardarImagens(document.getElementById('printArea'));
   window.print();
+}
+
+function driveImgUrl(url){
+  if(!url) return url;
+  if(url.startsWith('data:')) return url; // base64 local, não precisa tratar
+  const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if(m) return 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1600';
+  return url;
+}
+
+function fotoImgTag(url, altura){
+  if(!url) return '';
+  const safeUrl = driveImgUrl(url);
+  return `<img src="${safeUrl}" referrerpolicy="no-referrer" style="height:${altura}px;width:auto;border:1px solid #999;display:block;"
+            onerror="this.outerHTML='<a href=&quot;${url}&quot; target=&quot;_blank&quot; style=&quot;font-size:11px;color:#900;&quot;>⚠️ Foto não carregou — abrir link original</a>'">`;
 }
 
 function fmtDate(ts){
@@ -1416,7 +1455,7 @@ function runReport(){
   generateReport(filtered);
 }
 
-function generateReport(filteredItems){
+async function generateReport(filteredItems){
   const list = filteredItems || items;
   const counts = {aberta:0, andamento:0, peca:0, concluida:0};
   list.forEach(x=>counts[x.status]++);
@@ -1444,8 +1483,8 @@ function generateReport(filteredItems){
       <td>${(x.diagnostico||'-').slice(0,120)}</td>
       <td>${x.compraMaterial ? materiaisTexto(x).replace(/;/g,'<br>') : '-'}</td>
       <td>${[
-        x.fotoVerificacao ? `<img src="${x.fotoVerificacao}" style="height:50px;width:auto;display:block;margin-bottom:3px;">` : '',
-        x.fotoConclusao ? `<img src="${x.fotoConclusao}" style="height:50px;width:auto;display:block;">` : ''
+        x.fotoVerificacao ? fotoImgTag(x.fotoVerificacao, 50) : '',
+        x.fotoConclusao ? fotoImgTag(x.fotoConclusao, 50) : ''
       ].join('') || '-'}</td>
     </tr>
   `).join('');
@@ -1482,6 +1521,7 @@ function generateReport(filteredItems){
       <tbody>${linhas || '<tr><td colspan="11">Nenhuma OS registrada</td></tr>'}</tbody>
     </table>
   `;
+  await aguardarImagens(document.getElementById('printArea'));
   window.print();
 }
 
