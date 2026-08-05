@@ -542,6 +542,15 @@
         </div>
         <div class="bloco-materiais-dica" id="matDica">Toque em uma linha para selecioná-la antes de excluir.</div>
       </div>
+      <div class="field checkbox-field">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="fMaterialEntregue" onchange="toggleMaterialEntregue()" style="width:auto;">
+          Material entregue?
+        </label>
+        <div style="font-size:9px;color:var(--muted);margin-top:3px;">
+          Marcando isso, esta OS sai da coluna "Requisição de material" e passa a aparecer pelo status normal (Em andamento).
+        </div>
+      </div>
     </div>
     <div class="field checkbox-field">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
@@ -1184,6 +1193,7 @@ function preencheSelectLocais(atual){
 function aguardandoPeca(x){
   if(!x) return false;
   if(x.status === 'concluida') return false;
+  if(x.materialEntregue) return false;
   return !!x.compraMaterial;
 }
 
@@ -1239,7 +1249,8 @@ function atualizaStatusDica(){
   const dica = document.getElementById('statusDica');
   if(!dica) return;
   const compra = document.getElementById('fEhCompra').checked;
-  const cond = (compra && novo !== 'concluida')
+  const entregue = document.getElementById('fMaterialEntregue').checked;
+  const cond = (compra && !entregue && novo !== 'concluida')
     ? ' Como requer compra de material, ela aparece na coluna <b>Requisição de material</b>, e não nesta.' : '';
   if(novo === 'concluida') dica.innerHTML = 'OS encerrada. Para mexer, use <b>↩ Reabrir OS</b>.';
   else if(novo === 'andamento') dica.innerHTML = 'Início dos trabalhos registrado nesta OS.' + cond;
@@ -1351,6 +1362,7 @@ function openModal(id){
     document.getElementById('fRequerDiagnostico').checked = !!(it.requerDiagnostico || (it.diagnostico && it.diagnostico.trim()));
     toggleDiagnosticoFields();
     document.getElementById('fEhCompra').checked = !!it.compraMaterial;
+    document.getElementById('fMaterialEntregue').checked = !!it.materialEntregue;
     limparListaMateriais();
     const materiaisExistentes = it.materiais && it.materiais.length ? it.materiais
       : (it.nomeMaterial ? [{nome: it.nomeMaterial, quantidade: it.quantidade||0}] : []);
@@ -1368,6 +1380,7 @@ function openModal(id){
     document.getElementById('fPrioridadeM').value = 'normal';
     document.getElementById('fStatus').selectedIndex = -1;
     document.getElementById('fEhCompra').checked = false;
+    document.getElementById('fMaterialEntregue').checked = false;
     document.getElementById('fRequerDiagnostico').checked = false;
     toggleDiagnosticoFields();
     limparListaMateriais();
@@ -1394,6 +1407,16 @@ function toggleCompraFields(){
   atualizaDicaMaterial();
   atualizaStatusDica();
   aplicaModoEdicao();
+}
+
+function toggleMaterialEntregue(){
+  const entregue = document.getElementById('fMaterialEntregue').checked;
+  if(entregue){
+    // material chegou: sai da fila de requisição e passa a valer o status normal (retomando o trabalho)
+    const sel = document.getElementById('fStatus');
+    if(sel.value !== 'concluida') sel.value = 'andamento';
+  }
+  atualizaStatusDica();
 }
 
 
@@ -1589,6 +1612,7 @@ async function saveOS(){
     }
   }
   const ehCompra = document.getElementById('fEhCompra').checked;
+  const materialEntregue = document.getElementById('fMaterialEntregue').checked;
   const requerRelatorio = document.getElementById('fRequerRelatorio').checked;
   const statusEscolhido = statusAutomatico();
   const jaTemRelatorio = !!(editingId && (items.find(x=>x.id===editingId)||{}).vistoria);
@@ -1611,6 +1635,7 @@ async function saveOS(){
     fotoVerificacao: pendingFotoVerificacao,
     fotoConclusao: pendingFotoConclusao,
     compraMaterial: ehCompra && materiais.length > 0,
+    materialEntregue: materialEntregue,
     requerRelatorio: requerRelatorio,
     acao: acaoEscolhida,
     materiais: materiais,
