@@ -467,6 +467,20 @@
     <option value="preventiva">Preventiva</option>
   </select>
   <select id="fTecnico" onchange="render()"><option value="">Técnico: todos</option></select>
+  <select id="fStatusFiltro" onchange="render()">
+    <option value="">Status: todos</option>
+    <option value="aberta">Aberta</option>
+    <option value="peca">Requisição de material</option>
+    <option value="andamento">Em andamento</option>
+    <option value="concluida">Encerrada</option>
+  </select>
+  <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);">
+    <span>De</span>
+    <input type="date" id="fDataDe" onchange="render()" style="padding:7px 6px;font-size:11px;">
+    <span>até</span>
+    <input type="date" id="fDataAte" onchange="render()" style="padding:7px 6px;font-size:11px;">
+    <button type="button" class="btn" style="padding:6px 8px;font-size:10px;" onclick="document.getElementById('fDataDe').value='';document.getElementById('fDataAte').value='';render();" title="Limpar filtro de data">✕</button>
+  </div>
 </div>
 
 <div class="board" id="board"></div>
@@ -512,6 +526,9 @@
         <input type="checkbox" id="fEhCompra" onchange="toggleCompraFields()" style="width:auto;">
         Esta OS requer compra de material
       </label>
+      <div style="font-size:9px;color:var(--amber);margin-top:3px;display:none;" id="avisoAguardandoPeca">
+        ⚠ Marcando isso, esta OS vai para a coluna <b>"Requisição de material"</b> no quadro — independente do que estiver selecionado em Status abaixo.
+      </div>
     </div>
     <div id="compraFieldsWrap" style="display:none;">
       <div class="bloco-materiais" style="margin-bottom:8px;">
@@ -550,7 +567,7 @@
       <label>Status</label>
       <select id="fStatus" onchange="onStatusChange()">
         <option value="andamento">Em andamento</option>
-        <option value="concluida">Concluída</option>
+        <option value="concluida">Encerrada</option>
       </select>
       <div style="font-size:9px;color:var(--muted);margin-top:3px;" id="statusDica"></div>
     </div>
@@ -1160,25 +1177,24 @@ function preencheSelectLocais(atual){
   onLocalSelChange();
 }
 
-// o status é consequência: compra de material → aguardando peça; salvar → aberta;
-// encerrar → concluída. Só "Em andamento" é escolha do usuário.
-// "aguardando peça" não é etapa da OS: é uma CONDIÇÃO dela.
-// A OS fica na coluna do seu ciclo de vida E na coluna Aguardando peça.
+// o status é consequência: compra de material → requisição de material; salvar → aberta;
+// encerrar → encerrada. Só "Em andamento" é escolha do usuário.
+// "requisição de material" não é etapa da OS: é uma CONDIÇÃO dela, com prioridade
+// sobre aberta/andamento — a OS aparece só nessa coluna enquanto a condição durar.
 function aguardandoPeca(x){
   if(!x) return false;
   if(x.status === 'concluida') return false;
   return !!x.compraMaterial;
 }
 
-// em que colunas do quadro esta OS aparece
+// em que coluna do quadro esta OS aparece (uma só — peça tem prioridade sobre aberta/andamento)
 function colunasDe(x){
-  const cols = [x.status];
-  if(aguardandoPeca(x)) cols.push('peca');
-  return cols;
+  if(aguardandoPeca(x)) return ['peca'];
+  return [x.status];
 }
 
 function statusTexto(x){
-  return (statusLabel[x.status] || x.status) + (aguardandoPeca(x) ? ' + aguardando peça' : '');
+  return (statusLabel[x.status] || x.status) + (aguardandoPeca(x) ? ' + requisição de material' : '');
 }
 
 function statusAutomatico(){
@@ -1224,7 +1240,7 @@ function atualizaStatusDica(){
   if(!dica) return;
   const compra = document.getElementById('fEhCompra').checked;
   const cond = (compra && novo !== 'concluida')
-    ? ' Como requer compra de material, ela aparece <b>também</b> em Aguardando peça.' : '';
+    ? ' Como requer compra de material, ela aparece na coluna <b>Requisição de material</b>, e não nesta.' : '';
   if(novo === 'concluida') dica.innerHTML = 'OS encerrada. Para mexer, use <b>↩ Reabrir OS</b>.';
   else if(novo === 'andamento') dica.innerHTML = 'Início dos trabalhos registrado nesta OS.' + cond;
   else dica.innerHTML = 'Emitida e aguardando início. O técnico marca <b>Em andamento</b> quando começa o serviço.' + cond;
@@ -1371,6 +1387,7 @@ function toggleDiagnosticoFields(){
 function toggleCompraFields(){
   const marcado = document.getElementById('fEhCompra').checked;
   document.getElementById('compraFieldsWrap').style.display = marcado ? 'block' : 'none';
+  document.getElementById('avisoAguardandoPeca').style.display = marcado ? 'block' : 'none';
   if(marcado && document.getElementById('materiaisLista').children.length === 0){
     adicionarLinhaMaterial();
   }
@@ -1811,15 +1828,15 @@ function render(){
 
   const counts = {aberta:0, andamento:0, peca:0, concluida:0};
   items.forEach(x=>{
-    if(counts[x.status] !== undefined) counts[x.status]++;
     if(aguardandoPeca(x)) counts.peca++;
+    else if(counts[x.status] !== undefined) counts[x.status]++;
   });
 
   document.getElementById('stats').innerHTML = `
     <div class="stat op"><div class="label">Abertas</div><div class="val mono">${counts.aberta}</div></div>
+    <div class="stat agp"><div class="label">Requisição de material</div><div class="val mono">${counts.peca}</div></div>
     <div class="stat and"><div class="label">Em andamento</div><div class="val mono">${counts.andamento}</div></div>
-    <div class="stat agp"><div class="label">Aguard. peça</div><div class="val mono">${counts.peca}</div></div>
-    <div class="stat con"><div class="label">Concluídas</div><div class="val mono">${counts.concluida}</div></div>
+    <div class="stat con"><div class="label">Encerradas</div><div class="val mono">${counts.concluida}</div></div>
     <div class="stat"><div class="label">Médio até o início</div><div class="val mono">${mediaDuracao(items, tempoAteInicio)}</div></div>
     <div class="stat"><div class="label">Médio de execução</div><div class="val mono">${mediaDuracao(items, tempoExecucao)}</div></div>
   `;
@@ -1827,6 +1844,9 @@ function render(){
   const q = document.getElementById('search').value.toLowerCase();
   const fp = document.getElementById('fPrioridade').value;
   const ft = document.getElementById('fTecnico').value;
+  const fs = document.getElementById('fStatusFiltro').value;
+  const fDe = document.getElementById('fDataDe').value;   // yyyy-mm-dd ou ''
+  const fAte = document.getElementById('fDataAte').value; // yyyy-mm-dd ou ''
 
   const filtered = items.filter(x=>{
     const matchQ = !q || x.local.toLowerCase().includes(q) || x.code.toLowerCase().includes(q) ||
@@ -1834,14 +1854,17 @@ function render(){
       (x.criadoPor||'').toLowerCase().includes(q);
     const matchP = !fp || x.prioridade===fp;
     const matchT = !ft || x.tecnico===ft || x.solicitante===ft || x.criadoPor===ft;
-    return matchQ && matchP && matchT;
+    const matchS = !fs || colunasDe(x).includes(fs);
+    const matchDe = !fDe || x.dataAbertura >= new Date(fDe + 'T00:00:00').getTime();
+    const matchAte = !fAte || x.dataAbertura <= new Date(fAte + 'T23:59:59').getTime();
+    return matchQ && matchP && matchT && matchS && matchDe && matchAte;
   });
 
   const cols = [
     {key:'aberta', title:'Aberta', dot:'aberta'},
+    {key:'peca', title:'Requisição de material', dot:'peca'},
     {key:'andamento', title:'Em andamento', dot:'andamento'},
-    {key:'peca', title:'Aguardando peça', dot:'peca'},
-    {key:'concluida', title:'Concluída', dot:'concluida'},
+    {key:'concluida', title:'Encerrada', dot:'concluida'},
   ];
 
   document.getElementById('board').innerHTML = cols.map(col=>{
@@ -1855,12 +1878,12 @@ function render(){
         ${it.prioridade==='maxima' ? '<div class="tag-maxima">PRIORIDADE MÁXIMA!!!!</div>' : ''}
         <div class="code mono">${it.code}${(it.fotoVerificacao||it.fotoConclusao) ? ' 📷' : ''}${it.vistoria ? ' 📋' + contaConjuntos(it) + 'c' + (contaNC(it) ? '/' + contaNC(it) + 'NC' : '') : (it.requerRelatorio ? ' 📋?' : '')}</div>
         <div class="loc">${it.local}</div>
-        <div class="meta" style="color:var(--amber);"><span>${(ACOES[it.acao||'visita']||ACOES.visita).icone} ${(ACOES[it.acao||'visita']||ACOES.visita).curto}</span><span>${aguardandoPeca(it) ? '<span class="tag-peca">aguardando peça</span>' : ''}</span></div>
+        <div class="meta" style="color:var(--amber);"><span>${(ACOES[it.acao||'visita']||ACOES.visita).icone} ${(ACOES[it.acao||'visita']||ACOES.visita).curto}</span><span>${aguardandoPeca(it) ? '<span class="tag-peca">requisição de material</span>' : ''}</span></div>
         <div class="meta">
           <span>${it.tecnico||'sem técnico'}</span>
           <span class="mono" title="abertura">${fmtDate(it.dataAbertura)} ${fmtHora(it.dataAbertura)}</span>
         </div>
-        ${it.dataConclusao ? `<div class="meta" style="color:var(--teal);"><span>✓ concluída</span><span class="mono">${fmtDate(it.dataConclusao)} ${fmtHora(it.dataConclusao)}</span></div>` : ''}
+        ${it.dataConclusao ? `<div class="meta" style="color:var(--teal);"><span>✓ encerrada</span><span class="mono">${fmtDate(it.dataConclusao)} ${fmtHora(it.dataConclusao)}</span></div>` : ''}
       </div>
     `).join('') : '<div class="empty">Sem OS aqui</div>';
 
@@ -1877,7 +1900,7 @@ function render(){
   }).join('');
 }
 
-const statusLabel = {aberta:'Aberta', andamento:'Em andamento', peca:'Aguardando peça', concluida:'Concluída'};
+const statusLabel = {aberta:'Aberta', andamento:'Em andamento', peca:'Requisição de material', concluida:'Encerrada'};
 const prioLabel = {maxima:'PRIORIDADE MÁXIMA!!!!', urgente:'Urgente', normal:'Normal', preventiva:'Preventiva'};
 
 function csvEscape(v){
@@ -2472,7 +2495,7 @@ function openVistoria(){
     '<br><span style="color:var(--muted);">tipo: ' + (escVist(it.tipo) || 'não informado') +
     ' · encarregado: ' + (escVist(it.tecnico) || 'não definido') +
     ' · aberta em ' + fmtDataHora(it.dataAbertura) +
-    (it.dataConclusao ? ' · concluída em ' + fmtDataHora(it.dataConclusao) : '') + '</span>';
+    (it.dataConclusao ? ' · encerrada em ' + fmtDataHora(it.dataConclusao) : '') + '</span>';
 
   document.getElementById('vistVistoriador').value = vistoriaAtual.vistoriador || '';
   document.getElementById('vistData').value = fmtDate(vistoriaAtual.data || Date.now());
@@ -3126,7 +3149,7 @@ function parseCSVText(text){
 
   const dataRows = rows.slice(1).filter(r => r.length > 1 || (r.length===1 && r[0].trim() !== ''));
   const prioReverse = {'PRIORIDADE MÁXIMA!!!!':'maxima', 'Prioridade Máxima':'maxima', 'Urgente':'urgente', 'Normal':'normal', 'Preventiva':'preventiva'};
-  const statusReverse = {'Aberta':'aberta', 'Em andamento':'andamento', 'Aguardando peça':'peca', 'Concluída':'concluida'};
+  const statusReverse = {'Aberta':'aberta', 'Em andamento':'andamento', 'Requisição de material':'peca', 'Aguardando peça':'peca', 'Encerrada':'concluida', 'Concluída':'concluida'};
 
   return dataRows.map((r, idx) => ({
     id: 'imp' + Date.now() + '_' + idx,
@@ -3168,7 +3191,7 @@ function handleImportFile(event){
 function openReportFilter(modo){
   repModo = (modo === 'vist') ? 'vist' : 'os';
 
-  const statusOpts = [['aberta','Aberta'],['andamento','Em andamento'],['peca','Aguardando peça (condição)'],['concluida','Concluída']];
+  const statusOpts = [['aberta','Aberta'],['peca','Requisição de material'],['andamento','Em andamento'],['concluida','Encerrada']];
   document.getElementById('repStatusChecks').innerHTML = statusOpts.map(([v,l])=>
     `<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="repStatus" value="${v}" checked>${l}</label>`
   ).join('');
@@ -3558,8 +3581,8 @@ function generateReport(filteredItems){
   const list = filteredItems || items;
   const counts = {aberta:0, andamento:0, peca:0, concluida:0};
   list.forEach(x=>{
-    if(counts[x.status] !== undefined) counts[x.status]++;
     if(aguardandoPeca(x)) counts.peca++;
+    else if(counts[x.status] !== undefined) counts[x.status]++;
   });
   const porTecnico = {};
   list.forEach(x=>{
@@ -3608,9 +3631,9 @@ function generateReport(filteredItems){
     <p style="font-size:12px;color:#555;margin:0 0 10px;">Gerado em ${new Date().toLocaleString('pt-BR')} — ${list.length} de ${items.length} ordens de serviço (com os filtros aplicados)</p>
     <div class="rep-summary">
       <div>Abertas<b>${counts.aberta}</b></div>
+      <div>Requisição de material<b>${counts.peca}</b></div>
       <div>Em andamento<b>${counts.andamento}</b></div>
-      <div>Aguardando peça<b>${counts.peca}</b></div>
-      <div>Concluídas<b>${counts.concluida}</b></div>
+      <div>Encerradas<b>${counts.concluida}</b></div>
       <div>Tempo médio até o início<b>${mediaDuracao(list, tempoAteInicio)}</b></div>
       <div>Tempo médio de execução<b>${mediaDuracao(list, tempoExecucao)}</b></div>
       <div>OS com compra de material<b>${totalItensMaterial}</b></div>
