@@ -504,8 +504,14 @@
         <option value="preventiva">🔧 Manutenção preventiva — conservar</option>
         <option value="corretiva">🛠️ Manutenção corretiva — reparar</option>
         <option value="compra">🛒 Compra de material</option>
+        <option value="comprovacao">📷 Comprovação</option>
       </select>
       <div id="fAcaoInfo" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
+    </div>
+    <div class="field" id="comprovacaoWrap" style="display:none;">
+      <label>Onde a foto da propaganda foi tirada</label>
+      <input type="text" id="fLocalFoto" placeholder="Ex: Painel de entrada do shopping, virado para a Av. Principal">
+      <div style="font-size:9px;color:var(--muted);margin-top:3px;">Preenchido pelo prestador, para registrar o local exato da comprovação fotográfica. Anexe a foto nos campos "Foto de verificação/conclusão" abaixo.</div>
     </div>
     <div class="row2">
       <div class="field">
@@ -1267,6 +1273,7 @@ function onAcaoChange(){
     ? '<span style="color:var(--red);">Atenção: já existe ' + (ACOES[it.acao]||ACOES.visita).rel.toLowerCase() +
       ' preenchido nesta OS. Trocar a ação exige apagar o relatório atual, porque o roteiro é diferente.</span>'
     : 'Define qual relatório esta OS abre: ' + (ACOES[acao]||ACOES.visita).rel + '.';
+  document.getElementById('comprovacaoWrap').style.display = (acao === 'comprovacao') ? 'block' : 'none';
   atualizaBotaoVistoria();
 }
 
@@ -1353,6 +1360,8 @@ function openModal(id){
     document.getElementById('fLocal').value = it.local;
   preencheSelectLocais(it.local);
   document.getElementById('fAcao').value = it.acao || 'visita';
+    document.getElementById('fLocalFoto').value = it.localFoto || '';
+    document.getElementById('comprovacaoWrap').style.display = (it.acao === 'comprovacao') ? 'block' : 'none';
     document.getElementById('fTipo').value = it.tipo;
     document.getElementById('fPrioridadeM').value = it.prioridade;
     document.getElementById('fSolicitante').value = it.solicitante||'';
@@ -1377,6 +1386,8 @@ function openModal(id){
     document.getElementById('modalTitle').textContent = 'Nova ordem de serviço';
     ['fLocal','fTipo','fSolicitante','fTecnicoM','fDiagnostico'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('fAcao').value = 'visita';
+    document.getElementById('fLocalFoto').value = '';
+    document.getElementById('comprovacaoWrap').style.display = 'none';
     preencheSelectLocais('');
     document.getElementById('fPrioridadeM').value = 'normal';
     document.getElementById('fStatus').selectedIndex = -1;
@@ -1639,6 +1650,7 @@ async function saveOS(){
     materialEntregue: materialEntregue,
     requerRelatorio: requerRelatorio,
     acao: acaoEscolhida,
+    localFoto: acaoEscolhida === 'comprovacao' ? document.getElementById('fLocalFoto').value.trim() : '',
     materiais: materiais,
   };
   if(editingId){
@@ -1718,6 +1730,7 @@ function imprimirOS(){
       <tbody>
         <tr><td style="font-weight:600;width:180px;">Local / equipamento</td><td>${it.local}</td></tr>
         <tr><td style="font-weight:600;">Tipo de problema</td><td>${it.tipo||'-'}</td></tr>
+        ${it.acao === 'comprovacao' ? `<tr><td style="font-weight:600;">📷 Local da foto da propaganda</td><td>${it.localFoto||'-'}</td></tr>` : ''}
         <tr><td style="font-weight:600;">Prioridade</td><td>${prioLabel[it.prioridade]||'-'}</td></tr>
         <tr><td style="font-weight:600;">Status</td><td>${statusTexto(it)}</td></tr>
         <tr><td style="font-weight:600;">Solicitante</td><td>${it.solicitante||'-'}</td></tr>
@@ -2026,10 +2039,11 @@ let confirmCallback = null;
 //  corretiva  = manutenção corretiva  (repara: concluído / pendente)
 // ============================================================
 const ACOES = {
-  visita:     { nome:'Visita técnica',          curto:'Visita',     rel:'Relatório de visita técnica',          icone:'📋' },
-  preventiva: { nome:'Manutenção preventiva',   curto:'Preventiva', rel:'Relatório de manutenção preventiva',   icone:'🔧' },
-  corretiva:  { nome:'Manutenção corretiva',    curto:'Corretiva',  rel:'Relatório de manutenção corretiva',    icone:'🛠️' },
-  compra:     { nome:'Compra de material',      curto:'Compra',     rel:'Relatório de compra de material',      icone:'🛒' },
+  visita:      { nome:'Visita técnica',          curto:'Visita',      rel:'Relatório de visita técnica',          icone:'📋' },
+  preventiva:  { nome:'Manutenção preventiva',   curto:'Preventiva',  rel:'Relatório de manutenção preventiva',   icone:'🔧' },
+  corretiva:   { nome:'Manutenção corretiva',    curto:'Corretiva',   rel:'Relatório de manutenção corretiva',    icone:'🛠️' },
+  compra:      { nome:'Compra de material',      curto:'Compra',      rel:'Relatório de compra de material',      icone:'🛒' },
+  comprovacao: { nome:'Comprovação',             curto:'Comprovação', rel:'Relatório de comprovação',             icone:'📷' },
 };
 
 // estados de cada roteiro: [código, rótulo curto, classe]  — o 2º é sempre o crítico (exige descrição, solução e foto)
