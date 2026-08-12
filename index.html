@@ -75,6 +75,16 @@
   .btn:hover{border-color:#3D4859;}
   .btn.primary{background:var(--amber);color:#241902;border:none;}
   .btn.primary:hover{background:#F0AC1E;}
+
+  @keyframes faixaRotaScroll{
+    0%{ transform:translateX(0); }
+    100%{ transform:translateX(-100%); }
+  }
+  #faixaRotaTexto.rolando{
+    animation: faixaRotaScroll 18s linear infinite;
+    padding-left:100%;
+  }
+
   .stats{
     display:grid;
     grid-template-columns:repeat(6,1fr);
@@ -450,12 +460,37 @@
     <button class="btn" id="btnReportVist" onclick="openReportFilter('vist')" style="display: inline-flex;">Relatório de vistoria</button>
     <button class="btn" id="btnImport" onclick="document.getElementById(&#39;csvFileInput&#39;).click()" style="display: inline-flex;">Importar CSV</button>
     <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleImportFile(event)">
+    <button class="btn" id="btnRotaPacheco" onclick="openRotaPacheco()" style="display: none;">🔧 Rota do dia</button>
     <button class="btn primary" id="btnNovaOS" onclick="openModal()" style="display: inline-flex;">+ Nova OS</button>
   </div>
 </header>
 <div class="trace"></div>
 
+<div id="faixaRota" style="display:none;background:#3A2E0A;border:1px solid #C98A2C;border-radius:8px;padding:8px 14px;margin-bottom:14px;overflow:hidden;white-space:nowrap;position:relative;">
+  <div id="faixaRotaTexto" style="display:inline-block;color:#F0C36D;font-size:13px;font-weight:600;"></div>
+</div>
+
 <div class="stats" id="stats"></div>
+
+<div class="overlay" id="rotaOverlay">
+  <div class="modal" style="width:460px;">
+    <h2>🔧 Rota do dia — Pacheco</h2>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;">Preencha os locais que serão visitados hoje. Isso aparece numa faixa no topo do painel, para todo mundo ver.</p>
+    <div class="field">
+      <label>Data</label>
+      <input type="date" id="fRotaData">
+    </div>
+    <div class="field">
+      <label>Rota de hoje</label>
+      <textarea id="fRotaTexto" rows="5" placeholder="Ex: 08h Terminal Centro (manutenção preventiva) → 10h Av. das Torres (troca de fonte) → 14h Shopping Ponta Negra (vistoria)"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeRotaPacheco()">Cancelar</button>
+      <button class="btn" style="border-color:var(--red);color:var(--red);" onclick="limparRotaPacheco()">Limpar rota</button>
+      <button class="btn primary" onclick="salvarRotaPacheco()">Salvar</button>
+    </div>
+  </div>
+</div>
 
 <div class="toolbar">
   <input type="text" id="search" placeholder="Buscar por local, código ou técnico..." oninput="render()">
@@ -849,7 +884,7 @@ function testeLoad(){
 
 function testeSave(){
   try{
-    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro }));
+    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco }));
     const el = document.getElementById('syncInfo');
     if(el){ el.textContent = 'teste · salvo no navegador ' + new Date().toLocaleTimeString('pt-BR'); }
     return true;
@@ -883,6 +918,7 @@ const DIRETORIA_SLOTS = 5;
 let userSlots = {admins:[], tecnicos:[], diretores:[]};
 // CADASTROS FIXOS: locais, placas de mídia e equipamentos — só o nome, nunca resultado de vistoria.
 let cadastro = { locais: [], placas: [], equipamentos: [] };
+let rotaPacheco = { data: '', texto: '', atualizadoPor: '', atualizadoEm: 0 };
 let currentUser = null; // null = visitante | {role:'admin', name} | {role:'tecnico', name}
 const SESSION_KEY = 'os_sessao_usuario_TESTE';
 
@@ -921,7 +957,7 @@ function gasConfigured(){
 
 let isModalOpen = false;
 function anyModalOpen(){
-  return ['overlay','codeOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay'].some(id=>{
+  return ['overlay','codeOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay'].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains('show');
   });
@@ -942,6 +978,7 @@ async function loadData(){
       items = d.items || [];
       userSlots = normalizeUserSlots(d.userSlots);
       cadastro = normalizaCadastro(d.cadastro);
+      rotaPacheco = d.rotaPacheco || rotaPacheco;
       migraStatusPeca();
       render();
     } else {
@@ -961,6 +998,7 @@ async function loadData(){
     items = (json && json.items) || [];
     userSlots = normalizeUserSlots(json && json.userSlots);
     cadastro = normalizaCadastro(json && json.cadastro);
+    rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
     migraStatusPeca();
   }catch(e){
     console.error('Erro ao carregar dados do Apps Script', e);
@@ -998,7 +1036,7 @@ async function pushState(tentativa){
     await fetch(GAS_URL, {
       method:'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS no Apps Script
-      body: JSON.stringify({ action:'save', data: { items, userSlots, cadastro } })
+      body: JSON.stringify({ action:'save', data: { items, userSlots, cadastro, rotaPacheco } })
     });
     ultimoSalvamentoLocal = Date.now();
     return true;
@@ -1028,6 +1066,7 @@ async function refreshFromServer(){
     items = (json && json.items) || [];
     userSlots = normalizeUserSlots(json && json.userSlots);
     cadastro = normalizaCadastro(json && json.cadastro);
+    rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
     migraStatusPeca();
     markSynced();
     render();
@@ -1155,6 +1194,8 @@ function updateModeUI(){
   document.getElementById('btnImport').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnCadastro').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnNovaOS').style.display = canCreate ? 'inline-flex' : 'none';
+  const ehPacheco = currentUser?.role === 'tecnico' && (currentUser.name||'').trim().toLowerCase() === 'pacheco';
+  document.getElementById('btnRotaPacheco').style.display = (isAdmin || ehPacheco) ? 'inline-flex' : 'none';
 }
 
 function getEditPermission(item){
@@ -1864,6 +1905,7 @@ function populateTecnicoFilter(){
 
 function render(){
   populateTecnicoFilter();
+  renderFaixaRota();
 
   const counts = {aberta:0, andamento:0, peca:0, concluida:0};
   items.forEach(x=>{
@@ -2296,6 +2338,62 @@ function openCadastro(tipo){
 
 function closeCadastro(){
   document.getElementById('cadastroOverlay').classList.remove('show');
+}
+
+function hojeISO(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function openRotaPacheco(){
+  document.getElementById('fRotaData').value = rotaPacheco.data || hojeISO();
+  document.getElementById('fRotaTexto').value = rotaPacheco.texto || '';
+  document.getElementById('rotaOverlay').classList.add('show');
+}
+
+function closeRotaPacheco(){
+  document.getElementById('rotaOverlay').classList.remove('show');
+}
+
+function salvarRotaPacheco(){
+  rotaPacheco = {
+    data: document.getElementById('fRotaData').value || hojeISO(),
+    texto: document.getElementById('fRotaTexto').value.trim(),
+    atualizadoPor: currentUser ? currentUser.name : '',
+    atualizadoEm: Date.now(),
+  };
+  persistComAviso('Não foi possível confirmar o salvamento da rota no servidor. Repita com boa conexão.');
+  renderFaixaRota();
+  closeRotaPacheco();
+}
+
+function limparRotaPacheco(){
+  askConfirm('Limpar a rota do dia? Ela vai parar de aparecer na faixa do painel.', ()=>{
+    rotaPacheco = { data:'', texto:'', atualizadoPor: currentUser ? currentUser.name : '', atualizadoEm: Date.now() };
+    persistComAviso('Não foi possível confirmar a limpeza da rota no servidor. Repita com boa conexão.');
+    renderFaixaRota();
+    closeRotaPacheco();
+  });
+}
+
+function renderFaixaRota(){
+  const faixa = document.getElementById('faixaRota');
+  const texto = document.getElementById('faixaRotaTexto');
+  const valida = rotaPacheco && rotaPacheco.texto && rotaPacheco.data === hojeISO();
+  if(!valida){
+    faixa.style.display = 'none';
+    texto.classList.remove('rolando');
+    return;
+  }
+  texto.textContent = '🔧 Rota de hoje (Pacheco): ' + rotaPacheco.texto;
+  faixa.style.display = 'block';
+  // só anima (rola) se o texto for mais largo que a faixa; senão fica parado e legível
+  texto.classList.remove('rolando');
+  requestAnimationFrame(()=>{
+    if(texto.scrollWidth > faixa.clientWidth){
+      texto.classList.add('rolando');
+    }
+  });
 }
 
 function trocaAbaCadastro(tipo){
