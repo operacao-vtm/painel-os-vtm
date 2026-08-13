@@ -84,6 +84,17 @@
     animation: faixaRotaScroll 18s linear infinite;
     padding-left:100%;
   }
+  .rota-os-row{
+    display:flex; align-items:center; gap:8px;
+    padding:7px 4px; border-bottom:1px solid var(--border);
+  }
+  .rota-os-row:last-child{ border-bottom:none; }
+  .rota-os-row input[type=checkbox]{ width:auto; flex:0 0 auto; }
+  .rota-os-info{ flex:1; min-width:0; }
+  .rota-os-info .cod{ font-family:monospace; font-size:11px; color:var(--muted); }
+  .rota-os-info .loc{ font-size:12.5px; font-weight:600; }
+  .rota-os-info .tipo{ font-size:10.5px; color:var(--muted); }
+  .rota-os-row input[type=time]{ width:90px; flex:0 0 auto; padding:6px; font-size:12px; }
 
   .stats{
     display:grid;
@@ -473,16 +484,17 @@
 <div class="stats" id="stats"></div>
 
 <div class="overlay" id="rotaOverlay">
-  <div class="modal" style="width:460px;">
+  <div class="modal" style="width:520px;">
     <h2>🔧 Rota do dia — Pacheco</h2>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;">Preencha os locais que serão visitados hoje. Isso aparece numa faixa no topo do painel, para todo mundo ver.</p>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;">Marque as OS que serão feitas hoje e preencha o horário de cada uma. O local e os dados são preenchidos automaticamente. Isso aparece numa faixa no topo do painel, para todo mundo ver.</p>
     <div class="field">
       <label>Data</label>
       <input type="date" id="fRotaData">
     </div>
     <div class="field">
-      <label>Rota de hoje</label>
-      <textarea id="fRotaTexto" rows="5" placeholder="Ex: 08h Terminal Centro (manutenção preventiva) → 10h Av. das Torres (troca de fonte) → 14h Shopping Ponta Negra (vistoria)"></textarea>
+      <label>OS de hoje</label>
+      <div id="rotaListaOS" style="max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
+      <div style="font-size:9px;color:var(--muted);margin-top:5px;" id="rotaSemOS"></div>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeRotaPacheco()">Cancelar</button>
@@ -912,13 +924,14 @@ function testeReset(){
 const ADMIN_CODE = 'OpecVTM2026!'; // nível 1 - administrador (acesso total)
 const TECH_CODE = 'tecvtm2026'; // nível 2 - técnico (mantido)
 const DIRETORIA_CODE = 'DiretoriaVTM2026'; // nível 3 - diretoria (só relatórios)
+const PACHECO_CODE = 'PachecoVTM2026!'; // senha exclusiva — só quem loga como "Pacheco" usa esta, não a de técnico
 const ADMIN_SLOTS = 5;
 const TECH_SLOTS = 10;
 const DIRETORIA_SLOTS = 5;
 let userSlots = {admins:[], tecnicos:[], diretores:[]};
 // CADASTROS FIXOS: locais, placas de mídia e equipamentos — só o nome, nunca resultado de vistoria.
 let cadastro = { locais: [], placas: [], equipamentos: [] };
-let rotaPacheco = { data: '', texto: '', atualizadoPor: '', atualizadoEm: 0 };
+let rotaPacheco = { data: '', itens: [], atualizadoPor: '', atualizadoEm: 0 };
 let currentUser = null; // null = visitante | {role:'admin', name} | {role:'tecnico', name}
 const SESSION_KEY = 'os_sessao_usuario_TESTE';
 
@@ -1116,6 +1129,7 @@ function updateLoginFieldsVisibility(){
     info.textContent = 'Vagas de diretoria: ' + userSlots.diretores.length + '/' + DIRETORIA_SLOTS + ' preenchidas';
   } else {
     info.textContent = 'Vagas de técnico: ' + userSlots.tecnicos.length + '/' + TECH_SLOTS + ' preenchidas';
+    info.textContent += ' · Perfil "Pacheco" usa senha própria (fale com o administrador).';
   }
 }
 
@@ -1159,7 +1173,12 @@ function confirmCode(){
     }
     currentUser = {role:'diretoria', name};
   } else {
-    if(code !== TECH_CODE){ showLoginError('Código incorreto.'); return; }
+    const ehPacheco = name.toLowerCase() === 'pacheco';
+    const codeEsperado = ehPacheco ? PACHECO_CODE : TECH_CODE;
+    if(code !== codeEsperado){
+      showLoginError(ehPacheco ? 'Código incorreto. O perfil "Pacheco" usa uma senha própria, diferente da senha geral de técnico.' : 'Código incorreto.');
+      return;
+    }
     if(!userSlots.tecnicos.includes(name)){
       if(userSlots.tecnicos.length >= TECH_SLOTS){
         showLoginError('Vagas de técnico esgotadas (' + TECH_SLOTS + '/' + TECH_SLOTS + ').');
@@ -2347,8 +2366,48 @@ function hojeISO(){
 
 function openRotaPacheco(){
   document.getElementById('fRotaData').value = rotaPacheco.data || hojeISO();
-  document.getElementById('fRotaTexto').value = rotaPacheco.texto || '';
+  renderRotaListaOS();
   document.getElementById('rotaOverlay').classList.add('show');
+}
+
+function renderRotaListaOS(){
+  const wrap = document.getElementById('rotaListaOS');
+  const avisoVazio = document.getElementById('rotaSemOS');
+  const jaSalvos = {};
+  (rotaPacheco.itens||[]).forEach(i=>{ jaSalvos[i.osId] = i.horario; });
+
+  // mostra as OS ainda relevantes (não encerradas) primeiro; encerradas ficam por último, caso precise marcar retroativo
+  const abertas = items.filter(x=>x.status!=='concluida');
+  const encerradas = items.filter(x=>x.status==='concluida');
+  const ordenadas = [...abertas, ...encerradas];
+
+  if(ordenadas.length === 0){
+    wrap.innerHTML = '';
+    avisoVazio.textContent = 'Nenhuma OS cadastrada ainda.';
+    return;
+  }
+  avisoVazio.textContent = '';
+  wrap.innerHTML = ordenadas.map(x=>{
+    const marcado = jaSalvos.hasOwnProperty(x.id);
+    const horario = jaSalvos[x.id] || '';
+    return `
+      <div class="rota-os-row">
+        <input type="checkbox" class="rota-check" data-os="${x.id}" ${marcado?'checked':''} onchange="onRotaCheckChange(this)">
+        <div class="rota-os-info">
+          <div class="cod">${x.code}</div>
+          <div class="loc">${escVist ? escVist(x.local) : x.local}</div>
+          <div class="tipo">${x.tipo||''}${x.status==='concluida' ? ' · encerrada' : ''}</div>
+        </div>
+        <input type="time" class="rota-hora" data-os="${x.id}" value="${horario}" ${marcado?'':'disabled'}>
+      </div>`;
+  }).join('');
+}
+
+function onRotaCheckChange(chk){
+  const row = chk.closest('.rota-os-row');
+  const horaInput = row.querySelector('.rota-hora');
+  horaInput.disabled = !chk.checked;
+  if(chk.checked && !horaInput.value) horaInput.focus();
 }
 
 function closeRotaPacheco(){
@@ -2356,9 +2415,21 @@ function closeRotaPacheco(){
 }
 
 function salvarRotaPacheco(){
+  const itens = [];
+  document.querySelectorAll('#rotaListaOS .rota-os-row').forEach(row=>{
+    const chk = row.querySelector('.rota-check');
+    if(!chk.checked) return;
+    const osId = chk.getAttribute('data-os');
+    const it = items.find(x=>x.id===osId);
+    if(!it) return;
+    const horario = row.querySelector('.rota-hora').value || '';
+    itens.push({ osId, codigo: it.code, local: it.local, tipo: it.tipo||'', horario });
+  });
+  itens.sort((a,b)=> (a.horario||'99:99').localeCompare(b.horario||'99:99'));
+
   rotaPacheco = {
     data: document.getElementById('fRotaData').value || hojeISO(),
-    texto: document.getElementById('fRotaTexto').value.trim(),
+    itens: itens,
     atualizadoPor: currentUser ? currentUser.name : '',
     atualizadoEm: Date.now(),
   };
@@ -2369,23 +2440,30 @@ function salvarRotaPacheco(){
 
 function limparRotaPacheco(){
   askConfirm('Limpar a rota do dia? Ela vai parar de aparecer na faixa do painel.', ()=>{
-    rotaPacheco = { data:'', texto:'', atualizadoPor: currentUser ? currentUser.name : '', atualizadoEm: Date.now() };
+    rotaPacheco = { data:'', itens:[], atualizadoPor: currentUser ? currentUser.name : '', atualizadoEm: Date.now() };
     persistComAviso('Não foi possível confirmar a limpeza da rota no servidor. Repita com boa conexão.');
     renderFaixaRota();
     closeRotaPacheco();
   });
 }
 
+function textoDaRota(){
+  if(!rotaPacheco || !rotaPacheco.itens || !rotaPacheco.itens.length) return '';
+  return rotaPacheco.itens.map(i=>
+    (i.horario ? i.horario+'h ' : '') + i.local + ' (' + i.codigo + (i.tipo ? ' — '+i.tipo : '') + ')'
+  ).join('  →  ');
+}
+
 function renderFaixaRota(){
   const faixa = document.getElementById('faixaRota');
   const texto = document.getElementById('faixaRotaTexto');
-  const valida = rotaPacheco && rotaPacheco.texto && rotaPacheco.data === hojeISO();
+  const valida = rotaPacheco && rotaPacheco.data === hojeISO() && rotaPacheco.itens && rotaPacheco.itens.length;
   if(!valida){
     faixa.style.display = 'none';
     texto.classList.remove('rolando');
     return;
   }
-  texto.textContent = '🔧 Rota de hoje (Pacheco): ' + rotaPacheco.texto;
+  texto.textContent = '🔧 Rota de hoje (Pacheco): ' + textoDaRota();
   faixa.style.display = 'block';
   // só anima (rola) se o texto for mais largo que a faixa; senão fica parado e legível
   texto.classList.remove('rolando');
