@@ -2376,14 +2376,12 @@ function renderRotaListaOS(){
   const jaSalvos = {};
   (rotaPacheco.itens||[]).forEach(i=>{ jaSalvos[i.osId] = i.horario; });
 
-  // mostra as OS ainda relevantes (não encerradas) primeiro; encerradas ficam por último, caso precise marcar retroativo
-  const abertas = items.filter(x=>x.status!=='concluida');
-  const encerradas = items.filter(x=>x.status==='concluida');
-  const ordenadas = [...abertas, ...encerradas];
+  // só OS Aberta ou Em andamento — nada de Encerrada nem Requisição de material
+  const ordenadas = items.filter(x => colunasDe(x)[0] === 'aberta' || colunasDe(x)[0] === 'andamento');
 
   if(ordenadas.length === 0){
     wrap.innerHTML = '';
-    avisoVazio.textContent = 'Nenhuma OS cadastrada ainda.';
+    avisoVazio.textContent = 'Nenhuma OS aberta ou em andamento no momento.';
     return;
   }
   avisoVazio.textContent = '';
@@ -2396,7 +2394,7 @@ function renderRotaListaOS(){
         <div class="rota-os-info">
           <div class="cod">${x.code}</div>
           <div class="loc">${escVist ? escVist(x.local) : x.local}</div>
-          <div class="tipo">${x.tipo||''}${x.status==='concluida' ? ' · encerrada' : ''}</div>
+          <div class="tipo">${x.tipo||''}</div>
         </div>
         <input type="time" class="rota-hora" data-os="${x.id}" value="${horario}" ${marcado?'':'disabled'}>
       </div>`;
