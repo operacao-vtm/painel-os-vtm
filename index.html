@@ -669,6 +669,7 @@
       <button class="btn btn-os danger" id="btnDelete" onclick="deleteOS()">Excluir</button>
       <button class="btn btn-os primary" id="btnSave" onclick="saveOS()">Salvar</button>
       <button class="btn btn-os" id="btnImprimirOS" onclick="imprimirOS()">Imprimir</button>
+      <button class="btn btn-os" id="btnWhatsapp" onclick="compartilharWhatsApp()" style="color:#25D366;border-color:#25D366;">📲 WhatsApp</button>
     </div>
   </div>
 </div>
@@ -1379,9 +1380,10 @@ function aplicaModoEdicao(){
   document.getElementById('btnDelete').style.display =
     (it && typeof canDeleteOS === 'function' && canDeleteOS(it)) ? 'inline-flex' : 'none';
   document.getElementById('btnImprimirOS').style.display = it ? 'inline-flex' : 'none';
+  document.getElementById('btnWhatsapp').style.display = it ? 'inline-flex' : 'none';
 
   // quando um botão não se aplica, os outros esticam para preencher a largura
-  const visiveis = ['btnDelete','btnSave','btnImprimirOS']
+  const visiveis = ['btnDelete','btnSave','btnImprimirOS','btnWhatsapp']
     .filter(id=>document.getElementById(id).style.display !== 'none').length;
   document.querySelector('.os-acoes').style.gridTemplateColumns = 'repeat(' + Math.max(1, visiveis) + ',1fr)';
 }
@@ -1749,6 +1751,55 @@ function deleteOS(){
   backupCSV();
   closeModal();
   render();
+}
+
+function compartilharWhatsApp(){
+  const it = items.find(x=>x.id===editingId);
+  if(!it) return;
+
+  // emojis via código Unicode (\u{...}) em vez do caractere literal — assim não corrompe
+  // se o arquivo passar por algum editor/colagem que não preserve UTF-8 corretamente.
+  const E = {
+    clip:   '\u{1F4CB}', // 📋
+    pin:    '\u{1F4CD}', // 📍
+    wrench: '\u{1F527}', // 🔧
+    warn:   '\u{26A0}\u{FE0F}', // ⚠️
+    tack:   '\u{1F4CC}', // 📌
+    speak:  '\u{1F5E3}\u{FE0F}', // 🗣️
+    person: '\u{1F464}', // 👤
+    clock:  '\u{1F552}', // 🕒
+    check:  '\u{2705}',  // ✅
+    camera: '\u{1F4F7}', // 📷
+    memo:   '\u{1F4DD}', // 📝
+    cart:   '\u{1F6D2}', // 🛒
+  };
+
+  const materiaisArr = it.materiais && it.materiais.length ? it.materiais
+    : (it.nomeMaterial ? [{nome: it.nomeMaterial, quantidade: it.quantidade||0}] : []);
+
+  let msg = `${E.clip} *${it.code}* — ${(ACOES[it.acao]||ACOES.visita).nome}\n`;
+  msg += `${E.pin} Local: ${it.local}\n`;
+  if(it.tipo) msg += `${E.wrench} Tipo: ${it.tipo}\n`;
+  msg += `${E.warn} Prioridade: ${prioLabel[it.prioridade]||it.prioridade}\n`;
+  msg += `${E.tack} Status: ${statusTexto(it)}\n`;
+  if(it.solicitante) msg += `${E.speak} Solicitante: ${it.solicitante}\n`;
+  if(it.tecnico) msg += `${E.person} Técnico: ${it.tecnico}\n`;
+  msg += `${E.clock} Aberta em: ${fmtDateHora(it.dataAbertura)}\n`;
+  if(it.dataConclusao) msg += `${E.check} Encerrada em: ${fmtDateHora(it.dataConclusao)}\n`;
+  if(it.acao === 'comprovacao' && it.localFoto) msg += `${E.camera} Local da foto: ${it.localFoto}\n`;
+  if(it.diagnostico) msg += `${E.memo} Diagnóstico: ${it.diagnostico}\n`;
+  if(it.compraMaterial && materiaisArr.length){
+    msg += `${E.cart} Materiais: ` + materiaisArr.map(m=>`${m.nome} (${m.quantidade}${m.unidade?' '+m.unidade:''})`).join(', ') + `\n`;
+  }
+  msg += `\n_Painel de Manutenção — VTM Marketing e Publicidade_`;
+
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function fmtDateHora(ts){
+  if(!ts) return '-';
+  const d = new Date(ts);
+  return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 }
 
 function imprimirOS(){
