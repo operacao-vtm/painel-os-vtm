@@ -492,6 +492,7 @@
     <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleImportFile(event)">
     <button class="btn" id="btnRotaPacheco" onclick="openRotaPacheco()" style="display: none;">🔧 Rota do dia</button>
     <button class="btn" id="btnSolicitacoes" onclick="openSolicitacoes()" style="display: none;position:relative;">📥 Solicitações<span id="badgeSolicitacoes" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;"></span></button>
+    <button class="btn" id="btnRotaFixa" onclick="openRotaFixa()" style="display: none;">🚌 Rota fixa</button>
     <button class="btn primary" id="btnNovaOS" onclick="openModal()" style="display: inline-flex;">+ Nova OS</button>
   </div>
 </header>
@@ -513,8 +514,45 @@
   </div>
 </div>
 
-<div id="faixaRota" style="display:none;background:#3A2E0A;border:1px solid #C98A2C;border-radius:8px;padding:8px 14px;margin-bottom:14px;overflow:hidden;white-space:nowrap;position:relative;">
+<div class="overlay" id="rotaFixaOverlay">
+  <div class="modal" style="width:520px;">
+    <h2>🚌 Rota fixa de vistoria</h2>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;">Uma rota recorrente, que aparece sozinha na faixa do painel nos dias marcados — sem precisar preencher todo dia.</p>
+    <div class="field">
+      <label>Título</label>
+      <input type="text" id="fRotaFixaTitulo">
+    </div>
+    <div class="field">
+      <label>Dias em que ela roda</label>
+      <div id="rotaFixaDias" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <div class="field">
+      <label>Pontos de vistoria (um por linha, na ordem da rota)</label>
+      <textarea id="fRotaFixaLinhas" rows="9" style="font-family:monospace;font-size:12.5px;" placeholder="📍 Estação Max Teixeira
+🚌 Terminal 01"></textarea>
+    </div>
+    <div class="field">
+      <label>Resumo (opcional, aparece embaixo da lista)</label>
+      <textarea id="fRotaFixaResumo" rows="3"></textarea>
+    </div>
+    <div class="field checkbox-field">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="fRotaFixaAtivo" style="width:auto;"> Rota ativa
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeRotaFixa()">Cancelar</button>
+      <button class="btn primary" onclick="salvarRotaFixa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="faixaRota" style="display:none;background:#3A2E0A;border:1px solid #C98A2C;border-radius:8px;padding:8px 14px;margin-bottom:10px;overflow:hidden;white-space:nowrap;position:relative;">
   <div id="faixaRotaTexto" style="display:inline-block;color:#F0C36D;font-size:13px;font-weight:600;"></div>
+</div>
+
+<div id="faixaRotaFixa" style="display:none;background:#132540;border:1px solid #4C8DFF;border-radius:8px;padding:8px 14px;margin-bottom:14px;overflow:hidden;white-space:nowrap;position:relative;">
+  <div id="faixaRotaFixaTexto" style="display:inline-block;color:#9CC3FF;font-size:13px;font-weight:600;"></div>
 </div>
 
 <div class="stats" id="stats"></div>
@@ -933,7 +971,7 @@ function testeLoad(){
 
 function testeSave(){
   try{
-    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes }));
+    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa }));
     const el = document.getElementById('syncInfo');
     if(el){ el.textContent = 'teste · salvo no navegador ' + new Date().toLocaleTimeString('pt-BR'); }
     return true;
@@ -970,6 +1008,30 @@ let userSlots = {admins:[], tecnicos:[], diretores:[]};
 let cadastro = { locais: [], placas: [], equipamentos: [] };
 let rotaPacheco = { data: '', itens: [], atualizadoPor: '', atualizadoEm: 0 };
 let solicitacoes = [];
+const DIAS_SEMANA = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
+const DIAS_SEMANA_LABEL = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
+let rotaFixa = {
+  ativo: true,
+  titulo: 'ROTA DE VISTORIA — TERMINAIS E ESTAÇÕES',
+  dias: ['terca','sexta'],
+  linhas: [
+    '📍 Estação Max Teixeira',
+    '📍 Estação Santos Dumont',
+    '📍 Estação Arena Amazônia',
+    '📍 Plataforma Tocantins',
+    '📍 Estação São Jorge',
+    '🚌 Terminal 01',
+    '🚌 Terminal 02',
+    '🚌 Terminal 05',
+    '🚌 Terminal 04',
+    '🚌 Terminal 03',
+    '🚌 Terminal 07'
+  ],
+  resumo: '📍 Total: 11 pontos de vistoria\n🚏 4 estações\n🛣️ 1 plataforma\n🚌 6 terminais'
+};
+
+function diaSemanaHoje(){ return DIAS_SEMANA[new Date().getDay()]; }
+function rotaFixaAtivaHoje(){ return !!(rotaFixa && rotaFixa.ativo && (rotaFixa.dias||[]).includes(diaSemanaHoje())); }
 let currentUser = null; // null = visitante | {role:'admin', name} | {role:'tecnico', name}
 const SESSION_KEY = 'os_sessao_usuario_TESTE';
 
@@ -1031,6 +1093,7 @@ async function loadData(){
       cadastro = normalizaCadastro(d.cadastro);
       rotaPacheco = d.rotaPacheco || rotaPacheco;
       solicitacoes = d.solicitacoes || solicitacoes;
+      rotaFixa = d.rotaFixa || rotaFixa;
       migraStatusPeca();
       render();
     } else {
@@ -1052,6 +1115,7 @@ async function loadData(){
     cadastro = normalizaCadastro(json && json.cadastro);
     rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
     solicitacoes = (json && json.solicitacoes) || solicitacoes;
+    rotaFixa = (json && json.rotaFixa) || rotaFixa;
     migraStatusPeca();
   }catch(e){
     console.error('Erro ao carregar dados do Apps Script', e);
@@ -1089,7 +1153,7 @@ async function pushState(tentativa){
     await fetch(GAS_URL, {
       method:'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS no Apps Script
-      body: JSON.stringify({ action:'save', data: { items, userSlots, cadastro, rotaPacheco, solicitacoes } })
+      body: JSON.stringify({ action:'save', data: { items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa } })
     });
     ultimoSalvamentoLocal = Date.now();
     return true;
@@ -1121,6 +1185,7 @@ async function refreshFromServer(){
     cadastro = normalizaCadastro(json && json.cadastro);
     rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
     solicitacoes = (json && json.solicitacoes) || solicitacoes;
+    rotaFixa = (json && json.rotaFixa) || rotaFixa;
     migraStatusPeca();
     markSynced();
     render();
@@ -1257,6 +1322,7 @@ function updateModeUI(){
   const podeEditarRota = currentUser?.role === 'tecnico' && ['pacheco','robert'].includes((currentUser.name||'').trim().toLowerCase());
   document.getElementById('btnRotaPacheco').style.display = (isAdmin || podeEditarRota) ? 'inline-flex' : 'none';
   document.getElementById('btnSolicitacoes').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('btnRotaFixa').style.display = isAdmin ? 'inline-flex' : 'none';
   atualizaBadgeSolicitacoes();
 }
 
@@ -2018,6 +2084,7 @@ function populateTecnicoFilter(){
 function render(){
   populateTecnicoFilter();
   renderFaixaRota();
+  renderFaixaRotaFixa();
   atualizaBadgeSolicitacoes();
 
   const counts = {aberta:0, andamento:0, peca:0, concluida:0};
@@ -2677,6 +2744,62 @@ function rejeitarSolicitacao(id){
   persistComAviso('Não foi possível confirmar a rejeição no servidor. Repita com boa conexão.');
   render();
   renderListaSolicitacoes();
+}
+
+function renderFaixaRotaFixa(){
+  const faixa = document.getElementById('faixaRotaFixa');
+  const texto = document.getElementById('faixaRotaFixaTexto');
+  if(!rotaFixaAtivaHoje() || !rotaFixa.linhas || !rotaFixa.linhas.length){
+    faixa.style.display = 'none';
+    texto.classList.remove('rolando');
+    return;
+  }
+  texto.textContent = '🚌 ' + (rotaFixa.titulo || 'Rota fixa de vistoria') + ' (' + DIAS_SEMANA_LABEL[diaSemanaHoje()] + '): ' +
+    rotaFixa.linhas.join('  →  ');
+  faixa.style.display = 'block';
+  texto.classList.remove('rolando');
+  requestAnimationFrame(()=>{
+    if(texto.scrollWidth > faixa.clientWidth){
+      texto.classList.add('rolando');
+    }
+  });
+}
+
+function openRotaFixa(){
+  document.getElementById('fRotaFixaTitulo').value = rotaFixa.titulo || '';
+  document.getElementById('fRotaFixaLinhas').value = (rotaFixa.linhas||[]).join('\n');
+  document.getElementById('fRotaFixaResumo').value = rotaFixa.resumo || '';
+  document.getElementById('fRotaFixaAtivo').checked = !!rotaFixa.ativo;
+
+  const wrapDias = document.getElementById('rotaFixaDias');
+  wrapDias.innerHTML = DIAS_SEMANA.map(d=>{
+    const marcado = (rotaFixa.dias||[]).includes(d);
+    return `<label style="display:flex;align-items:center;gap:4px;background:var(--panel-alt);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;">
+      <input type="checkbox" class="rotafixa-dia" value="${d}" ${marcado?'checked':''} style="width:auto;"> ${DIAS_SEMANA_LABEL[d]}
+    </label>`;
+  }).join('');
+
+  document.getElementById('rotaFixaOverlay').classList.add('show');
+}
+
+function closeRotaFixa(){
+  document.getElementById('rotaFixaOverlay').classList.remove('show');
+}
+
+function salvarRotaFixa(){
+  const dias = Array.from(document.querySelectorAll('.rotafixa-dia:checked')).map(el=>el.value);
+  const linhas = document.getElementById('fRotaFixaLinhas').value.split('\n').map(l=>l.trim()).filter(Boolean);
+
+  rotaFixa = {
+    ativo: document.getElementById('fRotaFixaAtivo').checked,
+    titulo: document.getElementById('fRotaFixaTitulo').value.trim() || 'Rota fixa de vistoria',
+    dias: dias,
+    linhas: linhas,
+    resumo: document.getElementById('fRotaFixaResumo').value.trim(),
+  };
+  persistComAviso('Não foi possível confirmar o salvamento da rota fixa no servidor. Repita com boa conexão.');
+  renderFaixaRotaFixa();
+  closeRotaFixa();
 }
 
 function trocaAbaCadastro(tipo){
