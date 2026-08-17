@@ -96,6 +96,25 @@
   .rota-os-info .tipo{ font-size:10.5px; color:var(--muted); }
   .rota-os-row input[type=time]{ width:90px; flex:0 0 auto; padding:6px; font-size:12px; }
 
+  .solic-card{
+    border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:10px;
+    background:var(--panel-alt);
+  }
+  .solic-card.pendente{ border-left:4px solid var(--amber); }
+  .solic-card.aprovada{ border-left:4px solid #2E7A46; opacity:0.75; }
+  .solic-card.rejeitada{ border-left:4px solid var(--red); opacity:0.75; }
+  .solic-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .solic-proto{ font-family:monospace; font-size:11px; color:var(--muted); }
+  .solic-urg{ font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; }
+  .solic-urg.Emergência{ background:#FBE4E1; color:#9C0006; }
+  .solic-urg.Urgente{ background:#FBF0DC; color:#8A5A0F; }
+  .solic-urg.Normal{ background:#E1F0E5; color:#1F5A32; }
+  .solic-linha{ font-size:12.5px; margin-bottom:3px; }
+  .solic-linha b{ color:var(--muted); font-weight:600; font-size:10.5px; text-transform:uppercase; margin-right:4px; }
+  .solic-acoes{ display:flex; gap:8px; margin-top:10px; }
+  .solic-acoes .btn{ flex:1; padding:8px; font-size:12.5px; }
+  .solic-status-tag{ font-size:10.5px; font-weight:700; }
+
   .stats{
     display:grid;
     grid-template-columns:repeat(6,1fr);
@@ -472,10 +491,27 @@
     <button class="btn" id="btnImport" onclick="document.getElementById(&#39;csvFileInput&#39;).click()" style="display: inline-flex;">Importar CSV</button>
     <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleImportFile(event)">
     <button class="btn" id="btnRotaPacheco" onclick="openRotaPacheco()" style="display: none;">🔧 Rota do dia</button>
+    <button class="btn" id="btnSolicitacoes" onclick="openSolicitacoes()" style="display: none;position:relative;">📥 Solicitações<span id="badgeSolicitacoes" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;"></span></button>
     <button class="btn primary" id="btnNovaOS" onclick="openModal()" style="display: inline-flex;">+ Nova OS</button>
   </div>
 </header>
 <div class="trace"></div>
+
+<div class="overlay" id="solicitacoesOverlay">
+  <div class="modal" style="width:600px;">
+    <h2>📥 Solicitações de abertura de O.S</h2>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;">Pedidos enviados pelo formulário externo, aguardando aprovação. Ao aprovar, uma OS é criada automaticamente no quadro.</p>
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" id="fVerHistoricoSolic" onchange="renderListaSolicitacoes()" style="width:auto;"> ver também as já decididas (histórico)
+      </label>
+    </div>
+    <div id="listaSolicitacoes" style="max-height:420px;overflow:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeSolicitacoes()">Fechar</button>
+    </div>
+  </div>
+</div>
 
 <div id="faixaRota" style="display:none;background:#3A2E0A;border:1px solid #C98A2C;border-radius:8px;padding:8px 14px;margin-bottom:14px;overflow:hidden;white-space:nowrap;position:relative;">
   <div id="faixaRotaTexto" style="display:inline-block;color:#F0C36D;font-size:13px;font-weight:600;"></div>
@@ -897,7 +933,7 @@ function testeLoad(){
 
 function testeSave(){
   try{
-    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco }));
+    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes }));
     const el = document.getElementById('syncInfo');
     if(el){ el.textContent = 'teste · salvo no navegador ' + new Date().toLocaleTimeString('pt-BR'); }
     return true;
@@ -933,6 +969,7 @@ let userSlots = {admins:[], tecnicos:[], diretores:[]};
 // CADASTROS FIXOS: locais, placas de mídia e equipamentos — só o nome, nunca resultado de vistoria.
 let cadastro = { locais: [], placas: [], equipamentos: [] };
 let rotaPacheco = { data: '', itens: [], atualizadoPor: '', atualizadoEm: 0 };
+let solicitacoes = [];
 let currentUser = null; // null = visitante | {role:'admin', name} | {role:'tecnico', name}
 const SESSION_KEY = 'os_sessao_usuario_TESTE';
 
@@ -971,7 +1008,7 @@ function gasConfigured(){
 
 let isModalOpen = false;
 function anyModalOpen(){
-  return ['overlay','codeOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay'].some(id=>{
+  return ['overlay','codeOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay'].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains('show');
   });
@@ -993,6 +1030,7 @@ async function loadData(){
       userSlots = normalizeUserSlots(d.userSlots);
       cadastro = normalizaCadastro(d.cadastro);
       rotaPacheco = d.rotaPacheco || rotaPacheco;
+      solicitacoes = d.solicitacoes || solicitacoes;
       migraStatusPeca();
       render();
     } else {
@@ -1013,6 +1051,7 @@ async function loadData(){
     userSlots = normalizeUserSlots(json && json.userSlots);
     cadastro = normalizaCadastro(json && json.cadastro);
     rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
+    solicitacoes = (json && json.solicitacoes) || solicitacoes;
     migraStatusPeca();
   }catch(e){
     console.error('Erro ao carregar dados do Apps Script', e);
@@ -1050,7 +1089,7 @@ async function pushState(tentativa){
     await fetch(GAS_URL, {
       method:'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS no Apps Script
-      body: JSON.stringify({ action:'save', data: { items, userSlots, cadastro, rotaPacheco } })
+      body: JSON.stringify({ action:'save', data: { items, userSlots, cadastro, rotaPacheco, solicitacoes } })
     });
     ultimoSalvamentoLocal = Date.now();
     return true;
@@ -1081,6 +1120,7 @@ async function refreshFromServer(){
     userSlots = normalizeUserSlots(json && json.userSlots);
     cadastro = normalizaCadastro(json && json.cadastro);
     rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
+    solicitacoes = (json && json.solicitacoes) || solicitacoes;
     migraStatusPeca();
     markSynced();
     render();
@@ -1216,6 +1256,8 @@ function updateModeUI(){
   document.getElementById('btnNovaOS').style.display = canCreate ? 'inline-flex' : 'none';
   const podeEditarRota = currentUser?.role === 'tecnico' && ['pacheco','robert'].includes((currentUser.name||'').trim().toLowerCase());
   document.getElementById('btnRotaPacheco').style.display = (isAdmin || podeEditarRota) ? 'inline-flex' : 'none';
+  document.getElementById('btnSolicitacoes').style.display = isAdmin ? 'inline-flex' : 'none';
+  atualizaBadgeSolicitacoes();
 }
 
 function getEditPermission(item){
@@ -1976,6 +2018,7 @@ function populateTecnicoFilter(){
 function render(){
   populateTecnicoFilter();
   renderFaixaRota();
+  atualizaBadgeSolicitacoes();
 
   const counts = {aberta:0, andamento:0, peca:0, concluida:0};
   items.forEach(x=>{
@@ -2522,6 +2565,118 @@ function renderFaixaRota(){
       texto.classList.add('rolando');
     }
   });
+}
+
+function atualizaBadgeSolicitacoes(){
+  const badge = document.getElementById('badgeSolicitacoes');
+  if(!badge) return;
+  const n = (solicitacoes||[]).filter(s=>s.status==='pendente').length;
+  badge.textContent = n;
+  badge.style.display = n > 0 ? 'inline-block' : 'none';
+}
+
+function openSolicitacoes(){
+  document.getElementById('fVerHistoricoSolic').checked = false;
+  renderListaSolicitacoes();
+  document.getElementById('solicitacoesOverlay').classList.add('show');
+}
+
+function closeSolicitacoes(){
+  document.getElementById('solicitacoesOverlay').classList.remove('show');
+}
+
+function renderListaSolicitacoes(){
+  const wrap = document.getElementById('listaSolicitacoes');
+  const verHistorico = document.getElementById('fVerHistoricoSolic').checked;
+  let lista = (solicitacoes||[]).slice().sort((a,b)=>b.dataHora-a.dataHora);
+  if(!verHistorico) lista = lista.filter(s=>s.status==='pendente');
+
+  if(lista.length === 0){
+    wrap.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:16px;text-align:center;">' +
+      (verHistorico ? 'Nenhuma solicitação registrada ainda.' : 'Nenhuma solicitação pendente. 🎉') + '</div>';
+    return;
+  }
+
+  wrap.innerHTML = lista.map(s=>{
+    const dataFmt = fmtDataHora(s.dataHora);
+    const servicosHtml = (s.servicos||[]).map((v,i)=>'<div class="solic-linha">' + (i+1) + '. ' + escVist(v) + '</div>').join('');
+    const materiaisHtml = (s.materiais||[]).map((v,i)=>'<div class="solic-linha">' + (i+1) + '. ' + escVist(v) + '</div>').join('');
+    const tagStatus = s.status === 'aprovada'
+      ? '<span class="solic-status-tag" style="color:#2E7A46;">✅ Aprovada' + (s.decididoPor?' por '+escVist(s.decididoPor):'') + '</span>'
+      : s.status === 'rejeitada'
+        ? '<span class="solic-status-tag" style="color:var(--red);">❌ Rejeitada' + (s.decididoPor?' por '+escVist(s.decididoPor):'') + (s.motivoRejeicao?' — '+escVist(s.motivoRejeicao):'') + '</span>'
+        : '';
+    return `
+      <div class="solic-card ${s.status}">
+        <div class="solic-head">
+          <span class="solic-proto">${escVist(s.protocolo)} · ${dataFmt}</span>
+          <span class="solic-urg ${escVist(s.urgencia)}">${escVist(s.urgencia)}</span>
+        </div>
+        <div class="solic-linha"><b>Solicitante</b>${escVist(s.solicitante)}${s.empresa ? ' · '+escVist(s.empresa) : ''}</div>
+        <div style="margin-top:6px;"><b class="solic-linha" style="display:block;">Serviço a executar</b>${servicosHtml || '<div class="solic-linha">—</div>'}</div>
+        <div style="margin-top:6px;"><b class="solic-linha" style="display:block;">Material necessário</b>${materiaisHtml || '<div class="solic-linha">—</div>'}</div>
+        ${tagStatus ? '<div style="margin-top:8px;">'+tagStatus+'</div>' : `
+        <div class="solic-acoes">
+          <button class="btn primary" onclick="aprovarSolicitacao('${s.id}')">✅ Aprovar → gerar OS</button>
+          <button class="btn danger" onclick="rejeitarSolicitacao('${s.id}')">❌ Rejeitar</button>
+        </div>`}
+      </div>`;
+  }).join('');
+}
+
+function aprovarSolicitacao(id){
+  const s = solicitacoes.find(x=>x.id===id);
+  if(!s || s.status !== 'pendente') return;
+  askConfirm('Aprovar esta solicitação e criar a OS "' + s.protocolo + '" no quadro?', ()=>{
+    const prioMap = { 'Emergência':'urgente', 'Urgente':'urgente', 'Normal':'normal' };
+    const servicosTxt = (s.servicos||[]).join(' | ');
+    const materiaisTxt = (s.materiais||[]).join(', ');
+    const temMaterial = (s.materiais||[]).some(m => m && m.trim().toLowerCase() !== 'nenhum');
+
+    items.push({
+      id: 'id' + Date.now(),
+      code: genCode(),
+      local: (s.servicos && s.servicos[0]) ? s.servicos[0].slice(0,80) : ('Solicitação ' + s.protocolo),
+      tipo: 'Solicitação externa — ' + (s.empresa || s.solicitante),
+      prioridade: prioMap[s.urgencia] || 'normal',
+      status: 'aberta',
+      solicitante: s.solicitante,
+      tecnico: '',
+      criadoPor: currentUser ? currentUser.name : 'admin',
+      acao: 'corretiva',
+      dataAbertura: Date.now(),
+      dataConclusao: null,
+      requerDiagnostico: true,
+      diagnostico: 'Serviço(s):\n' + servicosTxt + (temMaterial ? '\n\nMaterial necessário:\n' + materiaisTxt : '') +
+        '\n\n(Origem: solicitação ' + s.protocolo + ', enviada por ' + s.solicitante + (s.empresa?' — '+s.empresa:'') + ')',
+      compraMaterial: temMaterial,
+      materialEntregue: false,
+      requerRelatorio: false,
+      materiais: temMaterial ? (s.materiais||[]).filter(m=>m && m.trim().toLowerCase()!=='nenhum').map(m=>({nome:m, quantidade:1, unidade:'und'})) : [],
+    });
+
+    s.status = 'aprovada';
+    s.decididoPor = currentUser ? currentUser.name : 'admin';
+    s.decididoEm = Date.now();
+
+    persistComAviso('Não foi possível confirmar a aprovação no servidor. Repita com boa conexão.');
+    render();
+    renderListaSolicitacoes();
+  });
+}
+
+function rejeitarSolicitacao(id){
+  const s = solicitacoes.find(x=>x.id===id);
+  if(!s || s.status !== 'pendente') return;
+  const motivo = window.prompt('Motivo da rejeição (opcional):', '');
+  if(motivo === null) return; // usuário cancelou
+  s.status = 'rejeitada';
+  s.decididoPor = currentUser ? currentUser.name : 'admin';
+  s.decididoEm = Date.now();
+  s.motivoRejeicao = motivo || '';
+  persistComAviso('Não foi possível confirmar a rejeição no servidor. Repita com boa conexão.');
+  render();
+  renderListaSolicitacoes();
 }
 
 function trocaAbaCadastro(tipo){
