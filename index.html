@@ -595,6 +595,15 @@
     <option value="andamento">Em andamento</option>
     <option value="concluida">Encerrada</option>
   </select>
+  <select id="fAcaoFiltro" onchange="render()">
+    <option value="">Ação: todas</option>
+    <option value="visita">📋 Visita técnica</option>
+    <option value="preventiva">🔧 Manutenção preventiva</option>
+    <option value="corretiva">🛠️ Manutenção corretiva</option>
+    <option value="compra">🛒 Compra de material</option>
+    <option value="comprovacao">📷 Comprovação</option>
+    <option value="totem">🗼 Instalação/Remoção de Totem</option>
+  </select>
   <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);">
     <span>De</span>
     <input type="date" id="fDataDe" onchange="render()" style="padding:7px 6px;font-size:11px;">
@@ -626,6 +635,7 @@
         <option value="corretiva">🛠️ Manutenção corretiva — reparar</option>
         <option value="compra">🛒 Compra de material</option>
         <option value="comprovacao">📷 Comprovação</option>
+        <option value="totem">🗼 Instalação/Remoção de Totem</option>
       </select>
       <div id="fAcaoInfo" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
     </div>
@@ -914,6 +924,10 @@
     <div class="field">
       <label>Técnico</label>
       <div id="repTecnicoChecks" style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;max-height:100px;overflow:auto;"></div>
+    </div>
+    <div class="field">
+      <label>Ação</label>
+      <div id="repAcaoChecks" style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;"></div>
     </div>
     <div class="row2">
       <div class="field">
@@ -2106,6 +2120,7 @@ function render(){
   const fp = document.getElementById('fPrioridade').value;
   const ft = document.getElementById('fTecnico').value;
   const fs = document.getElementById('fStatusFiltro').value;
+  const fa = document.getElementById('fAcaoFiltro').value;
   const fDe = document.getElementById('fDataDe').value;   // yyyy-mm-dd ou ''
   const fAte = document.getElementById('fDataAte').value; // yyyy-mm-dd ou ''
 
@@ -2116,9 +2131,10 @@ function render(){
     const matchP = !fp || x.prioridade===fp;
     const matchT = !ft || x.tecnico===ft || x.solicitante===ft || x.criadoPor===ft;
     const matchS = !fs || colunasDe(x).includes(fs);
+    const matchA = !fa || x.acao===fa;
     const matchDe = !fDe || x.dataAbertura >= new Date(fDe + 'T00:00:00').getTime();
     const matchAte = !fAte || x.dataAbertura <= new Date(fAte + 'T23:59:59').getTime();
-    return matchQ && matchP && matchT && matchS && matchDe && matchAte;
+    return matchQ && matchP && matchT && matchS && matchA && matchDe && matchAte;
   });
 
   const cols = [
@@ -2260,12 +2276,14 @@ let confirmCallback = null;
 //  preventiva = manutenção preventiva (executa: executado / pendente)
 //  corretiva  = manutenção corretiva  (repara: concluído / pendente)
 // ============================================================
+
 const ACOES = {
-  visita:      { nome:'Visita técnica',          curto:'Visita',      rel:'Relatório de visita técnica',          icone:'📋' },
-  preventiva:  { nome:'Manutenção preventiva',   curto:'Preventiva',  rel:'Relatório de manutenção preventiva',   icone:'🔧' },
-  corretiva:   { nome:'Manutenção corretiva',    curto:'Corretiva',   rel:'Relatório de manutenção corretiva',    icone:'🛠️' },
-  compra:      { nome:'Compra de material',      curto:'Compra',      rel:'Relatório de compra de material',      icone:'🛒' },
-  comprovacao: { nome:'Comprovação',             curto:'Comprovação', rel:'Relatório de comprovação',             icone:'📷' },
+  visita:      { nome:'Visita técnica',              curto:'Visita',      rel:'Relatório de visita técnica',              icone:'📋' },
+  preventiva:  { nome:'Manutenção preventiva',       curto:'Preventiva',  rel:'Relatório de manutenção preventiva',       icone:'🔧' },
+  corretiva:   { nome:'Manutenção corretiva',        curto:'Corretiva',   rel:'Relatório de manutenção corretiva',        icone:'🛠️' },
+  compra:      { nome:'Compra de material',          curto:'Compra',      rel:'Relatório de compra de material',          icone:'🛒' },
+  comprovacao: { nome:'Comprovação',                 curto:'Comprovação', rel:'Relatório de comprovação',                 icone:'📷' },
+  totem:       { nome:'Instalação/Remoção de Totem', curto:'Totem',       rel:'Relatório de instalação/remoção de totem', icone:'🗼' },
 };
 
 // estados de cada roteiro: [código, rótulo curto, classe]  — o 2º é sempre o crítico (exige descrição, solução e foto)
@@ -3751,6 +3769,10 @@ function openReportFilter(modo){
     ? tecnicos.map(t=>`<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="repTecnico" value="${t}" checked>${t}</label>`).join('')
     : '<span style="font-size:12px;color:var(--muted);">Nenhum técnico registrado</span>';
 
+  document.getElementById('repAcaoChecks').innerHTML = Object.entries(ACOES).map(([v,info])=>
+    `<label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" class="repAcao" value="${v}" checked>${info.icone} ${info.curto}</label>`
+  ).join('');
+
   document.getElementById('repDataDe').value = '';
   document.getElementById('repDataAte').value = '';
 
@@ -3866,6 +3888,7 @@ function runReport(){
   const prioSel = [...document.querySelectorAll('.repPrio:checked')].map(el=>el.value);
   const tecnicoBoxes = document.querySelectorAll('.repTecnico');
   const tecnicoSel = tecnicoBoxes.length ? [...document.querySelectorAll('.repTecnico:checked')].map(el=>el.value) : null;
+  const acaoSel = [...document.querySelectorAll('.repAcao:checked')].map(el=>el.value);
   const deVal = document.getElementById('repDataDe').value;
   const ateVal = document.getElementById('repDataAte').value;
   const deTs = deVal ? new Date(deVal + 'T00:00:00').getTime() : null;
@@ -3875,6 +3898,7 @@ function runReport(){
     if(statusSel.length && !colunasDe(x).some(c=>statusSel.includes(c))) return false;
     if(prioSel.length && !prioSel.includes(x.prioridade)) return false;
     if(tecnicoBoxes.length && !tecnicoSel.includes(x.tecnico)) return false;
+    if(acaoSel.length && !acaoSel.includes(x.acao || 'visita')) return false;
     if(deTs && x.dataAbertura < deTs) return false;
     if(ateTs && x.dataAbertura > ateTs) return false;
     return true;
