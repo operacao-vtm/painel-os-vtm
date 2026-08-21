@@ -80,7 +80,7 @@
     0%{ transform:translateX(0); }
     100%{ transform:translateX(-100%); }
   }
-  #faixaRotaTexto.rolando, #faixaRotaFixaTexto.rolando{
+  #faixaRotaTexto.rolando, #faixaRotaFixaTexto.rolando, #faixaRotaTextoDash.rolando, #faixaRotaFixaTextoDash.rolando{
     animation: faixaRotaScroll 18s linear infinite;
     padding-left:100%;
   }
@@ -114,6 +114,22 @@
   .solic-acoes{ display:flex; gap:8px; margin-top:10px; }
   .solic-acoes .btn{ flex:1; padding:8px; font-size:12.5px; }
   .solic-status-tag{ font-size:10.5px; font-weight:700; }
+
+  .dash-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:16px 18px; text-align:center;
+  }
+  .dash-card .num{ font-size:32px; font-weight:700; font-family:monospace; line-height:1.1; }
+  .dash-card .lbl{ font-size:12px; color:var(--muted); margin-top:4px; }
+  .dash-bar-wrap{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width:52px; }
+  .dash-bar{ width:32px; background:var(--teal); border-radius:4px 4px 0 0; transition:height .3s ease; }
+  .dash-bar-num{ font-size:11px; font-weight:700; color:var(--text); }
+  .dash-bar-lbl{ font-size:10px; color:var(--muted); white-space:nowrap; }
+  #dashTabelaEncerradas th, #dashTabelaEncerradas td{
+    border-bottom:1px solid var(--border); padding:7px 10px; text-align:left;
+  }
+  #dashTabelaEncerradas th{ color:var(--muted); font-size:10.5px; text-transform:uppercase; font-weight:600; }
+  #dashTabelaEncerradas td{ color:var(--text); }
 
   .stats{
     display:grid;
@@ -493,6 +509,7 @@
     <button class="btn" id="btnRotaPacheco" onclick="openRotaPacheco()" style="display: none;">🔧 Rota do dia</button>
     <button class="btn" id="btnSolicitacoes" onclick="openSolicitacoes()" style="display: none;position:relative;">📥 Solicitações<span id="badgeSolicitacoes" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;"></span></button>
     <button class="btn" id="btnRotaFixa" onclick="openRotaFixa()" style="display: none;">🚌 Rota fixa</button>
+    <button class="btn" id="btnDashboard" onclick="openDashboard()">📊 Dashboard</button>
     <button class="btn primary" id="btnNovaOS" onclick="openModal()" style="display: inline-flex;">+ Nova OS</button>
   </div>
 </header>
@@ -556,6 +573,40 @@
 </div>
 
 <div class="stats" id="stats"></div>
+
+<div id="dashboardPage" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:60;overflow-y:auto;">
+  <div style="max-width:1100px;margin:0 auto;padding:24px 20px 60px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <h1 style="margin:0;">📊 Dashboard</h1>
+      <button class="btn" onclick="closeDashboard()">← Voltar ao painel</button>
+    </div>
+
+    <div id="faixaRotaDash" style="display:none;background:#3A2E0A;border:1px solid #C98A2C;border-radius:8px;padding:8px 14px;margin-bottom:10px;overflow:hidden;white-space:nowrap;position:relative;">
+      <div id="faixaRotaTextoDash" style="display:inline-block;color:#F0C36D;font-size:13px;font-weight:600;"></div>
+    </div>
+    <div id="faixaRotaFixaDash" style="display:none;background:#132540;border:1px solid #4C8DFF;border-radius:8px;padding:8px 14px;margin-bottom:16px;overflow:hidden;white-space:nowrap;position:relative;">
+      <div id="faixaRotaFixaTextoDash" style="display:inline-block;color:#9CC3FF;font-size:13px;font-weight:600;"></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <label style="font-size:12px;color:var(--muted);">Filtrar por mês (de abertura):</label>
+      <select id="dashFiltroMes" onchange="renderDashboard()" style="max-width:220px;"><option value="">Todos os meses</option></select>
+    </div>
+
+    <div id="dashCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;"></div>
+
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:24px;">
+      <h2 style="margin:0 0 4px;font-size:16px;">Quando as OS foram encerradas</h2>
+      <p style="font-size:11.5px;color:var(--muted);margin:0 0 16px;">Quantidade de ordens de serviço encerradas por mês.</p>
+      <div id="dashGrafico" style="display:flex;align-items:flex-end;gap:10px;height:180px;overflow-x:auto;padding-bottom:6px;"></div>
+    </div>
+
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;">
+      <h2 style="margin:0 0 12px;font-size:16px;">Últimas OS encerradas</h2>
+      <table id="dashTabelaEncerradas" style="width:100%;border-collapse:collapse;font-size:12.5px;"></table>
+    </div>
+  </div>
+</div>
 
 <div class="overlay" id="rotaOverlay">
   <div class="modal" style="width:520px;">
@@ -735,7 +786,7 @@
           <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById(&#39;fFotoVerifFile&#39;).click()">🖼️ Escolher arquivo</button>
         </div>
         <input type="file" accept="image/*" capture="environment" id="fFotoVerifCamera" style="display:none" onchange="handlePhotoUpload(event,&#39;verificacao&#39;)">
-        <input type="file" accept="image/*" id="fFotoVerifFile" style="display:none" onchange="handlePhotoUpload(event,&#39;verificacao&#39;)">
+        <input type="file" accept="image/*" multiple id="fFotoVerifFile" style="display:none" onchange="handlePhotoUpload(event,&#39;verificacao&#39;)">
         <div id="previewVerif" style="margin-top:4px;"></div>
       </div>
       <div class="field">
@@ -745,7 +796,7 @@
           <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById(&#39;fFotoConclusaoFile&#39;).click()">🖼️ Escolher arquivo</button>
         </div>
         <input type="file" accept="image/*" capture="environment" id="fFotoConclusaoCamera" style="display:none" onchange="handlePhotoUpload(event,&#39;conclusao&#39;)">
-        <input type="file" accept="image/*" id="fFotoConclusaoFile" style="display:none" onchange="handlePhotoUpload(event,&#39;conclusao&#39;)">
+        <input type="file" accept="image/*" multiple id="fFotoConclusaoFile" style="display:none" onchange="handlePhotoUpload(event,&#39;conclusao&#39;)">
         <div id="previewConclusao" style="margin-top:4px;"></div>
       </div>
     </div>
@@ -1064,8 +1115,8 @@ function loadSession(){
 }
 let items = [];
 let editingId = null;
-let pendingFotoVerificacao = null;
-let pendingFotoConclusao = null;
+let pendingFotosVerificacao = [];
+let pendingFotosConclusao = [];
 
 function genCode(){
   // maior número já usado + 1: não repete código depois de exclusão
@@ -1562,10 +1613,10 @@ function openModal(id){
       : (it.nomeMaterial ? [{nome: it.nomeMaterial, quantidade: it.quantidade||0}] : []);
     materiaisExistentes.forEach(m=>adicionarLinhaMaterial(m.nome, m.quantidade, m.unidade));
     toggleCompraFields();
-    pendingFotoVerificacao = it.fotoVerificacao || null;
-    pendingFotoConclusao = it.fotoConclusao || null;
-    renderPhotoPreview('previewVerif', pendingFotoVerificacao, 'verificacao', photosEditable);
-    renderPhotoPreview('previewConclusao', pendingFotoConclusao, 'conclusao', photosEditable);
+    pendingFotosVerificacao = normalizaFotos(it.fotoVerificacao);
+    pendingFotosConclusao = normalizaFotos(it.fotoConclusao);
+    renderPhotoPreview('previewVerif', pendingFotosVerificacao, 'verificacao', photosEditable);
+    renderPhotoPreview('previewConclusao', pendingFotosConclusao, 'conclusao', photosEditable);
   } else {
     document.getElementById('modalTitle').textContent = 'Nova ordem de serviço';
     ['fLocal','fTipo','fSolicitante','fTecnicoM','fDiagnostico'].forEach(id=>document.getElementById(id).value='');
@@ -1581,11 +1632,17 @@ function openModal(id){
     toggleDiagnosticoFields();
     limparListaMateriais();
     toggleCompraFields();
-    pendingFotoVerificacao = null;
-    pendingFotoConclusao = null;
-    renderPhotoPreview('previewVerif', null, 'verificacao', true);
-    renderPhotoPreview('previewConclusao', null, 'conclusao', true);
+    pendingFotosVerificacao = [];
+    pendingFotosConclusao = [];
+    renderPhotoPreview('previewVerif', [], 'verificacao', true);
+    renderPhotoPreview('previewConclusao', [], 'conclusao', true);
   }
+}
+
+function normalizaFotos(v){
+  if(Array.isArray(v)) return v.slice();
+  if(v) return [v]; // compatibilidade com OS antigas, salvas com uma única foto (texto, não lista)
+  return [];
 }
 
 function toggleDiagnosticoFields(){
@@ -1746,45 +1803,46 @@ async function uploadPhotoToBackend(dataUrl, kind){
 }
 
 async function handlePhotoUpload(event, kind){
-  const file = event.target.files[0];
-  if(!file) return;
-  const dataUrl = await resizeImage(file, 700, 0.65);
-  photosUploading++;
-  // mostra pré-visualização local imediatamente, depois troca pela URL definitiva
-  if(kind === 'verificacao'){
-    renderPhotoPreview('previewVerif', dataUrl, 'verificacao', true, true);
-  } else {
-    renderPhotoPreview('previewConclusao', dataUrl, 'conclusao', true, true);
+  const files = Array.from(event.target.files || []);
+  if(!files.length) return;
+  const arr = kind === 'verificacao' ? pendingFotosVerificacao : pendingFotosConclusao;
+  const containerId = kind === 'verificacao' ? 'previewVerif' : 'previewConclusao';
+
+  for(const file of files){
+    const dataUrl = await resizeImage(file, 700, 0.65);
+    photosUploading++;
+    // acrescenta um item "provisório" (ainda enviando) na galeria, sem apagar as fotos já existentes
+    const idx = arr.length;
+    arr.push(dataUrl);
+    renderPhotoPreview(containerId, arr, kind, true, idx);
+    const finalUrl = await uploadPhotoToBackend(dataUrl, kind);
+    photosUploading = Math.max(0, photosUploading - 1);
+    arr[idx] = finalUrl; // troca a prévia local pela URL definitiva, na mesma posição
+    renderPhotoPreview(containerId, arr, kind, true);
   }
-  const finalUrl = await uploadPhotoToBackend(dataUrl, kind);
-  photosUploading = Math.max(0, photosUploading - 1);
-  if(kind === 'verificacao'){
-    pendingFotoVerificacao = finalUrl;
-    renderPhotoPreview('previewVerif', finalUrl, 'verificacao', true);
-  } else {
-    pendingFotoConclusao = finalUrl;
-    renderPhotoPreview('previewConclusao', finalUrl, 'conclusao', true);
-  }
+  event.target.value = ''; // permite escolher o mesmo arquivo de novo, se precisar
 }
 
-function removePhoto(kind){
-  if(kind === 'verificacao'){
-    pendingFotoVerificacao = null;
-    renderPhotoPreview('previewVerif', null, 'verificacao', true);
-  } else {
-    pendingFotoConclusao = null;
-    renderPhotoPreview('previewConclusao', null, 'conclusao', true);
-  }
+function removePhoto(kind, index){
+  const arr = kind === 'verificacao' ? pendingFotosVerificacao : pendingFotosConclusao;
+  arr.splice(index, 1);
+  renderPhotoPreview(kind === 'verificacao' ? 'previewVerif' : 'previewConclusao', arr, kind, true);
 }
 
-function renderPhotoPreview(containerId, dataUrl, kind, showRemove, uploading){
+function renderPhotoPreview(containerId, arr, kind, showRemove, uploadingIdx){
   const el = document.getElementById(containerId);
-  if(!dataUrl){ el.innerHTML = ''; return; }
-  const safeSrc = driveImgUrl(dataUrl);
-  el.innerHTML = `<img src="${safeSrc}" referrerpolicy="no-referrer" style="max-width:100%;max-height:110px;border-radius:4px;border:1px solid var(--border);display:block;margin-bottom:5px;"
-      onerror="this.outerHTML='<a href=&quot;${dataUrl}&quot; target=&quot;_blank&quot; style=&quot;font-size:11px;color:#E3574C;&quot;>⚠️ Foto não carregou — abrir link original</a>'">` +
-    (uploading ? `<span style="font-size:11px;color:var(--muted);">Enviando foto…</span>` : '') +
-    (showRemove && !uploading ? `<button type="button" class="btn" style="padding:4px 8px;font-size:11px;" onclick="removePhoto('${kind}')">Remover foto</button>` : '');
+  arr = arr || [];
+  if(!arr.length){ el.innerHTML = ''; return; }
+  el.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + arr.map((dataUrl,i)=>{
+    const uploading = i === uploadingIdx;
+    const safeSrc = driveImgUrl(dataUrl);
+    return `<div style="position:relative;">
+      <img src="${safeSrc}" referrerpolicy="no-referrer" style="width:90px;height:90px;object-fit:cover;border-radius:4px;border:1px solid var(--border);display:block;"
+        onerror="this.outerHTML='<a href=&quot;${dataUrl}&quot; target=&quot;_blank&quot; style=&quot;font-size:10px;color:#E3574C;display:block;width:90px;&quot;>⚠️ não carregou</a>'">
+      ${uploading ? '<span style="position:absolute;bottom:2px;left:2px;right:2px;font-size:9px;color:#fff;background:rgba(0,0,0,.65);border-radius:3px;padding:1px 3px;text-align:center;">enviando…</span>' : ''}
+      ${showRemove && !uploading ? `<button type="button" onclick="removePhoto('${kind}',${i})" title="Remover" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;">×</button>` : ''}
+    </div>`;
+  }).join('') + '</div>';
 }
 
 async function saveOS(){
@@ -1828,8 +1886,8 @@ async function saveOS(){
     requerDiagnostico: document.getElementById('fRequerDiagnostico').checked,
     diagnostico: document.getElementById('fRequerDiagnostico').checked
       ? document.getElementById('fDiagnostico').value.trim() : '',
-    fotoVerificacao: pendingFotoVerificacao,
-    fotoConclusao: pendingFotoConclusao,
+    fotoVerificacao: pendingFotosVerificacao,
+    fotoConclusao: pendingFotosConclusao,
     compraMaterial: ehCompra && materiais.length > 0,
     materialEntregue: materialEntregue,
     requerRelatorio: requerRelatorio,
@@ -1943,12 +2001,12 @@ function imprimirOS(){
       </table>
     </div>` : '';
 
-  const fotosHTML = (it.fotoVerificacao || it.fotoConclusao) ? `
+  const fotosHTML = (temFoto(it.fotoVerificacao) || temFoto(it.fotoConclusao)) ? `
     <div style="margin-top:14px;">
       <div class="sec" style="font-size:12px;font-weight:600;margin-bottom:6px;">Fotos anexadas</div>
-      <div style="display:flex;gap:14px;">
-        ${it.fotoVerificacao ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Verificação</div>${fotoImgTag(it.fotoVerificacao, 120)}</div>` : ''}
-        ${it.fotoConclusao ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Conclusão</div>${fotoImgTag(it.fotoConclusao, 120)}</div>` : ''}
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        ${temFoto(it.fotoVerificacao) ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Verificação</div>${fotoImgTagMulti(it.fotoVerificacao, 120)}</div>` : ''}
+        ${temFoto(it.fotoConclusao) ? `<div><div style="font-size:10px;color:#555;margin-bottom:3px;">Conclusão</div>${fotoImgTagMulti(it.fotoConclusao, 120)}</div>` : ''}
       </div>
     </div>` : '';
 
@@ -2063,8 +2121,19 @@ function driveImgUrl(url){
 function fotoImgTag(url, altura){
   if(!url) return '';
   const safeUrl = driveImgUrl(url);
-  return `<img src="${safeUrl}" referrerpolicy="no-referrer" style="height:${altura}px;width:auto;border:1px solid #999;display:block;"
+  return `<img src="${safeUrl}" referrerpolicy="no-referrer" style="height:${altura}px;width:auto;border:1px solid #999;display:block;margin:0 6px 6px 0;"
             onerror="this.outerHTML='<a href=&quot;${url}&quot; target=&quot;_blank&quot; style=&quot;font-size:11px;color:#900;&quot;>⚠️ Foto não carregou — abrir link original</a>'">`;
+}
+
+// aceita tanto um array de fotos (formato atual) quanto uma foto única em texto (OS antigas)
+function fotoImgTagMulti(v, altura){
+  const arr = Array.isArray(v) ? v : (v ? [v] : []);
+  if(!arr.length) return '';
+  return '<div style="display:flex;flex-wrap:wrap;">' + arr.map(u=>fotoImgTag(u, altura)).join('') + '</div>';
+}
+
+function temFoto(v){
+  return Array.isArray(v) ? v.length > 0 : !!v;
 }
 
 function fmtDate(ts){
@@ -2153,7 +2222,7 @@ function render(){
     const cards = colItems.length ? colItems.map(it=>`
       <div class="card prio-${it.prioridade}" onclick="openModal('${it.id}')">
         ${it.prioridade==='maxima' ? '<div class="tag-maxima">PRIORIDADE MÁXIMA!!!!</div>' : ''}
-        <div class="code mono">${it.code}${(it.fotoVerificacao||it.fotoConclusao) ? ' 📷' : ''}${it.vistoria ? ' 📋' + contaConjuntos(it) + 'c' + (contaNC(it) ? '/' + contaNC(it) + 'NC' : '') : (it.requerRelatorio ? ' 📋?' : '')}</div>
+        <div class="code mono">${it.code}${(temFoto(it.fotoVerificacao)||temFoto(it.fotoConclusao)) ? ' 📷' : ''}${it.vistoria ? ' 📋' + contaConjuntos(it) + 'c' + (contaNC(it) ? '/' + contaNC(it) + 'NC' : '') : (it.requerRelatorio ? ' 📋?' : '')}</div>
         <div class="loc">${it.local}</div>
         <div class="meta" style="color:var(--amber);"><span>${(ACOES[it.acao||'visita']||ACOES.visita).icone} ${(ACOES[it.acao||'visita']||ACOES.visita).curto}</span><span>${aguardandoPeca(it) ? '<span class="tag-peca">requisição de material</span>' : ''}</span></div>
         <div class="meta">
@@ -2631,17 +2700,16 @@ function textoDaRota(){
   ).join('  →  ');
 }
 
-function renderFaixaRota(){
-  const faixa = document.getElementById('faixaRota');
-  const texto = document.getElementById('faixaRotaTexto');
-  const valida = rotaPacheco && rotaPacheco.data === hojeISO() && rotaPacheco.itens && rotaPacheco.itens.length;
-  if(!valida){
+function atualizaFaixaGenerica(idFaixa, idTexto, mostrar, conteudo){
+  const faixa = document.getElementById(idFaixa);
+  const texto = document.getElementById(idTexto);
+  if(!faixa || !texto) return;
+  if(!mostrar){
     faixa.style.display = 'none';
     texto.classList.remove('rolando');
     return;
   }
-  const quem = rotaPacheco.atualizadoPor ? ' (' + rotaPacheco.atualizadoPor + ')' : '';
-  texto.textContent = '🔧 Rota de hoje' + quem + ': ' + textoDaRota();
+  texto.textContent = conteudo;
   faixa.style.display = 'block';
   // só anima (rola) se o texto for mais largo que a faixa; senão fica parado e legível
   texto.classList.remove('rolando');
@@ -2650,6 +2718,14 @@ function renderFaixaRota(){
       texto.classList.add('rolando');
     }
   });
+}
+
+function renderFaixaRota(){
+  const valida = rotaPacheco && rotaPacheco.data === hojeISO() && rotaPacheco.itens && rotaPacheco.itens.length;
+  const quem = rotaPacheco.atualizadoPor ? ' (' + rotaPacheco.atualizadoPor + ')' : '';
+  const conteudo = '🔧 Rota de hoje' + quem + ': ' + textoDaRota();
+  atualizaFaixaGenerica('faixaRota', 'faixaRotaTexto', valida, conteudo);
+  atualizaFaixaGenerica('faixaRotaDash', 'faixaRotaTextoDash', valida, conteudo);
 }
 
 function atualizaBadgeSolicitacoes(){
@@ -2765,22 +2841,11 @@ function rejeitarSolicitacao(id){
 }
 
 function renderFaixaRotaFixa(){
-  const faixa = document.getElementById('faixaRotaFixa');
-  const texto = document.getElementById('faixaRotaFixaTexto');
-  if(!rotaFixaAtivaHoje() || !rotaFixa.linhas || !rotaFixa.linhas.length){
-    faixa.style.display = 'none';
-    texto.classList.remove('rolando');
-    return;
-  }
-  texto.textContent = '🚌 ' + (rotaFixa.titulo || 'Rota fixa de vistoria') + ' (' + DIAS_SEMANA_LABEL[diaSemanaHoje()] + '): ' +
-    rotaFixa.linhas.join('  →  ');
-  faixa.style.display = 'block';
-  texto.classList.remove('rolando');
-  requestAnimationFrame(()=>{
-    if(texto.scrollWidth > faixa.clientWidth){
-      texto.classList.add('rolando');
-    }
-  });
+  const valida = rotaFixaAtivaHoje() && rotaFixa.linhas && rotaFixa.linhas.length;
+  const conteudo = '🚌 ' + (rotaFixa.titulo || 'Rota fixa de vistoria') + ' (' + DIAS_SEMANA_LABEL[diaSemanaHoje()] + '): ' +
+    (rotaFixa.linhas||[]).join('  →  ');
+  atualizaFaixaGenerica('faixaRotaFixa', 'faixaRotaFixaTexto', valida, conteudo);
+  atualizaFaixaGenerica('faixaRotaFixaDash', 'faixaRotaFixaTextoDash', valida, conteudo);
 }
 
 function openRotaFixa(){
@@ -2818,6 +2883,92 @@ function salvarRotaFixa(){
   persistComAviso('Não foi possível confirmar o salvamento da rota fixa no servidor. Repita com boa conexão.');
   renderFaixaRotaFixa();
   closeRotaFixa();
+}
+
+function openDashboard(){
+  renderFaixaRota();
+  renderFaixaRotaFixa();
+  renderDashboard();
+  document.getElementById('dashboardPage').style.display = 'block';
+}
+
+function closeDashboard(){
+  document.getElementById('dashboardPage').style.display = 'none';
+}
+
+function renderDashboard(){
+  const MESES_LABEL = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const mesDe = ts => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); };
+
+  // popula o seletor de mês com todos os meses que têm alguma OS aberta, preservando a seleção atual
+  const selMes = document.getElementById('dashFiltroMes');
+  const mesAtualSelecionado = selMes.value;
+  const mesesComDados = [...new Set(items.map(x=>mesDe(x.dataAbertura)))].sort().reverse();
+  selMes.innerHTML = '<option value="">Todos os meses</option>' + mesesComDados.map(m=>{
+    const [ano,mes] = m.split('-');
+    return `<option value="${m}">${MESES_LABEL[parseInt(mes,10)-1]}/${ano}</option>`;
+  }).join('');
+  selMes.value = mesAtualSelecionado;
+  const mesFiltro = selMes.value;
+
+  // base de cálculo: se um mês estiver selecionado, considera só as OS abertas naquele mês
+  const base = mesFiltro ? items.filter(x => mesDe(x.dataAbertura) === mesFiltro) : items;
+
+  const counts = {aberta:0, andamento:0, peca:0, concluida:0};
+  base.forEach(x=>{
+    if(aguardandoPeca(x)) counts.peca++;
+    else if(counts[x.status] !== undefined) counts[x.status]++;
+  });
+
+  const rotuloCartoes = mesFiltro ? ' (abertas em ' + MESES_LABEL[parseInt(mesFiltro.split('-')[1],10)-1] + '/' + mesFiltro.split('-')[0] + ')' : '';
+  document.getElementById('dashCards').innerHTML = `
+    <div class="dash-card"><div class="num" style="color:var(--muted);">${counts.aberta}</div><div class="lbl">Abertas${rotuloCartoes}</div></div>
+    <div class="dash-card"><div class="num" style="color:var(--amber);">${counts.andamento}</div><div class="lbl">Em andamento${rotuloCartoes}</div></div>
+    <div class="dash-card"><div class="num" style="color:var(--blue);">${counts.peca}</div><div class="lbl">Aguardando material${rotuloCartoes}</div></div>
+    <div class="dash-card"><div class="num" style="color:var(--teal);">${counts.concluida}</div><div class="lbl">Encerradas${rotuloCartoes}</div></div>
+  `;
+
+  // gráfico: sempre mostra a visão geral de todos os meses (por data de encerramento), com o mês escolhido destacado
+  const encerradasGeral = items.filter(x=>x.status==='concluida' && x.dataConclusao);
+  const porMes = {};
+  encerradasGeral.forEach(x=>{
+    const chave = mesDe(x.dataConclusao);
+    porMes[chave] = (porMes[chave]||0) + 1;
+  });
+  const mesesOrdenados = Object.keys(porMes).sort();
+  const maiorValor = Math.max(1, ...Object.values(porMes));
+
+  const grafico = document.getElementById('dashGrafico');
+  if(mesesOrdenados.length === 0){
+    grafico.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:20px;">Nenhuma OS encerrada ainda.</div>';
+  } else {
+    grafico.innerHTML = mesesOrdenados.map(chave=>{
+      const [ano,mes] = chave.split('-');
+      const valor = porMes[chave];
+      const alturaPx = Math.round((valor / maiorValor) * 130) + 6;
+      const destacado = chave === mesFiltro;
+      return `
+        <div class="dash-bar-wrap">
+          <div class="dash-bar-num">${valor}</div>
+          <div class="dash-bar" style="height:${alturaPx}px;${destacado ? 'background:var(--amber);' : ''}"></div>
+          <div class="dash-bar-lbl" style="${destacado ? 'color:var(--amber);font-weight:700;' : ''}">${MESES_LABEL[parseInt(mes,10)-1]}/${ano.slice(2)}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // tabela: se houver mês selecionado, mostra todas as encerradas daquele mês (cohort); senão, últimas 15 no geral
+  const tabela = document.getElementById('dashTabelaEncerradas');
+  const encerradasTabela = mesFiltro
+    ? base.filter(x=>x.status==='concluida' && x.dataConclusao).sort((a,b)=>b.dataConclusao-a.dataConclusao)
+    : encerradasGeral.slice().sort((a,b)=>b.dataConclusao-a.dataConclusao).slice(0,15);
+
+  if(encerradasTabela.length === 0){
+    tabela.innerHTML = '<tr><td style="color:var(--muted);padding:10px;">Nenhuma OS encerrada ' + (mesFiltro ? 'neste mês.' : 'ainda.') + '</td></tr>';
+  } else {
+    tabela.innerHTML = '<thead><tr><th>Código</th><th>Local</th><th>Técnico</th><th>Encerrada em</th></tr></thead><tbody>' +
+      encerradasTabela.map(x=>`<tr><td>${x.code}</td><td>${x.local}</td><td>${x.tecnico||'-'}</td><td>${fmtDataHora(x.dataConclusao)}</td></tr>`).join('') +
+      '</tbody>';
+  }
 }
 
 function trocaAbaCadastro(tipo){
@@ -4180,8 +4331,8 @@ function generateReport(filteredItems){
       <td>${(x.diagnostico||'-').slice(0,120)}</td>
       <td>${x.compraMaterial ? materiaisTexto(x).replace(/;/g,'<br>') : '-'}</td>
       <td>${[
-        x.fotoVerificacao ? fotoImgTag(x.fotoVerificacao, 50) : '',
-        x.fotoConclusao ? fotoImgTag(x.fotoConclusao, 50) : ''
+        temFoto(x.fotoVerificacao) ? fotoImgTagMulti(x.fotoVerificacao, 50) : '',
+        temFoto(x.fotoConclusao) ? fotoImgTagMulti(x.fotoConclusao, 50) : ''
       ].join('') || '-'}</td>
     </tr>
   `).join('');
