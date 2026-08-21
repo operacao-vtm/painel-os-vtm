@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C2126">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Abrir O.S">
+<title>Solicitação de Abertura de O.S</title>
+<style>
+:root{
+  --escuro:#1C2126;--texto:#1C2126;--cinza:#6B7280;--linha:#D4D7DB;
+  --fundo:#F3F4F6;--branco:#fff;--verde:#128C4A;--vermelho:#C4241A;--laranja:#D96B00;
+  --fonte:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fundo);color:var(--texto);font-family:var(--fonte);font-size:16px;line-height:1.45}
+.wrap{max-width:560px;margin:0 auto;padding:0 14px 14px;
+  padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+
+header{background:var(--escuro);color:#fff;padding:16px 0;padding-top:max(16px,env(safe-area-inset-top))}
+header h1{font-size:18px;font-weight:600;margin:0;letter-spacing:.01em}
+header .meta{font-size:13px;color:#9CA3AF;margin-top:5px}
+
+.bloco{background:var(--branco);border:1px solid var(--linha);border-radius:8px;padding:14px;margin-top:12px}
+.bloco > label,.rotulo{display:block;font-size:13px;font-weight:600;color:var(--cinza);text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px}
+.bloco--falta{border-color:var(--vermelho);background:#FEF4F3}
+
+input[type=text],textarea{width:100%;font-family:var(--fonte);font-size:16px;color:var(--texto);background:var(--branco);
+  border:1px solid var(--linha);border-radius:6px;padding:13px;min-height:52px}
+textarea{min-height:82px;resize:none;overflow:hidden;line-height:1.45;padding-right:56px}
+input:focus,textarea:focus{outline:none;border-color:var(--escuro);box-shadow:0 0 0 3px rgba(28,33,38,.12)}
+
+.campo{position:relative;margin-bottom:9px}
+.mic{position:absolute;top:7px;right:7px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;
+  background:var(--fundo);border:1px solid var(--linha);border-radius:6px;color:var(--cinza);padding:0;cursor:pointer}
+.mic svg{width:20px;height:20px}
+.mic--on{background:var(--vermelho);border-color:var(--vermelho);color:#fff}
+.apagar{position:absolute;right:58px;top:7px;width:40px;height:44px;background:none;border:none;color:var(--vermelho);
+  font-size:22px;line-height:1;cursor:pointer}
+.aviso{font-size:13px;color:var(--vermelho);margin:-3px 0 9px;display:none}
+.aviso.on{display:block}
+
+.mais{width:100%;min-height:48px;background:var(--branco);border:1px dashed #9CA3AF;border-radius:6px;
+  color:var(--cinza);font-family:var(--fonte);font-size:14.5px;font-weight:500;cursor:pointer;margin-top:3px}
+.mais:active{background:var(--fundo)}
+
+.fotoBtns{display:flex;gap:8px}
+.fotoBtns button{flex:1;min-height:52px;background:var(--branco);border:1px solid var(--linha);border-radius:6px;
+  font-family:var(--fonte);font-size:15px;font-weight:500;color:var(--texto);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.fotoBtns button:active{background:var(--fundo)}
+.fotoBtns svg{width:20px;height:20px;fill:none;stroke:var(--cinza);stroke-width:1.8}
+.fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.fotos:empty{display:none}
+.foto{position:relative;padding-top:100%;border-radius:6px;overflow:hidden;border:1px solid var(--linha);background:var(--fundo)}
+.foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.foto button{position:absolute;top:4px;right:4px;width:32px;height:32px;border:none;border-radius:50%;
+  background:rgba(28,33,38,.82);color:#fff;font-size:17px;line-height:1;cursor:pointer}
+.nomes{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.nomes button{background:var(--fundo);border:1px solid var(--linha);border-radius:20px;padding:10px 14px;min-height:42px;
+  font-family:var(--fonte);font-size:14.5px;color:var(--texto);cursor:pointer}
+.nomes button:active{background:var(--escuro);color:#fff}
+
+.urg{display:flex;gap:8px}
+.urg label{flex:1;position:relative}
+.urg input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0}
+.urg span{display:flex;align-items:center;justify-content:center;min-height:56px;text-align:center;
+  border:1px solid var(--linha);border-radius:6px;font-size:14.5px;font-weight:600;padding:8px 4px}
+.urg input:checked + span{color:#fff}
+.urg input:checked + span.u1{background:var(--vermelho);border-color:var(--vermelho)}
+.urg input:checked + span.u2{background:var(--laranja);border-color:var(--laranja)}
+.urg input:checked + span.u3{background:var(--escuro);border-color:var(--escuro)}
+
+.rodape{position:sticky;bottom:0;background:var(--fundo);border-top:1px solid var(--linha);
+  padding:12px 14px;padding-bottom:max(12px,env(safe-area-inset-bottom));margin-top:14px}
+.erro{display:none;background:#FEF4F3;border:1px solid var(--vermelho);color:var(--vermelho);
+  border-radius:6px;padding:11px 13px;font-size:14.5px;margin-bottom:10px}
+.erro.on{display:block}
+.enviar{width:100%;min-height:58px;background:var(--verde);color:#fff;border:none;border-radius:8px;
+  font-family:var(--fonte);font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer}
+.enviar:active{background:#0B6C38}
+.enviar svg{width:22px;height:22px;fill:#fff}
+
+.ok{display:none}
+.ok.on{display:block}
+.sistema{border-radius:6px;padding:12px 13px;font-size:14.5px;font-weight:500;margin-top:12px;
+  background:#EEF6F1;border:1px solid #9CCFB4;color:#0B6C38}
+.sistema--erro{background:#FEF4F3;border-color:var(--vermelho);color:var(--vermelho)}
+.sistema--espera{background:#FFF8E6;border-color:#E0B85F;color:#8A6100}
+.ok pre{background:var(--escuro);color:#E5E7EB;border-radius:8px;padding:14px;margin:12px 0 10px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.ok__botoes{display:flex;gap:8px}
+.ok__botoes button{flex:1;min-height:50px;background:var(--branco);border:1px solid var(--linha);border-radius:6px;
+  font-family:var(--fonte);font-size:14.5px;font-weight:500;cursor:pointer}
+.ok__botoes button:active{background:var(--fundo)}
+.status{font-size:14px;border-radius:6px;padding:11px 13px;margin-bottom:10px;display:none}
+.status.on{display:block}
+.status--ok{background:#EAF6EF;border:1px solid var(--verde);color:#0B6C38}
+.status--esperando{background:#FFF8E6;border:1px solid #D9A400;color:#8A6800}
+.status--erro{background:#FEF4F3;border:1px solid var(--vermelho);color:var(--vermelho)}
+.fim{font-size:13px;color:var(--cinza);text-align:center;padding:14px 0 4px}
+@media print{.mic,.mais,.rodape,.ok__botoes,.apagar{display:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>Solicitação de abertura de O.S</h1>
+    <div class="meta">VTM · Manutenção · <span id="vData">—</span> · <span id="vProto">—</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="bloco" id="bNome">
+    <label for="nome">Solicitante</label>
+    <input type="text" id="nome" autocapitalize="words" placeholder="Seu nome">
+    <div class="nomes" id="nomes"></div>
+  </div>
+
+  <div class="bloco" id="bUrg">
+    <span class="rotulo">Urgência</span>
+    <div class="urg">
+      <label><input type="radio" name="prio" value="Emergência"><span class="u1">Emergência</span></label>
+      <label><input type="radio" name="prio" value="Urgente"><span class="u2">Urgente</span></label>
+      <label><input type="radio" name="prio" value="Normal"><span class="u3">Normal</span></label>
+    </div>
+  </div>
+
+  <div class="bloco" id="bServ">
+    <span class="rotulo">Serviço a executar</span>
+    <div id="listaServ"></div>
+    <button type="button" class="mais" id="maisServ">+ Adicionar outro serviço</button>
+  </div>
+
+  <div class="bloco" id="bMat">
+    <span class="rotulo">Material necessário</span>
+    <div id="listaMat"></div>
+    <button type="button" class="mais" id="maisMat">+ Adicionar outro material</button>
+  </div>
+
+  <div class="bloco" id="bFoto">
+    <span class="rotulo">Fotos do material / local <span style="text-transform:none;font-weight:400">(opcional)</span></span>
+    <div class="fotos" id="fotos"></div>
+    <div class="fotoBtns">
+      <button type="button" id="btCam">
+        <svg viewBox="0 0 24 24"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.7l1.2-2h6.2l1.2 2h1.7A2.5 2.5 0 0 1 20.1 8.5v8A2.5 2.5 0 0 1 17.6 19H5.5A2.5 2.5 0 0 1 3 16.5z"/><circle cx="11.5" cy="12.5" r="3.4"/></svg>
+        Tirar foto</button>
+      <button type="button" id="btGal">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><circle cx="8.5" cy="10" r="1.8"/><path d="M4 17l5-5 4.5 4.5L16.5 14 20 17.5"/></svg>
+        Galeria</button>
+    </div>
+    <input type="file" id="inCam" accept="image/*" capture="environment" style="display:none">
+    <input type="file" id="inGal" accept="image/*" multiple style="display:none">
+    <div class="aviso" id="avisoFoto"></div>
+  </div>
+
+  <div class="ok" id="ok">
+    <div class="sistema" id="sistema">Registrando no sistema…</div>
+    <pre id="okTexto"></pre>
+    <div class="ok__botoes">
+      <button type="button" id="bWpp">WhatsApp</button>
+      <button type="button" id="bReenviar" style="display:none">Reenviar ao painel</button>
+      <button type="button" id="bFotos" style="display:none">Enviar fotos</button>
+      <button type="button" id="bCopy">Copiar</button>
+      <button type="button" id="bNovo">Nova O.S</button>
+    </div>
+  </div>
+
+  <div class="fim">Aguarde a liberação da O.S para iniciar o serviço.</div>
+</div>
+
+<div class="rodape">
+  <div class="erro" id="erro"></div>
+  <button type="button" class="enviar" id="enviar">
+    <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.46 1.32 4.96L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2zm5.8 14.07c-.24.68-1.42 1.3-1.96 1.35-.54.05-1.05.24-3.55-.74-2.98-1.17-4.85-4.28-5-4.48-.15-.2-1.2-1.6-1.2-3.05 0-1.45.76-2.16 1.03-2.46.27-.29.59-.37.79-.37h.56c.18 0 .43-.07.66.5.24.59.8 2.03.87 2.18.07.15.12.32.02.51-.1.2-.44.66-.62.85-.13.15-.29.31-.12.6.17.29.75 1.23 1.61 1.99 1.1.98 1.94 1.29 2.23 1.44.29.15.46.12.63-.07.17-.2.73-.85.93-1.14.2-.29.39-.24.66-.15.27.1 1.71.81 2 .96.29.15.49.22.56.34.07.12.07.71-.17 1.39z"/></svg>
+    Enviar no WhatsApp
+  </button>
+</div>
+
+<script>
+/* ===== AJUSTE AQUI ===== */
+var CONFIG = {
+  empresa: "Nome da Empresa Terceirizada LTDA",
+  whatsManutencao: "",     // ex.: "5511999998888" — vazio abre a lista de contatos
+  api: ""                  // COLE AQUI a URL do Apps Script (termina com /exec)
+};
+/* ====================== */
+
+(function(){
+  var pad=function(n){return String(n).padStart(2,'0')};
+  var proto='',dataHora='',texto='',ultimoPacote=null;
+  var sufixo=Math.random().toString(36).slice(2,5).toUpperCase();
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var rec=null,micAtivo=null,pararRec=false;
+  var elNome=document.getElementById('nome');
+
+  function stamp(){
+    var d=new Date();
+    dataHora=pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+    proto='OS-'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'
+          +pad(d.getHours())+pad(d.getMinutes())+'-'+sufixo;   // sufixo evita protocolo repetido entre celulares
+    document.getElementById('vData').textContent=dataHora;
+    document.getElementById('vProto').textContent=proto;
+  }
+  stamp();
+  setInterval(function(){if(!document.getElementById('ok').classList.contains('on'))stamp()},30000);
+
+  /* nome salvo no aparelho */
+  var KEY='vtm_os_nomes',nomes=[];
+  try{var s=localStorage.getItem(KEY);if(s)nomes=JSON.parse(s)}catch(e){}
+  function pintaNomes(){
+    var box=document.getElementById('nomes');box.innerHTML='';
+    nomes.slice(0,4).forEach(function(n){
+      var b=document.createElement('button');b.type='button';b.textContent=n;
+      b.addEventListener('click',function(){elNome.value=n;document.getElementById('bNome').classList.remove('bloco--falta')});
+      box.appendChild(b);
+    });
+  }
+  if(nomes.length){elNome.value=nomes[0];pintaNomes()}
+  function salvaNome(n){
+    nomes=[n].concat(nomes.filter(function(x){return x.toLowerCase()!==n.toLowerCase()})).slice(0,4);
+    try{localStorage.setItem(KEY,JSON.stringify(nomes))}catch(e){}
+    pintaNomes();
+  }
+  elNome.addEventListener('input',function(){document.getElementById('bNome').classList.remove('bloco--falta')});
+
+  function prio(){var e=document.querySelector('input[name=prio]:checked');return e?e.value:''}
+  Array.prototype.forEach.call(document.querySelectorAll('input[name=prio]'),function(r){
+    r.addEventListener('change',function(){document.getElementById('bUrg').classList.remove('bloco--falta')});
+  });
+
+  function cresce(el){if(el.tagName!=='TEXTAREA')return;el.style.height='auto';el.style.height=Math.max(82,el.scrollHeight)+'px'}
+
+  /* microfone */
+  var micSVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v4"/></svg>';
+  var stopSVG='<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+  function ligaMic(ta,aviso,bloco){
+    if(!SR)return;
+    var btn=document.createElement('button');
+    btn.type='button';btn.className='mic';btn.innerHTML=micSVG;btn.setAttribute('aria-label','Falar');
+    ta.parentNode.appendChild(btn);
+    var base='',finais='';
+    function parado(){btn.classList.remove('mic--on');btn.innerHTML=micSVG;aviso.classList.remove('on');if(micAtivo===btn)micAtivo=null}
+    btn.addEventListener('click',function(){
+      var meu=(micAtivo===btn);pararRec=true;
+      if(rec){try{rec.stop()}catch(e){}}
+      if(meu){parado();return}
+      setTimeout(function(){
+        pararRec=false;micAtivo=btn;base=ta.value?ta.value.replace(/\s+$/,'')+' ':'';finais='';
+        btn.classList.add('mic--on');btn.innerHTML=stopSVG;
+        aviso.textContent='Ouvindo… toque no quadrado para parar.';aviso.classList.add('on');
+        rec=new SR();rec.lang='pt-BR';rec.continuous=true;rec.interimResults=true;
+        rec.onresult=function(ev){
+          var parcial='';
+          for(var i=ev.resultIndex;i<ev.results.length;i++){
+            var t=ev.results[i][0].transcript;
+            if(ev.results[i].isFinal){t=t.replace(/\s+/g,' ').trim();
+              if(t)finais+=(finais?' ':'')+t.charAt(0).toUpperCase()+t.slice(1)}
+            else{parcial+=t}
+          }
+          ta.value=(base+finais+(parcial?' '+parcial:'')).replace(/\s{2,}/g,' ');
+          cresce(ta);bloco.classList.remove('bloco--falta');
+        };
+        rec.onerror=function(ev){
+          if(ev.error==='no-speech')return;
+          pararRec=true;
+          aviso.textContent=(ev.error==='not-allowed'||ev.error==='service-not-allowed')
+            ?'Libere o microfone no navegador.':'Muito barulho. Tente de novo ou escreva.';
+          setTimeout(parado,3000);
+        };
+        rec.onend=function(){if(micAtivo===btn&&!pararRec){try{rec.start()}catch(e){parado()}}else parado()};
+        try{rec.start()}catch(e){parado()}
+      },200);
+    });
+  }
+
+  /* listas de serviço e material */
+  function criaLista(idLista,idBloco,ph){
+    var lista=document.getElementById(idLista),bloco=document.getElementById(idBloco);
+    function novo(focar){
+      var campo=document.createElement('div');campo.className='campo';
+      var ta=document.createElement('textarea');ta.placeholder=ph;campo.appendChild(ta);
+      var aviso=document.createElement('div');aviso.className='aviso';
+      lista.appendChild(campo);lista.appendChild(aviso);
+      ligaMic(ta,aviso,bloco);
+      ta.addEventListener('input',function(){cresce(ta);bloco.classList.remove('bloco--falta')});
+      if(lista.querySelectorAll('textarea').length>1){
+        var x=document.createElement('button');x.type='button';x.className='apagar';x.innerHTML='×';x.setAttribute('aria-label','Apagar');
+        x.addEventListener('click',function(){lista.removeChild(campo);lista.removeChild(aviso)});
+        campo.appendChild(x);
+      }
+      if(focar){ta.focus();ta.scrollIntoView({behavior:'smooth',block:'center'})}
+    }
+    novo(false);
+    return {
+      novo:novo,
+      valores:function(){
+        var v=[];Array.prototype.forEach.call(lista.querySelectorAll('textarea'),function(t){
+          if(t.value.trim())v.push(t.value.trim())});
+        return v;
+      },
+      zera:function(){lista.innerHTML='';novo(false)}
+    };
+  }
+  var servicos=criaLista('listaServ','bServ','O que precisa ser feito e onde.');
+  var materiais=criaLista('listaMat','bMat','Peças e materiais. Se não precisar: nenhum.');
+  document.getElementById('maisServ').addEventListener('click',function(){servicos.novo(true)});
+  document.getElementById('maisMat').addEventListener('click',function(){materiais.novo(true)});
+
+  /* fotos */
+  var fotos=[];
+  function comprime(file,cb){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){
+      var max=1400, r=Math.min(1,max/Math.max(img.width,img.height));
+      var c=document.createElement('canvas');
+      c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      c.toBlob(function(b){
+        URL.revokeObjectURL(url);
+        if(!b){cb(null);return}
+        cb(new File([b],'foto-'+(fotos.length+1)+'.jpg',{type:'image/jpeg'}));
+      },'image/jpeg',0.72);
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);cb(file)};
+    img.src=url;
+  }
+  function pintaFotos(){
+    var box=document.getElementById('fotos');box.innerHTML='';
+    fotos.forEach(function(f,i){
+      var d=document.createElement('div');d.className='foto';
+      var im=document.createElement('img');im.src=URL.createObjectURL(f);im.alt='Foto '+(i+1);
+      var x=document.createElement('button');x.type='button';x.innerHTML='×';x.setAttribute('aria-label','Apagar foto');
+      x.addEventListener('click',function(){fotos.splice(i,1);pintaFotos()});
+      d.appendChild(im);d.appendChild(x);box.appendChild(d);
+    });
+  }
+  function recebeFotos(lista){
+    var av=document.getElementById('avisoFoto');
+    Array.prototype.forEach.call(lista,function(f){
+      if(fotos.length>=6){av.textContent='Máximo de 6 fotos.';av.classList.add('on');return}
+      comprime(f,function(nova){ if(nova){fotos.push(nova);pintaFotos()} });
+    });
+  }
+  document.getElementById('btCam').addEventListener('click',function(){document.getElementById('inCam').click()});
+  document.getElementById('btGal').addEventListener('click',function(){document.getElementById('inGal').click()});
+  document.getElementById('inCam').addEventListener('change',function(){recebeFotos(this.files);this.value=''});
+  document.getElementById('inGal').addEventListener('change',function(){recebeFotos(this.files);this.value=''});
+
+  function podeMandarFotos(){
+    try{ return fotos.length>0 && navigator.canShare && navigator.canShare({files:fotos}) }catch(e){ return false }
+  }
+  function mandarFotos(){
+    return navigator.share({text:texto,files:fotos});
+  }
+
+  /* ---- envio ao sistema (planilha) ---- */
+  var FILA='vtm_os_fila';
+  function lerFila(){ try{return JSON.parse(localStorage.getItem(FILA)||'[]')}catch(e){return []} }
+  function salvarFila(f){ try{localStorage.setItem(FILA,JSON.stringify(f))}catch(e){} }
+  function statusSistema(txt,tipo){
+    var el=document.getElementById('sistema');
+    el.className='sistema'+(tipo?' sistema--'+tipo:'');
+    el.textContent=txt;
+  }
+  function postar(dados){
+    return fetch(CONFIG.api,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(dados)}).then(function(r){return r.json()});
+  }
+  function enviarFila(){
+    var f=lerFila();
+    if(!f.length||!CONFIG.api)return Promise.resolve(false);
+    return postar(f[0]).then(function(d){
+      if(d&&d.ok){ f.shift(); salvarFila(f); return f.length?enviarFila():true }
+      return false;
+    }).catch(function(){return false});
+  }
+  function fotosBase64(){
+    return Promise.all(fotos.map(function(f){
+      return new Promise(function(ok){
+        var r=new FileReader();
+        r.onload=function(){ ok({nome:f.name,tipo:f.type,dados:String(r.result).split(',')[1]}) };
+        r.onerror=function(){ ok(null) };
+        r.readAsDataURL(f);
+      });
+    })).then(function(a){return a.filter(Boolean)});
+  }
+  function registrarNoSistema(dados){
+    if(!CONFIG.api){ statusSistema('Sem sistema conectado — só o WhatsApp foi usado.','espera'); return }
+    statusSistema('Registrando no sistema…');
+    postar(dados).then(function(d){
+      if(d&&d.ok){
+        statusSistema('Registrado no sistema. Protocolo '+dados.protocolo+' — aguardando autorização da Manutenção.');
+        enviarFila();
+      }else{ throw new Error('falhou') }
+    }).catch(function(){
+      var f=lerFila(); f.push(dados); salvarFila(f);
+      statusSistema('Sem sinal agora. A solicitação ficou guardada no aparelho e sobe sozinha quando a internet voltar.','espera');
+    });
+  }
+  if(CONFIG.api){ setTimeout(enviarFila,1500); window.addEventListener('online',enviarFila); }
+
+  /* ---------- envio ao painel de manutenção ---------- */
+  var FILA='os:fila';
+  function mostraStatus(tipo,msg){
+    var s=document.getElementById('status');
+    s.className='status on status--'+tipo;s.textContent=msg;
+  }
+  function lerFila(){ try{return JSON.parse(localStorage.getItem(FILA)||'[]')}catch(e){return []} }
+  function gravaFila(f){ try{localStorage.setItem(FILA,JSON.stringify(f))}catch(e){} }
+
+  function apiGet(){
+    return fetch(CONFIG.api,{method:'GET'}).then(function(r){return r.json()});
+  }
+  function apiPost(obj){
+    return fetch(CONFIG.api,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},  // evita preflight CORS no Apps Script
+      body:JSON.stringify(obj)
+    }).then(function(r){return r.json()});
+  }
+
+  function dataUrl(file){
+    return new Promise(function(ok,erro){
+      var r=new FileReader();
+      r.onload=function(){ok(String(r.result))};
+      r.onerror=function(){erro(new Error('foto'))};
+      r.readAsDataURL(file);
+    });
+  }
+  function subirFotos(){
+    if(!CONFIG.enviarFotosAoPainel || !fotos.length) return Promise.resolve([]);
+    mostraStatus('esperando','Enviando '+fotos.length+' foto(s)…');
+    return fotos.reduce(function(cadeia,f,i){
+      return cadeia.then(function(urls){
+        return dataUrl(f)
+          .then(function(d){
+            return apiPost({action:'uploadPhoto',filename:'solicitacao-'+proto+'-'+(i+1)+'.jpg',
+                            mimeType:'image/jpeg',base64:d});
+          })
+          .then(function(j){ if(j&&j.ok&&j.url)urls.push(j.url); return urls })
+          .catch(function(){ return urls });
+      });
+    },Promise.resolve([]));
+  }
+
+  /* grava na lista "solicitacoes" que o painel lê (lê o estado, acrescenta e devolve) */
+  function gravarNoPainel(sol){
+    return apiGet().then(function(estado){
+      if(!estado || !estado.solicitacoes && !estado.items) throw new Error('estado-vazio');
+      var lista=(estado.solicitacoes||[]).slice();
+      if(!lista.some(function(x){return x.protocolo===sol.protocolo})) lista.push(sol);
+      return apiPost({action:'save',data:{
+        items:      estado.items      || [],
+        userSlots:  estado.userSlots,
+        cadastro:   estado.cadastro,
+        rotaPacheco:estado.rotaPacheco,
+        solicitacoes:lista,
+        rotaFixa:   estado.rotaFixa
+      }});
+    }).then(function(){
+      return new Promise(function(r){setTimeout(r,1500)});   // deixa o servidor gravar
+    }).then(apiGet).then(function(check){
+      var achou=((check&&check.solicitacoes)||[]).some(function(x){return x.protocolo===sol.protocolo});
+      if(!achou) throw new Error('nao-confirmado');
+      return true;
+    });
+  }
+
+  function enviarPainel(sol){
+    if(!CONFIG.api){
+      mostraStatus('erro','Painel não configurado neste arquivo.');
+      return Promise.resolve(false);
+    }
+    mostraStatus('esperando','Enviando ao painel…');
+    return subirFotos().then(function(urls){
+      if(urls.length)sol.fotos=urls;
+      return gravarNoPainel(sol);
+    }).then(function(){
+      mostraStatus('ok','Solicitação '+sol.protocolo+' enviada ao painel · aguardando aprovação da Manutenção.');
+      document.getElementById('bReenviar').style.display='none';
+      return true;
+    }).catch(function(){
+      var f=lerFila();
+      if(!f.some(function(x){return x.protocolo===sol.protocolo})){f.push(sol);gravaFila(f)}
+      mostraStatus('erro','Não deu para falar com o painel agora. A solicitação ficou guardada e será reenviada sozinha — ou toque em "Reenviar ao painel".');
+      document.getElementById('bReenviar').style.display='block';
+      return false;
+    });
+  }
+
+  function tentaFila(){
+    var f=lerFila(); if(!f.length||!CONFIG.api)return;
+    gravarNoPainel(f[0]).then(function(){
+      var g=lerFila(); g.shift(); gravaFila(g); tentaFila();
+    }).catch(function(){});
+  }
+  window.addEventListener('online',tentaFila);
+  setTimeout(tentaFila,2000);
+
+  /* enviar */
+  function abrirWpp(){
+    if(CONFIG.abrirWhatsApp===false)return;
+    var url='https://wa.me/'+CONFIG.whatsManutencao+'?text='+encodeURIComponent(texto);
+    var w=window.open(url,'_blank');
+    if(!w)window.location.href=url;
+  }
+  function bloco2(t,itens){
+    if(itens.length===1)return t+':\n'+itens[0]+'\n\n';
+    var r=t+':\n';itens.forEach(function(v,i){r+=(i+1)+') '+v+'\n'});return r+'\n';
+  }
+
+  document.getElementById('enviar').addEventListener('click',function(){
+    var falta=[],s=servicos.valores(),m=materiais.valores();
+    if(!elNome.value.trim())falta.push(['bNome','solicitante']);
+    if(!prio())falta.push(['bUrg','urgência']);
+    if(!s.length)falta.push(['bServ','serviço']);
+    if(!m.length)falta.push(['bMat','material']);
+
+    var eb=document.getElementById('erro');
+    if(falta.length){
+      falta.forEach(function(f){document.getElementById(f[0]).classList.add('bloco--falta')});
+      eb.textContent='Falta preencher: '+falta.map(function(f){return f[1]}).join(', ')+'.';
+      eb.classList.add('on');
+      document.getElementById(falta[0][0]).scrollIntoView({behavior:'smooth',block:'center'});
+      return;
+    }
+    eb.classList.remove('on');
+    if(micAtivo){pararRec=true;if(rec){try{rec.stop()}catch(e){}}}
+    if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+    stamp();salvaNome(elNome.value.trim());
+
+    texto='SOLICITAÇÃO DE ABERTURA DE O.S\n'
+        +'VTM — Setor de Manutenção\n'
+        +'Protocolo: '+proto+'\n'
+        +'Data/hora: '+dataHora+'\n\n'
+        +'Solicitante: '+elNome.value.trim()+'\n'
+        +'Empresa: '+CONFIG.empresa+'\n\n'
+        +'URGÊNCIA: '+prio().toUpperCase()+'\n\n'
+        +bloco2('SERVIÇO A EXECUTAR',s)
+        +bloco2('MATERIAL NECESSÁRIO',m)
+        +(fotos.length?('FOTOS: '+fotos.length+' em anexo\n\n'):'')
+        +'Aguardando liberação da O.S para iniciar em campo.';
+
+    document.getElementById('okTexto').textContent=texto;
+    document.getElementById('ok').classList.add('on');
+
+    fotosBase64().then(function(fb){
+      registrarNoSistema({
+        acao:'novaOS', protocolo:proto, dataHora:dataHora,
+        solicitante:elNome.value.trim(), empresa:CONFIG.empresa,
+        urgencia:prio(), servicos:s, materiais:m, fotos:fb
+      });
+    });
+
+    var bf=document.getElementById('bFotos');
+    if(fotos.length){
+      bf.style.display=podeMandarFotos()?'block':'none';
+      if(podeMandarFotos()){
+        mandarFotos().catch(function(){abrirWpp()});
+      }else{
+        abrirWpp();
+        var av=document.getElementById('avisoFoto');
+        av.textContent='Texto enviado. Anexe as '+fotos.length+' foto(s) pelo clipe do WhatsApp.';
+        av.classList.add('on');
+      }
+    }else{
+      bf.style.display='none';
+      abrirWpp();
+    }
+  });
+
+  document.getElementById('bFotos').addEventListener('click',function(){
+    if(podeMandarFotos())mandarFotos().catch(function(){});
+  });
+
+  document.getElementById('bReenviar').addEventListener('click',function(){
+    if(ultimoPacote)enviarPainel(ultimoPacote);
+  });
+  document.getElementById('bWpp').addEventListener('click',abrirWpp);
+  document.getElementById('bCopy').addEventListener('click',function(){
+    var b=this,ok=function(){b.textContent='Copiado';setTimeout(function(){b.textContent='Copiar'},1600)};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(texto).then(ok,fb)}else{fb()}
+    function fb(){var t=document.createElement('textarea');t.value=texto;t.style.position='fixed';t.style.opacity='0';
+      document.body.appendChild(t);t.focus();t.select();t.setSelectionRange(0,99999);
+      try{document.execCommand('copy');ok()}catch(e){b.textContent='Copie manual'}document.body.removeChild(t)}
+  });
+  document.getElementById('bNovo').addEventListener('click',function(){
+    servicos.zera();materiais.zera();
+    fotos=[];pintaFotos();
+    document.getElementById('status').className='status';
+    document.getElementById('bReenviar').style.display='none';
+    document.getElementById('avisoFoto').classList.remove('on');
+    document.getElementById('bFotos').style.display='none';
+    var p=document.querySelector('input[name=prio]:checked');if(p)p.checked=false;
+    document.getElementById('ok').classList.remove('on');
+    stamp();window.scrollTo({top:0,behavior:'smooth'});
+  });
+})();
+</script>
+</body>
+</html>
