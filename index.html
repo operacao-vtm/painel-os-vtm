@@ -1007,6 +1007,12 @@
     </div>
 
     <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:24px;">
+      <h2 style="margin:0 0 4px;font-size:16px;">Volume por tipo de manutenção</h2>
+      <p style="font-size:11.5px;color:var(--muted);margin:0 0 18px;">Quantas OS de cada tipo, da mais frequente para a menos frequente.</p>
+      <div id="dashEscada" style="overflow-x:auto;"></div>
+    </div>
+
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:24px;">
       <h2 style="margin:0 0 4px;font-size:16px;">Quando as OS foram encerradas</h2>
       <p style="font-size:11.5px;color:var(--muted);margin:0 0 16px;">Quantidade de ordens de serviço encerradas por mês.</p>
       <div id="dashGrafico" style="display:flex;align-items:flex-end;gap:10px;height:180px;overflow-x:auto;padding-bottom:6px;"></div>
@@ -1057,6 +1063,7 @@
     <option value="andamento">Em andamento</option>
     <option value="concluida">Encerrada</option>
   </select>
+  <select id="fTipoFiltro" onchange="render()"><option value="">Tipo: todos</option></select>
   <select id="fAcaoFiltro" onchange="render()">
     <option value="">Ação: todas</option>
     <option value="visita">📋 Visita técnica</option>
@@ -1578,6 +1585,7 @@ function loadSession(){
 }
 let items = [];
 let editingId = null;
+let osRecemCriada = null;   // guarda a OS aberta agora, para o envio automático ao WhatsApp
 let pendingFotosVerificacao = [];
 let pendingFotosConclusao = [];
 
@@ -2514,19 +2522,29 @@ async function saveOS(){
     }
   } else {
     atualizaPausaMaterial(null, data);   // nasce já com o relógio no estado certo
-    items.push({
+    const nova = {
       id: 'id'+Date.now(),
       code: genCode(),
       dataAbertura: Date.now(),
       dataConclusao: data.status==='concluida' ? Date.now() : null,
       criadoPor: currentUser ? currentUser.name : null,
       ...data
-    });
+    };
+    items.push(nova);
+    osRecemCriada = nova.id;   // só na abertura: o envio ao WhatsApp é automático
   }
   persistComAviso('Não foi possível confirmar que esta OS foi salva no servidor (conexão instável). Ela está salva neste aparelho — assim que a conexão voltar, abra esta OS de novo e toque em Salvar mais uma vez para garantir a sincronização.');
   backupCSV();
   closeModal();
   render();
+
+  // OS recém-aberta segue direto para o WhatsApp; nas próximas vezes o envio
+  // fica a critério de quem estiver usando, pelo botão dentro da OS.
+  if(osRecemCriada){
+    const id = osRecemCriada;
+    osRecemCriada = null;
+    setTimeout(()=>compartilharWhatsApp(id), 250);
+  }
 }
 
 function deleteOS(){
@@ -2537,8 +2555,8 @@ function deleteOS(){
   render();
 }
 
-function compartilharWhatsApp(){
-  const it = items.find(x=>x.id===editingId);
+function compartilharWhatsApp(osId){
+  const it = items.find(x=>x.id === (osId || editingId));
   if(!it) return;
 
   // emojis via código Unicode (\u{...}) em vez do caractere literal — assim não corrompe
@@ -2575,7 +2593,19 @@ function compartilharWhatsApp(){
   if(it.compraMaterial && materiaisArr.length){
     msg += `${E.cart} Materiais: ` + materiaisArr.map(m=>`${m.nome} (${m.quantidade}${m.unidade?' '+m.unidade:''})`).join(', ') + `\n`;
   }
-  msg += `\n_Painel de Manutenção — VTM Marketing e Publicidade_`;
+
+  // fotos: o WhatsApp não aceita anexo por link direto, então vai o endereço da imagem.
+  // Só entram as que estão hospedadas (http), porque prévia local não tem endereço público.
+  const fotosVerif = normalizaFotos(it.fotoVerificacao).filter(u=>/^https?:\/\//i.test(u));
+  const fotosConcl = normalizaFotos(it.fotoConclusao).filter(u=>/^https?:\/\//i.test(u));
+  if(fotosVerif.length){
+    msg += `\n${E.camera} Foto${fotosVerif.length>1?'s':''} de verificação:\n` + fotosVerif.join('\n') + `\n`;
+  }
+  if(fotosConcl.length){
+    msg += `\n${E.camera} Foto${fotosConcl.length>1?'s':''} de conclusão:\n` + fotosConcl.join('\n') + `\n`;
+  }
+
+  msg += `\n_Painel de Manutenção — VTM Mídia_`;
 
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
@@ -2769,8 +2799,18 @@ function populateTecnicoFilter(){
   sel.value = current;
 }
 
+function populateTipoFilter(){
+  const sel = document.getElementById('fTipoFiltro');
+  const current = sel.value;
+  const tipos = ordenaNomes([...new Set(items.map(x=>(x.tipo||'').trim()).filter(Boolean))]);
+  sel.innerHTML = '<option value="">Tipo: todos</option>' +
+    tipos.map(t=>`<option value="${escVist(t)}">${escVist(t)}</option>`).join('');
+  sel.value = current;
+}
+
 function render(){
   populateTecnicoFilter();
+  populateTipoFilter();
   renderFaixaRota();
   renderFaixaRotaFixa();
   atualizaBadgeSolicitacoes();
@@ -2795,6 +2835,7 @@ function render(){
   const ft = document.getElementById('fTecnico').value;
   const fs = document.getElementById('fStatusFiltro').value;
   const fa = document.getElementById('fAcaoFiltro').value;
+  const fTipo = document.getElementById('fTipoFiltro').value;
   const fDe = document.getElementById('fDataDe').value;   // yyyy-mm-dd ou ''
   const fAte = document.getElementById('fDataAte').value; // yyyy-mm-dd ou ''
 
@@ -2806,9 +2847,10 @@ function render(){
     const matchT = !ft || x.tecnico===ft || x.solicitante===ft || x.criadoPor===ft;
     const matchS = !fs || colunasDe(x).includes(fs);
     const matchA = !fa || x.acao===fa;
+    const matchTipo = !fTipo || (x.tipo||'').trim() === fTipo;
     const matchDe = !fDe || x.dataAbertura >= new Date(fDe + 'T00:00:00').getTime();
     const matchAte = !fAte || x.dataAbertura <= new Date(fAte + 'T23:59:59').getTime();
-    return matchQ && matchP && matchT && matchS && matchA && matchDe && matchAte;
+    return matchQ && matchP && matchT && matchS && matchA && matchTipo && matchDe && matchAte;
   });
 
   const cols = [
@@ -3567,6 +3609,75 @@ function svgRosca(fatias, total, titulo){
   '</div>';
 }
 
+// gráfico de escadinha (cascata): cada degrau parte de onde o anterior terminou
+// escadinha: quantas OS de cada tipo de manutenção, da mais frequente para a menos
+function desenhaEscada(lista){
+  const wrap = document.getElementById('dashEscada');
+  if(!wrap) return;
+  const base = lista || items;
+
+  const CORES_ACAO = {
+    corretiva:   '#E5397F',
+    preventiva:  '#F58220',
+    visita:      '#5B8DEF',
+    totem:       '#2FBFA0',
+    compra:      '#A78BFA',
+    comprovacao: '#F2B705',
+  };
+
+  // conta por ação e ordena do maior para o menor — é isso que forma a escada
+  const contagem = Object.keys(ACOES).map(chave => ({
+    chave,
+    nome: ACOES[chave].curto,
+    nomeCompleto: ACOES[chave].nome,
+    icone: ACOES[chave].icone,
+    valor: base.filter(x => (x.acao || 'visita') === chave).length,
+    cor: CORES_ACAO[chave] || 'var(--brand-1)',
+  })).sort((a,b) => b.valor - a.valor);
+
+  const total = contagem.reduce((s,c) => s + c.valor, 0);
+  if(!total){
+    wrap.innerHTML = '<div style="font-size:12.5px;color:var(--muted);padding:24px;text-align:center;">Nenhuma OS registrada ainda.</div>';
+    return;
+  }
+
+  const larguraPasso = 112, alturaUtil = 190, base_ = 46, topo = 26;
+  const largura = Math.max(680, contagem.length * larguraPasso + 40);
+  const alturaSVG = alturaUtil + base_ + topo;
+  const maxVal = Math.max(1, contagem[0].valor);
+
+  const barras = contagem.map((c, i) => {
+    const x = 20 + i * larguraPasso + 16;
+    const w = larguraPasso - 36;
+    const altura = c.valor ? Math.max(3, (c.valor / maxVal) * alturaUtil) : 2;
+    const y = topo + alturaUtil - altura;
+    const pct = Math.round((c.valor / total) * 100);
+    // degrau: liga o topo desta barra ao topo da próxima
+    const proxima = contagem[i+1];
+    const conector = proxima
+      ? '<line x1="' + (x + w) + '" y1="' + y + '" x2="' + (x + larguraPasso) + '" y2="' +
+        (topo + alturaUtil - (proxima.valor ? Math.max(3,(proxima.valor/maxVal)*alturaUtil) : 2)) +
+        '" stroke="var(--border-strong)" stroke-width="1" stroke-dasharray="3 3"></line>'
+      : '';
+
+    return '<g>' +
+      '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + altura + '" rx="5" fill="' + c.cor + '">' +
+        '<title>' + c.nomeCompleto + ': ' + c.valor + ' OS (' + pct + '%)</title>' +
+      '</rect>' +
+      '<text x="' + (x+w/2) + '" y="' + (y-8) + '" text-anchor="middle" font-size="14" font-weight="700" fill="var(--text)">' + c.valor + '</text>' +
+      '<text x="' + (x+w/2) + '" y="' + (topo+alturaUtil+18) + '" text-anchor="middle" font-size="14">' + c.icone + '</text>' +
+      '<text x="' + (x+w/2) + '" y="' + (topo+alturaUtil+34) + '" text-anchor="middle" font-size="10.5" fill="var(--muted)">' + c.nome + '</text>' +
+      conector +
+    '</g>';
+  }).join('');
+
+  wrap.innerHTML =
+    '<svg width="' + largura + '" height="' + alturaSVG + '" viewBox="0 0 ' + largura + ' ' + alturaSVG + '" role="img" aria-label="Volume por tipo de manutenção">' +
+      '<line x1="10" y1="' + (topo+alturaUtil) + '" x2="' + (largura-10) + '" y2="' + (topo+alturaUtil) + '" stroke="var(--border)" stroke-width="1"></line>' +
+      barras +
+    '</svg>';
+}
+
 function desenhaPizzas(r){
   const wrap = document.getElementById('dashPizzas');
   if(!wrap) return;
@@ -3616,6 +3727,7 @@ function renderDashboard(){
   // resumo rápido: emitidas, realizadas, em andamento e atrasadas
   const resumo = resumoOS(base);
   desenhaPizzas(resumo);
+  desenhaEscada(base);
 
   const rotuloCartoes = mesFiltro ? ' (abertas em ' + MESES_LABEL[parseInt(mesFiltro.split('-')[1],10)-1] + '/' + mesFiltro.split('-')[0] + ')' : '';
   document.getElementById('dashCards').innerHTML = `
