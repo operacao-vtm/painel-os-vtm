@@ -691,6 +691,20 @@
   :root{ color-scheme:dark; }
   [data-theme="light"]{ color-scheme:light; }
 
+  /* o botão de solicitar é a ação central do técnico: ganha corpo e pulso suave */
+  .btn.destaque-solicitar{
+    padding:12px 22px;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:.01em;
+    box-shadow:0 4px 14px color-mix(in srgb, var(--brand-1) 40%, transparent);
+    animation:pulsoSolicitar 2.6s ease-in-out infinite;
+  }
+  @keyframes pulsoSolicitar{
+    0%,100%{ box-shadow:0 4px 14px color-mix(in srgb, var(--brand-1) 34%, transparent); }
+    50%    { box-shadow:0 6px 20px color-mix(in srgb, var(--brand-1) 58%, transparent); }
+  }
+
   /* escolha de perfil na entrada */
   .perfil-opcao{
     display:flex; align-items:center; gap:14px; width:100%;
@@ -923,7 +937,7 @@
 <div class="overlay" id="solicitacoesOverlay">
   <div class="modal" style="width:600px;">
     <h2>📥 Solicitações de abertura de O.S</h2>
-    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;">Pedidos enviados pelo formulário externo, aguardando aprovação. Ao aprovar, uma OS é criada automaticamente no quadro.</p>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;">Pedidos dos técnicos e do formulário externo, aguardando sua decisão. Ao aprovar, a OS é criada (ou encerrada) e você segue para o WhatsApp.</p>
     <div style="margin-bottom:10px;">
       <label style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;">
         <input type="checkbox" id="fVerHistoricoSolic" onchange="renderListaSolicitacoes()" style=""> ver também as já decididas (histórico)
@@ -1234,8 +1248,82 @@
     <div class="modal-actions os-acoes">
       <button class="btn btn-os danger" id="btnDelete" onclick="deleteOS()">Excluir</button>
       <button class="btn btn-os primary" id="btnSave" onclick="saveOS()">Salvar</button>
+      <button class="btn btn-os primary" id="btnSolicitarEnc" onclick="solicitarEncerramento()" style="display:none;">📨 Solicitar encerramento</button>
       <button class="btn btn-os" id="btnImprimirOS" onclick="imprimirOS()">Imprimir</button>
       <button class="btn btn-os" id="btnWhatsapp" onclick="compartilharWhatsApp()" style="color:#25D366;border-color:#25D366;">📲 WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="solicitarOSOverlay">
+  <div class="modal" style="width:520px;">
+    <div style="display:flex;align-items:flex-start;">
+      <h2 style="flex:1;margin:0 0 4px;">📨 Solicitar abertura de OS</h2>
+      <button class="vist-mini" onclick="closeSolicitarOS()" title="fechar">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 16px;">A solicitação vai para o administrador. Assim que for aprovada, vira uma OS no quadro.</p>
+
+    <div class="field">
+      <label>Seu nome</label>
+      <input type="text" id="sNome" readonly style="background:var(--panel-alt);cursor:not-allowed;">
+    </div>
+    <div class="field">
+      <label>Local do problema</label>
+      <input type="text" id="sLocal" placeholder="Ex: Terminal 3 — totem da entrada">
+    </div>
+    <div class="field">
+      <label>Qual é o problema</label>
+      <textarea id="sProblema" rows="2" placeholder="Descreva o que está acontecendo"></textarea>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Tipo de serviço</label>
+        <select id="sAcao">
+          <option value="corretiva">🛠️ Manutenção corretiva</option>
+          <option value="preventiva">🔧 Manutenção preventiva</option>
+          <option value="visita">📋 Visita técnica</option>
+          <option value="totem">🗼 Instalação/Remoção de Totem</option>
+          <option value="comprovacao">📷 Comprovação</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Prioridade</label>
+        <select id="sPrioridade">
+          <option value="normal">Normal</option>
+          <option value="urgente">Urgente</option>
+          <option value="maxima">Prioridade Máxima</option>
+          <option value="preventiva">Preventiva</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Data prevista para o serviço</label>
+      <input type="date" id="sData">
+    </div>
+    <div class="field checkbox-field">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="sTemMaterial" onchange="toggleMaterialSolic()" style="width:auto;">
+        Precisa comprar material
+      </label>
+    </div>
+    <div class="field" id="sMaterialWrap" style="display:none;">
+      <label>Material a comprar (um por linha)</label>
+      <textarea id="sMateriais" rows="3" placeholder="Ex: Cabo de rede Cat6 — 10m&#10;Fonte 12V — 1 und"></textarea>
+    </div>
+    <div class="field">
+      <label>Imagens do problema</label>
+      <div style="display:flex;gap:6px;">
+        <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById('sFotoCamera').click()">📷 Tirar foto</button>
+        <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById('sFotoArquivo').click()">🖼️ Escolher arquivo</button>
+      </div>
+      <input type="file" accept="image/*" capture="environment" id="sFotoCamera" style="display:none" onchange="handleFotoSolic(event)">
+      <input type="file" accept="image/*" multiple id="sFotoArquivo" style="display:none" onchange="handleFotoSolic(event)">
+      <div id="sPreviewFotos" style="margin-top:6px;"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeSolicitarOS()">Cancelar</button>
+      <button class="btn primary" onclick="enviarSolicitacaoTecnico()">Enviar solicitação</button>
     </div>
   </div>
 </div>
@@ -1606,7 +1694,7 @@ function gasConfigured(){
 
 let isModalOpen = false;
 function anyModalOpen(){
-  return ['overlay','codeOverlay','boasVindasOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay'].some(id=>{
+  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay'].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains('show');
   });
@@ -1908,7 +1996,20 @@ function updateModeUI(){
 
   // Pacheco e Robert cuidam só da rota do dia: não abrem nem editam OS
   const soRota = isTecnico && ['pacheco','robert'].includes((currentUser.name||'').trim().toLowerCase());
-  document.getElementById('btnNovaOS').style.display = (canCreate && !soRota) ? 'inline-flex' : 'none';
+  const btnNova = document.getElementById('btnNovaOS');
+  const tecnicoSolicita = isTecnico && !soRota;
+
+  btnNova.style.display = (canCreate && !soRota) ? 'inline-flex' : 'none';
+  if(tecnicoSolicita){
+    // o técnico não abre OS direto: ele solicita, e o administrador aprova
+    btnNova.textContent = '📨 Solicitar OS';
+    btnNova.setAttribute('onclick', 'openSolicitarOS()');
+    btnNova.classList.add('destaque-solicitar');
+  } else {
+    btnNova.textContent = '+ Nova OS';
+    btnNova.setAttribute('onclick', 'openModal()');
+    btnNova.classList.remove('destaque-solicitar');
+  }
   document.getElementById('btnRotaPacheco').style.display = (isAdmin || soRota) ? 'inline-flex' : 'none';
   document.getElementById('btnSolicitacoes').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnRotaFixa').style.display = isAdmin ? 'inline-flex' : 'none';
@@ -1934,6 +2035,12 @@ function getEditPermission(item){
 }
 
 function canDeleteOS(item){
+  if(!currentUser || !item) return false;
+  if(currentUser.role === 'admin') return true;
+  return false;   // técnico não exclui: ele solicita, e o administrador decide
+}
+
+function canDeleteOS_antigo(item){
   if(!currentUser || !item) return false;
   if(currentUser.role === 'admin') return true;
   if(currentUser.role === 'tecnico'){
@@ -2132,14 +2239,37 @@ function aplicaModoEdicao(){
   if(bAdd) bAdd.style.display = matBloq ? 'none' : 'inline-flex';
   if(bDel) bDel.style.display = matBloq ? 'none' : 'inline-flex';
 
-  document.getElementById('btnSave').style.display = soLeitura ? 'none' : 'inline-flex';
+  // técnico numa OS existente: registra o serviço (fotos + diagnóstico) e pede o
+  // encerramento; quem fecha de fato é o administrador.
+  const tecnicoNaOS = it && currentUser && currentUser.role === 'tecnico' && !ehTecnicoDeRota(currentUser);
+  const btnSave = document.getElementById('btnSave');
+  const btnEnc = document.getElementById('btnSolicitarEnc');
+
+  if(tecnicoNaOS){
+    document.getElementById('fStatus').disabled = true;   // o status quem muda é o administrador
+    btnSave.style.display = 'none';
+    btnEnc.style.display = 'inline-flex';
+  } else {
+    btnSave.style.display = soLeitura ? 'none' : 'inline-flex';
+    btnEnc.style.display = 'none';
+  }
+
+  // o técnico pode anexar fotos mesmo sem poder editar o resto da OS
+  const photosEditableAqui = (perm === 'full') || tecnicoNaOS;
+  document.getElementById('fFotoVerif').style.display = photosEditableAqui ? 'flex' : 'none';
+  document.getElementById('fFotoConclusao').style.display = photosEditableAqui ? 'flex' : 'none';
+  if(tecnicoNaOS){
+    document.getElementById('fDiagnostico').disabled = false;
+    document.getElementById('fRequerDiagnostico').disabled = false;
+  }
+
   document.getElementById('btnDelete').style.display =
     (it && typeof canDeleteOS === 'function' && canDeleteOS(it)) ? 'inline-flex' : 'none';
   document.getElementById('btnImprimirOS').style.display = it ? 'inline-flex' : 'none';
   document.getElementById('btnWhatsapp').style.display = it ? 'inline-flex' : 'none';
 
   // quando um botão não se aplica, os outros esticam para preencher a largura
-  const visiveis = ['btnDelete','btnSave','btnImprimirOS','btnWhatsapp']
+  const visiveis = ['btnDelete','btnSave','btnSolicitarEnc','btnImprimirOS','btnWhatsapp']
     .filter(id=>document.getElementById(id).style.display !== 'none').length;
   document.querySelector('.os-acoes').style.gridTemplateColumns = 'repeat(' + Math.max(1, visiveis) + ',1fr)';
 }
@@ -2168,9 +2298,7 @@ function openModal(id){
   const lockedInLimited = ['fLocal','fLocalSel','fAcao','fTipo','fPrioridadeM','fSolicitante','fTecnicoM','fEhCompra'];
   const alwaysStatusDiag = ['fStatus','fDiagnostico'];
 
-  const photosEditable = perm === 'full';
-  document.getElementById('fFotoVerif').style.display = photosEditable ? 'flex' : 'none';
-  document.getElementById('fFotoConclusao').style.display = photosEditable ? 'flex' : 'none';
+  const photosEditable = perm === 'full' || (currentUser && currentUser.role === 'tecnico' && !ehTecnicoDeRota(currentUser));
 
   if(id){
     const it = items.find(x=>x.id===id);
@@ -2432,6 +2560,7 @@ async function handlePhotoUpload(event, kind){
 }
 
 function removePhoto(kind, index){
+  if(kind === 'solicitacao'){ removerFotoSolic(index); return; }
   const arr = kind === 'verificacao' ? pendingFotosVerificacao : pendingFotosConclusao;
   arr.splice(index, 1);
   renderPhotoPreview(kind === 'verificacao' ? 'previewVerif' : 'previewConclusao', arr, kind, true);
@@ -3393,6 +3522,140 @@ function closeSolicitacoes(){
   document.getElementById('solicitacoesOverlay').classList.remove('show');
 }
 
+// ---------- solicitações feitas pelo técnico dentro do painel ----------
+let pendingFotosSolic = [];
+
+function openSolicitarOS(){
+  document.getElementById('sNome').value = currentUser ? currentUser.name : '';
+  ['sLocal','sProblema','sMateriais'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('sAcao').value = 'corretiva';
+  document.getElementById('sPrioridade').value = 'normal';
+  document.getElementById('sData').value = hojeISO();
+  document.getElementById('sTemMaterial').checked = false;
+  toggleMaterialSolic();
+  pendingFotosSolic = [];
+  renderFotosSolic();
+  document.getElementById('solicitarOSOverlay').classList.add('show');
+}
+
+function closeSolicitarOS(){
+  document.getElementById('solicitarOSOverlay').classList.remove('show');
+}
+
+function toggleMaterialSolic(){
+  const m = document.getElementById('sTemMaterial').checked;
+  document.getElementById('sMaterialWrap').style.display = m ? 'block' : 'none';
+}
+
+async function handleFotoSolic(event){
+  const files = Array.from(event.target.files || []);
+  if(!files.length) return;
+  for(const file of files){
+    const dataUrl = await resizeImage(file, 700, 0.65);
+    photosUploading++;
+    const idx = pendingFotosSolic.length;
+    pendingFotosSolic.push(dataUrl);
+    renderFotosSolic(idx);
+    const finalUrl = await uploadPhotoToBackend(dataUrl, 'solicitacao');
+    photosUploading = Math.max(0, photosUploading - 1);
+    pendingFotosSolic[idx] = finalUrl;
+    renderFotosSolic();
+  }
+  event.target.value = '';
+}
+
+function renderFotosSolic(enviandoIdx){
+  renderPhotoPreview('sPreviewFotos', pendingFotosSolic, 'solicitacao', true, enviandoIdx);
+}
+
+function removerFotoSolic(i){
+  pendingFotosSolic.splice(i,1);
+  renderFotosSolic();
+}
+
+function enviarSolicitacaoTecnico(){
+  const local = document.getElementById('sLocal').value.trim();
+  if(!local){
+    askConfirm('Informe o local do problema antes de enviar.', ()=>{});
+    return;
+  }
+  if(photosUploading > 0){
+    askConfirm('Ainda estamos enviando uma foto. Aguarde alguns segundos e tente de novo.', ()=>{});
+    return;
+  }
+
+  const materiais = document.getElementById('sTemMaterial').checked
+    ? document.getElementById('sMateriais').value.split('\n').map(s=>s.trim()).filter(Boolean)
+    : [];
+
+  solicitacoes.push({
+    id: 'sol' + Date.now(),
+    protocolo: 'SOL-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + String(solicitacoes.length+1).padStart(3,'0'),
+    origem: 'tecnico',
+    tipo: 'abertura',
+    dataHora: Date.now(),
+    solicitante: currentUser ? currentUser.name : '',
+    empresa: '',
+    urgencia: {normal:'Normal', urgente:'Urgente', maxima:'Emergência', preventiva:'Normal'}[document.getElementById('sPrioridade').value] || 'Normal',
+    prioridade: document.getElementById('sPrioridade').value,
+    acao: document.getElementById('sAcao').value,
+    servicos: [document.getElementById('sProblema').value.trim() || local],
+    materiais: materiais,
+    local: local,
+    dataPrevista: document.getElementById('sData').value,
+    fotos: pendingFotosSolic.slice(),
+    status: 'pendente', decididoPor:'', decididoEm:0, motivoRejeicao:''
+  });
+
+  persistComAviso('Não foi possível confirmar o envio da solicitação ao servidor. Repita com boa conexão.');
+  closeSolicitarOS();
+  render();
+  askConfirm('Solicitação enviada! O administrador vai analisar e, se aprovar, a OS entra no quadro.', ()=>{});
+}
+
+// ---------- pedido de encerramento feito pelo técnico ----------
+function solicitarEncerramento(){
+  const it = items.find(x=>x.id===editingId);
+  if(!it) return;
+  if(photosUploading > 0){
+    askConfirm('Ainda estamos enviando uma foto. Aguarde alguns segundos e tente de novo.', ()=>{});
+    return;
+  }
+  const diag = document.getElementById('fDiagnostico').value.trim();
+  if(!diag){
+    askConfirm('Descreva o diagnóstico / solução aplicada antes de pedir o encerramento.', ()=>{});
+    return;
+  }
+
+  // o técnico registra o serviço; o encerramento em si depende do administrador
+  it.fotoVerificacao = pendingFotosVerificacao;
+  it.fotoConclusao = pendingFotosConclusao;
+  it.diagnostico = diag;
+  it.requerDiagnostico = true;
+
+  solicitacoes.push({
+    id: 'sol' + Date.now(),
+    protocolo: 'ENC-' + (it.code || '') + '-' + String(Date.now()).slice(-4),
+    origem: 'tecnico',
+    tipo: 'encerramento',
+    osId: it.id,
+    osCode: it.code,
+    dataHora: Date.now(),          // hora em que o técnico concluiu o serviço
+    solicitante: currentUser ? currentUser.name : '',
+    urgencia: 'Normal',
+    local: it.local,
+    servicos: [diag],
+    materiais: [],
+    fotos: normalizaFotos(it.fotoConclusao).concat(normalizaFotos(it.fotoVerificacao)),
+    status: 'pendente', decididoPor:'', decididoEm:0, motivoRejeicao:''
+  });
+
+  persistComAviso('Não foi possível confirmar o envio ao servidor. Repita com boa conexão.');
+  closeModal();
+  render();
+  askConfirm('Encerramento solicitado! O administrador vai conferir e confirmar o fechamento da OS.', ()=>{});
+}
+
 function renderListaSolicitacoes(){
   const wrap = document.getElementById('listaSolicitacoes');
   const verHistorico = document.getElementById('fVerHistoricoSolic').checked;
@@ -3407,25 +3670,54 @@ function renderListaSolicitacoes(){
 
   wrap.innerHTML = lista.map(s=>{
     const dataFmt = fmtDataHora(s.dataHora);
-    const servicosHtml = (s.servicos||[]).map((v,i)=>'<div class="solic-linha">' + (i+1) + '. ' + escVist(v) + '</div>').join('');
+    const ehEncerramento = s.tipo === 'encerramento';
+    const doTecnico = s.origem === 'tecnico';
+
+    const servicosHtml = (s.servicos||[]).map((v,i)=>'<div class="solic-linha">' + ((s.servicos.length>1) ? (i+1)+'. ' : '') + escVist(v) + '</div>').join('');
     const materiaisHtml = (s.materiais||[]).map((v,i)=>'<div class="solic-linha">' + (i+1) + '. ' + escVist(v) + '</div>').join('');
+
+    const fotos = (s.fotos||[]).filter(Boolean);
+    const fotosHtml = fotos.length
+      ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">' +
+        fotos.map(u=>'<a href="'+u+'" target="_blank" rel="noopener"><img src="'+driveImgUrl(u)+'" referrerpolicy="no-referrer" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border);"></a>').join('') +
+        '</div>'
+      : '';
+
     const tagStatus = s.status === 'aprovada'
-      ? '<span class="solic-status-tag" style="color:#2E7A46;">✅ Aprovada' + (s.decididoPor?' por '+escVist(s.decididoPor):'') + '</span>'
+      ? '<span class="solic-status-tag" style="color:#2E7A46;">✅ Aprovada' + (s.decididoPor?' por '+escVist(s.decididoPor):'') + (s.decididoEm?' em '+fmtDataHora(s.decididoEm):'') + '</span>'
       : s.status === 'rejeitada'
         ? '<span class="solic-status-tag" style="color:var(--red);">❌ Rejeitada' + (s.decididoPor?' por '+escVist(s.decididoPor):'') + (s.motivoRejeicao?' — '+escVist(s.motivoRejeicao):'') + '</span>'
         : '';
+
+    const selo = ehEncerramento
+      ? '<span class="solic-urg" style="background:var(--teal-bg);color:var(--teal);border:1px solid var(--teal);">encerramento</span>'
+      : '<span class="solic-urg ' + escVist(s.urgencia) + '">' + escVist(s.urgencia) + '</span>';
+
+    const cabecalho = ehEncerramento
+      ? '<div class="solic-linha"><b>OS</b>' + escVist(s.osCode||'') + (s.local ? ' · ' + escVist(s.local) : '') + '</div>' +
+        '<div class="solic-linha"><b>Serviço concluído em</b>' + dataFmt + '</div>'
+      : '<div class="solic-linha"><b>Local</b>' + escVist(s.local || '—') + '</div>' +
+        (s.dataPrevista ? '<div class="solic-linha"><b>Data prevista</b>' + s.dataPrevista.split('-').reverse().join('/') + '</div>' : '');
+
+    const rotuloServico = ehEncerramento ? 'Diagnóstico / solução aplicada' : 'Problema relatado';
+    const acoesBotoes = ehEncerramento
+      ? '<button class="btn primary" onclick="aprovarSolicitacao(\''+s.id+'\')">✅ Concordo → encerrar OS</button>'
+      : '<button class="btn primary" onclick="aprovarSolicitacao(\''+s.id+'\')">✅ Aprovar → gerar OS</button>';
+
     return `
       <div class="solic-card ${s.status}">
         <div class="solic-head">
           <span class="solic-proto">${escVist(s.protocolo)} · ${dataFmt}</span>
-          <span class="solic-urg ${escVist(s.urgencia)}">${escVist(s.urgencia)}</span>
+          ${selo}
         </div>
-        <div class="solic-linha"><b>Solicitante</b>${escVist(s.solicitante)}${s.empresa ? ' · '+escVist(s.empresa) : ''}</div>
-        <div style="margin-top:6px;"><b class="solic-linha" style="display:block;">Serviço a executar</b>${servicosHtml || '<div class="solic-linha">—</div>'}</div>
-        <div style="margin-top:6px;"><b class="solic-linha" style="display:block;">Material necessário</b>${materiaisHtml || '<div class="solic-linha">—</div>'}</div>
+        <div class="solic-linha"><b>Solicitante</b>${escVist(s.solicitante)}${doTecnico ? ' <span style="font-size:9.5px;color:var(--muted);">(técnico)</span>' : (s.empresa ? ' · '+escVist(s.empresa) : '')}</div>
+        ${cabecalho}
+        <div style="margin-top:6px;"><b class="solic-linha" style="display:block;">${rotuloServico}</b>${servicosHtml || '<div class="solic-linha">—</div>'}</div>
+        ${(s.materiais||[]).length ? '<div style="margin-top:6px;"><b class="solic-linha" style="display:block;">Material a comprar</b>'+materiaisHtml+'</div>' : ''}
+        ${fotos.length ? '<div style="margin-top:6px;"><b class="solic-linha" style="display:block;">Imagens</b>'+fotosHtml+'</div>' : ''}
         ${tagStatus ? '<div style="margin-top:8px;">'+tagStatus+'</div>' : `
         <div class="solic-acoes">
-          <button class="btn primary" onclick="aprovarSolicitacao('${s.id}')">✅ Aprovar → gerar OS</button>
+          ${acoesBotoes}
           <button class="btn danger" onclick="rejeitarSolicitacao('${s.id}')">❌ Rejeitar</button>
         </div>`}
       </div>`;
@@ -3435,33 +3727,64 @@ function renderListaSolicitacoes(){
 function aprovarSolicitacao(id){
   const s = solicitacoes.find(x=>x.id===id);
   if(!s || s.status !== 'pendente') return;
+
+  // ---- pedido de encerramento: confirma o fechamento da OS existente ----
+  if(s.tipo === 'encerramento'){
+    askConfirm('Confirmar o encerramento da ' + (s.osCode||'OS') + '? O serviço foi concluído em ' + fmtDataHora(s.dataHora) + '.', ()=>{
+      const it = items.find(x=>x.id===s.osId);
+      if(it){
+        it.status = 'concluida';
+        it.dataConclusao = s.dataHora;     // vale a hora em que o técnico concluiu
+        it.encerradoPor = currentUser ? currentUser.name : 'admin';
+        it.confirmadoPor = currentUser ? currentUser.name : 'admin';
+      }
+      s.status = 'aprovada';
+      s.decididoPor = currentUser ? currentUser.name : 'admin';
+      s.decididoEm = Date.now();
+      persistComAviso('Não foi possível confirmar o encerramento no servidor. Repita com boa conexão.');
+      render();
+      renderListaSolicitacoes();
+      if(it) setTimeout(()=>compartilharWhatsApp(it.id), 250);   // avisa o grupo
+    });
+    return;
+  }
+
+  // ---- pedido de abertura: cria a OS no quadro ----
   askConfirm('Aprovar esta solicitação e criar a OS "' + s.protocolo + '" no quadro?', ()=>{
-    const prioMap = { 'Emergência':'urgente', 'Urgente':'urgente', 'Normal':'normal' };
+    const prioMap = { 'Emergência':'maxima', 'Urgente':'urgente', 'Normal':'normal' };
     const servicosTxt = (s.servicos||[]).join(' | ');
     const materiaisTxt = (s.materiais||[]).join(', ');
     const temMaterial = (s.materiais||[]).some(m => m && m.trim().toLowerCase() !== 'nenhum');
+    const doTecnico = s.origem === 'tecnico';
 
-    items.push({
+    const nova = {
       id: 'id' + Date.now(),
       code: genCode(),
-      local: (s.servicos && s.servicos[0]) ? s.servicos[0].slice(0,80) : ('Solicitação ' + s.protocolo),
-      tipo: 'Solicitação externa — ' + (s.empresa || s.solicitante),
-      prioridade: prioMap[s.urgencia] || 'normal',
+      local: s.local || ((s.servicos && s.servicos[0]) ? s.servicos[0].slice(0,80) : ('Solicitação ' + s.protocolo)),
+      tipo: doTecnico ? servicosTxt.slice(0,120) : ('Solicitação externa — ' + (s.empresa || s.solicitante)),
+      prioridade: s.prioridade || prioMap[s.urgencia] || 'normal',
       status: 'aberta',
       solicitante: s.solicitante,
-      tecnico: '',
+      tecnico: doTecnico ? s.solicitante : '',
       criadoPor: currentUser ? currentUser.name : 'admin',
-      acao: 'corretiva',
+      acao: s.acao || 'corretiva',
       dataAbertura: Date.now(),
+      dataPrevista: s.dataPrevista || '',
       dataConclusao: null,
       requerDiagnostico: true,
-      diagnostico: 'Serviço(s):\n' + servicosTxt + (temMaterial ? '\n\nMaterial necessário:\n' + materiaisTxt : '') +
-        '\n\n(Origem: solicitação ' + s.protocolo + ', enviada por ' + s.solicitante + (s.empresa?' — '+s.empresa:'') + ')',
+      diagnostico: 'Solicitado por ' + s.solicitante + (doTecnico ? ' (técnico)' : '') +
+        ' em ' + fmtDataHora(s.dataHora) + '.\n' + servicosTxt +
+        (temMaterial ? '\n\nMaterial a comprar:\n' + materiaisTxt : '') +
+        '\n(Protocolo: ' + s.protocolo + ')',
       compraMaterial: temMaterial,
       materialEntregue: false,
       requerRelatorio: false,
       materiais: temMaterial ? (s.materiais||[]).filter(m=>m && m.trim().toLowerCase()!=='nenhum').map(m=>({nome:m, quantidade:1, unidade:'und'})) : [],
-    });
+      fotoVerificacao: (s.fotos||[]).slice(),   // as imagens do problema entram como verificação
+      fotoConclusao: [],
+    };
+    atualizaPausaMaterial(null, nova);
+    items.push(nova);
 
     s.status = 'aprovada';
     s.decididoPor = currentUser ? currentUser.name : 'admin';
@@ -3470,6 +3793,7 @@ function aprovarSolicitacao(id){
     persistComAviso('Não foi possível confirmar a aprovação no servidor. Repita com boa conexão.');
     render();
     renderListaSolicitacoes();
+    setTimeout(()=>compartilharWhatsApp(nova.id), 250);   // segue para o grupo de manutenção
   });
 }
 
