@@ -1994,12 +1994,12 @@ function updateModeUI(){
 
   document.getElementById('btnCadastro').style.display = isAdmin ? 'inline-flex' : 'none';
 
-  // Pacheco e Robert cuidam só da rota do dia: não abrem nem editam OS
+  // Pacheco e Robert cuidam da rota do dia e também atuam como técnicos
   const soRota = isTecnico && ['pacheco','robert'].includes((currentUser.name||'').trim().toLowerCase());
   const btnNova = document.getElementById('btnNovaOS');
-  const tecnicoSolicita = isTecnico && !soRota;
+  const tecnicoSolicita = isTecnico;
 
-  btnNova.style.display = (canCreate && !soRota) ? 'inline-flex' : 'none';
+  btnNova.style.display = canCreate ? 'inline-flex' : 'none';
   if(tecnicoSolicita){
     // o técnico não abre OS direto: ele solicita, e o administrador aprova
     btnNova.textContent = '📨 Solicitar OS';
@@ -2016,16 +2016,9 @@ function updateModeUI(){
   atualizaBadgeSolicitacoes();
 }
 
-// Pacheco e Robert respondem pela rota do dia, não pelas ordens de serviço
-function ehTecnicoDeRota(user){
-  return user && user.role === 'tecnico' &&
-    ['pacheco','robert'].includes((user.name||'').trim().toLowerCase());
-}
-
 function getEditPermission(item){
   if(!currentUser) return 'none';
   if(currentUser.role === 'admin') return 'full';
-  if(ehTecnicoDeRota(currentUser)) return 'none';
   if(currentUser.role === 'tecnico'){
     if(!item) return 'full';
     if(item.criadoPor === currentUser.name) return 'limited';
@@ -2241,7 +2234,7 @@ function aplicaModoEdicao(){
 
   // técnico numa OS existente: registra o serviço (fotos + diagnóstico) e pede o
   // encerramento; quem fecha de fato é o administrador.
-  const tecnicoNaOS = it && currentUser && currentUser.role === 'tecnico' && !ehTecnicoDeRota(currentUser);
+  const tecnicoNaOS = it && currentUser && currentUser.role === 'tecnico';
   const btnSave = document.getElementById('btnSave');
   const btnEnc = document.getElementById('btnSolicitarEnc');
 
@@ -2298,7 +2291,7 @@ function openModal(id){
   const lockedInLimited = ['fLocal','fLocalSel','fAcao','fTipo','fPrioridadeM','fSolicitante','fTecnicoM','fEhCompra'];
   const alwaysStatusDiag = ['fStatus','fDiagnostico'];
 
-  const photosEditable = perm === 'full' || (currentUser && currentUser.role === 'tecnico' && !ehTecnicoDeRota(currentUser));
+  const photosEditable = perm === 'full' || (currentUser && currentUser.role === 'tecnico');
 
   if(id){
     const it = items.find(x=>x.id===id);
