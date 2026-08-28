@@ -945,6 +945,7 @@
       <button class="btn" id="btnCSV" onclick="exportCSV()">↓ Exportar</button>
       <button class="btn" id="btnImport" onclick="document.getElementById('csvFileInput').click()">↑ Importar</button>
       <button class="btn" id="btnDiagnostico" onclick="diagnosticoConexao()" title="Testar a gravação no servidor">🩺 Testar</button>
+      <button class="btn" id="btnColarOS" onclick="openColarOS()" title="Recriar uma OS a partir da mensagem do WhatsApp">📋 Colar OS</button>
     </div>
     <button class="btn" id="btnTema" onclick="alternarTema()" title="Alternar entre tema claro e escuro" aria-label="Alternar tema"><span id="btnTemaIcone">🌙</span></button>
     <button class="btn primary" id="btnNovaOS" onclick="openModal()" style="display: inline-flex;">+ Nova OS</button>
@@ -1272,6 +1273,28 @@
       <button class="btn btn-os primary" id="btnSolicitarEnc" onclick="solicitarEncerramento()" style="display:none;">📨 Solicitar encerramento</button>
       <button class="btn btn-os" id="btnImprimirOS" onclick="imprimirOS()">Imprimir</button>
       <button class="btn btn-os" id="btnWhatsapp" onclick="compartilharWhatsApp()" style="color:#25D366;border-color:#25D366;">📲 WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="colarOSOverlay">
+  <div class="modal" style="width:560px;">
+    <div style="display:flex;align-items:flex-start;">
+      <h2 style="flex:1;margin:0 0 4px;">📋 Colar OS do WhatsApp</h2>
+      <button class="vist-mini" onclick="closeColarOS()" title="fechar">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;">Cole a mensagem que o painel gerou. Os campos são lidos automaticamente — confira antes de criar.</p>
+
+    <div class="field">
+      <label>Mensagem</label>
+      <textarea id="colarTexto" rows="8" style="font-size:12px;" placeholder="Cole aqui a mensagem inteira do WhatsApp…" oninput="previewColarOS()"></textarea>
+    </div>
+
+    <div id="colarPreview" style="display:none;background:var(--panel-alt);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;margin-bottom:12px;"></div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeColarOS()">Cancelar</button>
+      <button class="btn primary" id="btnCriarColada" onclick="criarOSColada()" disabled>Criar OS</button>
     </div>
   </div>
 </div>
@@ -5767,6 +5790,80 @@ startPolling();
 if(!currentUser && !jaEscolheuPerfil()){
   setTimeout(abrirBoasVindas, 400);
 }
+
+/* ============================================================
+   CARGA ÚNICA — OS-0061 (lançada a partir da mensagem do WhatsApp)
+   Roda uma vez só: se a OS já existir na planilha, não faz nada.
+   Depois que ela aparecer no quadro, este bloco pode ser apagado.
+   ============================================================ */
+(function cargaUnicaOS0061(){
+  const MARCA = 'carga_os_0061';
+  try{ if(window.localStorage.getItem(MARCA) === '1') return; }catch(e){}
+
+  const tentar = (restantes) => {
+    // espera os dados do servidor chegarem, para não duplicar nem sobrescrever
+    if(!Array.isArray(items) || (items.length === 0 && restantes > 0)){
+      return setTimeout(()=>tentar(restantes-1), 1200);
+    }
+    if(items.some(x => (x.code||'').toUpperCase() === 'OS-0061')){
+      try{ window.localStorage.setItem(MARCA,'1'); }catch(e){}
+      return;   // já está lá
+    }
+
+    const abertura = new Date(2026, 7, 28, 14, 21).getTime();   // 28/08/2026 14:21
+    items.push({
+      id: 'id' + abertura,
+      code: 'OS-0061',
+      local: 'TERMINAL 2',
+      tipo: 'REFORMA ESTRUTURAL DE CABEAMENTO DE INTERNET',
+      acao: 'preventiva',
+      prioridade: 'preventiva',
+      status: 'andamento',
+      solicitante: 'Manutenção',
+      tecnico: 'EPX',
+      criadoPor: 'Manutenção',
+      dataAbertura: abertura,
+      dataInicio: abertura,
+      dataConclusao: null,
+      requerDiagnostico: false,
+      diagnostico: '',
+      compraMaterial: true,
+      materialEntregue: false,
+      requerRelatorio: false,
+      parcial: false,
+      parcialObs: '',
+      fotoVerificacao: [],
+      fotoConclusao: [],
+      pausaInicio: abertura,   // conta como espera de material desde a abertura
+      tempoPausado: 0,
+      materiais: [
+        {nome:'CAIXA CABO CAT 5E',                   quantidade:1,  unidade:'cx'},
+        {nome:'TV BOX PRO',                          quantidade:10, unidade:'und'},
+        {nome:'FILTRO DE LINHA PRETO 4 TOMADAS',     quantidade:10, unidade:'und'},
+        {nome:'CAIXA HERMETICA BABY SLIM PRETA',     quantidade:10, unidade:'und'},
+        {nome:'ACABAMENTO DE CABEAMENTO',            quantidade:1,  unidade:'und'},
+        {nome:'CONECTOR RJ 45',                      quantidade:50, unidade:'und'},
+        {nome:'TOMADA ANTI-SURTO',                   quantidade:2,  unidade:'und'},
+        {nome:'CABO PP 2,5MM',                       quantidade:2,  unidade:'und'},
+        {nome:'CINTA PLÁSTICA 15 CM',                quantidade:50, unidade:'und'},
+        {nome:'CINTA PLÁSTICA 30 CM',                quantidade:50, unidade:'und'},
+        {nome:'FITA ISOLANTE',                       quantidade:3,  unidade:'m'},
+      ],
+    });
+
+    persist().then(ok=>{
+      if(ok){
+        try{ window.localStorage.setItem(MARCA,'1'); }catch(e){}
+        render();
+        console.log('OS-0061 lançada com sucesso.');
+      } else {
+        console.warn('OS-0061 não foi gravada no servidor; será tentada de novo na próxima abertura.');
+      }
+    });
+  };
+
+  setTimeout(()=>tentar(8), 2000);
+})();
 </script>
 
 
