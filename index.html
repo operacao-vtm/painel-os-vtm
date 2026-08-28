@@ -705,6 +705,25 @@
     50%    { box-shadow:0 6px 20px color-mix(in srgb, var(--brand-1) 58%, transparent); }
   }
 
+  /* estado do envio das fotos, dentro da OS */
+  .aviso-sync{
+    display:flex; align-items:center; gap:8px;
+    font-size:11.5px; font-weight:600;
+    padding:8px 12px; border-radius:var(--r-md);
+    margin:10px 0 2px;
+  }
+  .aviso-sync.enviando{ background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue); }
+  .aviso-sync.falhou  { background:var(--red-bg);  color:var(--red);  border:1px solid var(--red); }
+  .aviso-sync.ok      { background:var(--teal-bg); color:var(--teal); border:1px solid var(--teal); }
+  .girando{ display:inline-block; animation:girar 1s linear infinite; }
+  @keyframes girar{ to{ transform:rotate(360deg); } }
+
+  /* o botão de encerrar fica apagado enquanto houver foto sem subir */
+  .btn.aguardando-foto{
+    opacity:.5;
+    filter:grayscale(.4);
+  }
+
   /* escolha de perfil na entrada */
   .perfil-opcao{
     display:flex; align-items:center; gap:14px; width:100%;
@@ -925,6 +944,7 @@
       <span class="caixa-csv-titulo">Arquivo CSV</span>
       <button class="btn" id="btnCSV" onclick="exportCSV()">↓ Exportar</button>
       <button class="btn" id="btnImport" onclick="document.getElementById('csvFileInput').click()">↑ Importar</button>
+      <button class="btn" id="btnDiagnostico" onclick="diagnosticoConexao()" title="Testar a gravação no servidor">🩺 Testar</button>
     </div>
     <button class="btn" id="btnTema" onclick="alternarTema()" title="Alternar entre tema claro e escuro" aria-label="Alternar tema"><span id="btnTemaIcone">🌙</span></button>
     <button class="btn primary" id="btnNovaOS" onclick="openModal()" style="display: inline-flex;">+ Nova OS</button>
@@ -1245,6 +1265,7 @@
         <div id="previewConclusao" style="margin-top:4px;"></div>
       </div>
     </div>
+    <div id="avisoSyncFotos" class="aviso-sync" style="display:none;"></div>
     <div class="modal-actions os-acoes">
       <button class="btn btn-os danger" id="btnDelete" onclick="deleteOS()">Excluir</button>
       <button class="btn btn-os primary" id="btnSave" onclick="saveOS()">Salvar</button>
@@ -1757,10 +1778,51 @@ async function persist(){
 
 // Salva e, se falhar mesmo após as tentativas automáticas, avisa o usuário
 // em vez de falhar calado — usar em toda ação de salvar iniciada pelo usuário.
+// Mostra, em bom português, se a gravação está funcionando e o tamanho dos dados.
+// Serve para descobrir rápido se o problema é conexão, permissão ou volume.
+async function diagnosticoConexao(){
+  if(MODO_TESTE){
+    askConfirm('Esta é uma cópia de demonstração: os dados ficam só neste navegador, sem servidor.', ()=>{});
+    return;
+  }
+  if(!gasConfigured()){
+    askConfirm('O endereço do servidor (GAS_URL) não está preenchido neste arquivo.', ()=>{});
+    return;
+  }
+
+  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa });
+  const tamanho = JSON.stringify(limpo).length;
+  const blocos = Math.ceil(tamanho / 45000);
+  const pendentes = (solicitacoes||[]).filter(s=>s.status==='pendente').length;
+
+  let linhas = [];
+  linhas.push('Ordens de serviço: ' + items.length);
+  linhas.push('Solicitações pendentes: ' + pendentes);
+  linhas.push('Tamanho dos dados: ' + tamanho.toLocaleString('pt-BR') + ' caracteres (' + blocos + ' bloco(s) na planilha)');
+  if(fotosDescartadasNoEnvio > 0) linhas.push('⚠ ' + fotosDescartadasNoEnvio + ' foto(s) sem endereço, não serão salvas');
+
+  // teste real de leitura e de gravação
+  try{
+    const resp = await fetch(GAS_URL, { method:'GET' });
+    const json = await resp.json();
+    linhas.push('Leitura do servidor: OK (' + ((json.items||[]).length) + ' OS lá)');
+  }catch(e){
+    linhas.push('Leitura do servidor: FALHOU — ' + e.message);
+  }
+
+  const gravou = await pushState();
+  linhas.push('Gravação no servidor: ' + (gravou ? 'OK' : 'FALHOU' + (ultimoErroServidor ? ' — ' + ultimoErroServidor : '')));
+
+  askConfirm(linhas.join('\n'), ()=>{});
+}
+
 function persistComAviso(mensagem){
   persist().then(ok=>{
     if(!ok){
-      askConfirm(mensagem || 'Não foi possível confirmar a sincronização com o servidor (conexão instável). Os dados estão salvos neste aparelho — repita a ação assim que a conexão voltar.', ()=>{});
+      const detalhe = ultimoErroServidor ? '\n\nO servidor respondeu: ' + ultimoErroServidor : '';
+      askConfirm((mensagem || 'Não foi possível confirmar a gravação no servidor.') + detalhe, ()=>{});
+    } else if(fotosDescartadasNoEnvio > 0){
+      askConfirm(fotosDescartadasNoEnvio + ' foto(s) não chegaram a ser enviadas ao Drive e por isso não foram salvas. Abra a OS de novo, com boa conexão, e anexe a foto outra vez.', ()=>{});
     }
   });
 }
@@ -1769,16 +1831,71 @@ async function persistUserSlots(){
   return await pushState();
 }
 
+let ultimoErroServidor = null;
+
+// Foto que não conseguiu subir fica como base64 (dezenas de milhares de
+// caracteres). Se isso for para a planilha, estoura o limite e NADA é gravado —
+// nem as OS, nem as solicitações. Por isso só viaja o que tem endereço real.
+function ehEnderecoDeFoto(u){
+  return typeof u === 'string' && /^https?:\/\//i.test(u);
+}
+
+let fotosDescartadasNoEnvio = 0;
+
+function limpaListaFotos(v){
+  const arr = Array.isArray(v) ? v : (v ? [v] : []);
+  const ok = arr.filter(ehEnderecoDeFoto);
+  fotosDescartadasNoEnvio += (arr.length - ok.length);
+  return ok;
+}
+
+function semFotosLocais(dados){
+  fotosDescartadasNoEnvio = 0;
+  const copia = JSON.parse(JSON.stringify(dados));
+
+  (copia.items || []).forEach(it=>{
+    it.fotoVerificacao = limpaListaFotos(it.fotoVerificacao);
+    it.fotoConclusao   = limpaListaFotos(it.fotoConclusao);
+    if(it.vistoria && it.vistoria.conjuntos){
+      it.vistoria.conjuntos.forEach(cj=>{
+        cj.fotosGerais = limpaListaFotos(cj.fotosGerais);
+        (cj.itens||[]).forEach(i=>{
+          if(i.foto && !ehEnderecoDeFoto(i.foto)){ i.foto = null; fotosDescartadasNoEnvio++; }
+        });
+      });
+    }
+  });
+  (copia.solicitacoes || []).forEach(s=>{ s.fotos = limpaListaFotos(s.fotos); });
+
+  return copia;
+}
+
 async function pushState(tentativa){
   tentativa = tentativa || 1;
   if(MODO_TESTE){ testeSave(); return true; }
   if(!gasConfigured()) return false;
   try{
-    await fetch(GAS_URL, {
+    // fotos que não subiram ficam como base64 gigante e estouram o limite da
+    // planilha; só vai para o servidor o que tem endereço de verdade
+    const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa });
+
+    const resp = await fetch(GAS_URL, {
       method:'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS no Apps Script
-      body: JSON.stringify({ action:'save', data: { items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa } })
+      body: JSON.stringify({ action:'save', data: limpo })
     });
+    // antes o retorno nem era lido: o servidor podia recusar e o painel achava que salvou
+    const json = await resp.json().catch(()=>null);
+    if(!resp.ok || !json || json.ok !== true){
+      console.error('Servidor recusou a gravação:', json && json.error);
+      if(tentativa < 3){
+        await new Promise(r=>setTimeout(r, 1200));
+        return await pushState(tentativa + 1);
+      }
+      ultimoErroServidor = (json && json.error) || ('HTTP ' + resp.status);
+      return false;
+    }
+    ultimoErroServidor = null;
     ultimoSalvamentoLocal = Date.now();
     return true;
   }catch(e){
@@ -2014,6 +2131,15 @@ function updateModeUI(){
   document.getElementById('btnSolicitacoes').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnRotaFixa').style.display = isAdmin ? 'inline-flex' : 'none';
   atualizaBadgeSolicitacoes();
+}
+
+// Só o administrador fecha, reabre, exclui ou altera uma OS.
+// Técnico registra o serviço e SOLICITA — a decisão é sempre do administrador.
+function ehAdmin(){ return currentUser && currentUser.role === 'admin'; }
+function bloqueiaSeNaoAdmin(acao){
+  if(ehAdmin()) return false;
+  askConfirm('Só o administrador pode ' + acao + '. Use "Solicitar encerramento" para enviar o pedido.', ()=>{});
+  return true;
 }
 
 function getEditPermission(item){
@@ -2324,6 +2450,7 @@ function openModal(id){
     pendingFotosConclusao = normalizaFotos(it.fotoConclusao);
     renderPhotoPreview('previewVerif', pendingFotosVerificacao, 'verificacao', photosEditable);
     renderPhotoPreview('previewConclusao', pendingFotosConclusao, 'conclusao', photosEditable);
+    atualizaAvisoSync();
   } else {
     document.getElementById('modalTitle').textContent = 'Nova ordem de serviço';
     ['fLocal','fTipo','fSolicitante','fTecnicoM','fDiagnostico'].forEach(id=>document.getElementById(id).value='');
@@ -2346,6 +2473,7 @@ function openModal(id){
     pendingFotosConclusao = [];
     renderPhotoPreview('previewVerif', [], 'verificacao', true);
     renderPhotoPreview('previewConclusao', [], 'conclusao', true);
+    atualizaAvisoSync();
   }
 }
 
@@ -2537,18 +2665,25 @@ async function handlePhotoUpload(event, kind){
   const arr = kind === 'verificacao' ? pendingFotosVerificacao : pendingFotosConclusao;
   const containerId = kind === 'verificacao' ? 'previewVerif' : 'previewConclusao';
 
-  for(const file of files){
-    const dataUrl = await resizeImage(file, 700, 0.65);
-    photosUploading++;
-    // acrescenta um item "provisório" (ainda enviando) na galeria, sem apagar as fotos já existentes
-    const idx = arr.length;
-    arr.push(dataUrl);
-    renderPhotoPreview(containerId, arr, kind, true, idx);
-    const finalUrl = await uploadPhotoToBackend(dataUrl, kind);
+  // 1) prepara e mostra todas as miniaturas de uma vez
+  const preparadas = await Promise.all(files.map(f => resizeImage(f, 700, 0.65)));
+  const inicio = arr.length;
+  preparadas.forEach(d => arr.push(d));
+  photosUploading += preparadas.length;
+  renderPhotoPreview(containerId, arr, kind, true, -1);
+  atualizaAvisoSync();
+
+  // 2) sobe todas em paralelo: 3 fotos levam o tempo de 1, não de 3
+  await Promise.all(preparadas.map(async (dataUrl, i) => {
+    const url = await uploadPhotoToBackend(dataUrl, kind);
+    arr[inicio + i] = url;
     photosUploading = Math.max(0, photosUploading - 1);
-    arr[idx] = finalUrl; // troca a prévia local pela URL definitiva, na mesma posição
-    renderPhotoPreview(containerId, arr, kind, true);
-  }
+    renderPhotoPreview(containerId, arr, kind, true, -1);
+    atualizaAvisoSync();
+  }));
+
+  renderPhotoPreview(containerId, arr, kind, true);
+  atualizaAvisoSync();
   event.target.value = ''; // permite escolher o mesmo arquivo de novo, se precisar
 }
 
@@ -2557,6 +2692,7 @@ function removePhoto(kind, index){
   const arr = kind === 'verificacao' ? pendingFotosVerificacao : pendingFotosConclusao;
   arr.splice(index, 1);
   renderPhotoPreview(kind === 'verificacao' ? 'previewVerif' : 'previewConclusao', arr, kind, true);
+  atualizaAvisoSync();
 }
 
 function renderPhotoPreview(containerId, arr, kind, showRemove, uploadingIdx){
@@ -2564,7 +2700,8 @@ function renderPhotoPreview(containerId, arr, kind, showRemove, uploadingIdx){
   arr = arr || [];
   if(!arr.length){ el.innerHTML = ''; return; }
   el.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:8px;">' + arr.map((dataUrl,i)=>{
-    const uploading = i === uploadingIdx;
+    // -1 significa "todas as que ainda não têm endereço estão subindo"
+    const uploading = (uploadingIdx === -1) ? !ehEnderecoDeFoto(dataUrl) : (i === uploadingIdx);
     const safeSrc = driveImgUrl(dataUrl);
     return `<div style="position:relative;">
       <img src="${safeSrc}" referrerpolicy="no-referrer" style="width:90px;height:90px;object-fit:cover;border-radius:4px;border:1px solid var(--border);display:block;"
@@ -2576,6 +2713,11 @@ function renderPhotoPreview(containerId, arr, kind, showRemove, uploadingIdx){
 }
 
 async function saveOS(){
+  // técnico não altera OS existente: registra o serviço e solicita o encerramento
+  if(editingId && !ehAdmin()){
+    askConfirm('Só o administrador altera uma OS já aberta. Use "Solicitar encerramento" para enviar o pedido.', ()=>{});
+    return;
+  }
   const sel = document.getElementById('fLocalSel');
   const local = (sel.value === '__novo__' ? document.getElementById('fLocal').value : sel.value).trim();
   if(!local){
@@ -2670,6 +2812,7 @@ async function saveOS(){
 }
 
 function deleteOS(){
+  if(bloqueiaSeNaoAdmin('excluir uma OS')) return;
   items = items.filter(x=>x.id!==editingId);
   persistComAviso('Não foi possível confirmar a exclusão no servidor. Ela ficou removida apenas neste aparelho — abra o painel novamente com boa conexão para garantir a sincronização.');
   backupCSV();
@@ -3610,10 +3753,7 @@ function enviarSolicitacaoTecnico(){
 function solicitarEncerramento(){
   const it = items.find(x=>x.id===editingId);
   if(!it) return;
-  if(photosUploading > 0){
-    askConfirm('Ainda estamos enviando uma foto. Aguarde alguns segundos e tente de novo.', ()=>{});
-    return;
-  }
+  if(!fotosProntasParaEncerrar()) return;
   const diag = document.getElementById('fDiagnostico').value.trim();
   if(!diag){
     askConfirm('Descreva o diagnóstico / solução aplicada antes de pedir o encerramento.', ()=>{});
@@ -4255,7 +4395,88 @@ function atualizaBotaoVistoria(){
 
 }
 
+// ---------- garantia de que as fotos chegaram ao servidor ----------
+// Encerrar uma OS com foto só no aparelho significa perder a comprovação:
+// ela não vai para a planilha nem para o relatório. Por isso o encerramento
+// espera a sincronização terminar.
+function fotosPendentesDeSync(){
+  const todas = pendingFotosVerificacao.concat(pendingFotosConclusao);
+  return todas.filter(u => !ehEnderecoDeFoto(u)).length;
+}
+
+// devolve true quando pode seguir; senão avisa o motivo e segura o encerramento
+function fotosProntasParaEncerrar(){
+  if(photosUploading > 0){
+    askConfirm('Aguarde: ainda estamos enviando ' + photosUploading + ' foto(s) ao servidor. ' +
+               'O botão libera assim que terminar.', ()=>{});
+    return false;
+  }
+  const pendentes = fotosPendentesDeSync();
+  if(pendentes > 0){
+    askConfirm(pendentes + ' foto(s) não chegaram ao servidor e seriam perdidas no encerramento. ' +
+               'Toque em "Reenviar fotos" para tentar de novo, ou remova a foto que falhou.', ()=>{});
+    return false;
+  }
+  return true;
+}
+
+// tenta subir de novo só o que ficou para trás
+async function reenviarFotosPendentes(){
+  const tentar = async (arr, kind, containerId) => {
+    for(let i = 0; i < arr.length; i++){
+      if(ehEnderecoDeFoto(arr[i])) continue;
+      photosUploading++;
+      renderPhotoPreview(containerId, arr, kind, true, i);
+      const url = await uploadPhotoToBackend(arr[i], kind);
+      photosUploading = Math.max(0, photosUploading - 1);
+      if(ehEnderecoDeFoto(url)) arr[i] = url;
+      renderPhotoPreview(containerId, arr, kind, true);
+    }
+  };
+  await tentar(pendingFotosVerificacao, 'verificacao', 'previewVerif');
+  await tentar(pendingFotosConclusao, 'conclusao', 'previewConclusao');
+  atualizaAvisoSync();
+  const restam = fotosPendentesDeSync();
+  askConfirm(restam ? restam + ' foto(s) ainda não subiram. Verifique a conexão e tente de novo.'
+                    : 'Todas as fotos foram sincronizadas. Já pode encerrar.', ()=>{});
+}
+
+// faixa de aviso dentro da OS, mostrando o estado do envio
+function atualizaAvisoSync(){
+  const el = document.getElementById('avisoSyncFotos');
+  if(!el) return;
+  const pend = fotosPendentesDeSync();
+  const travado = photosUploading > 0 || pend > 0;
+
+  // botões de encerramento acompanham o estado: apagados enquanto falta subir foto
+  ['btnSolicitarEnc','btnSave'].forEach(id=>{
+    const b = document.getElementById(id);
+    if(!b) return;
+    b.classList.toggle('aguardando-foto', travado);
+    b.title = travado ? 'Aguardando as fotos chegarem ao servidor' : '';
+  });
+
+  if(photosUploading > 0){
+    el.style.display = 'flex';
+    el.className = 'aviso-sync enviando';
+    el.innerHTML = '<span class="girando">⏳</span> Enviando ' + photosUploading + ' foto(s) ao servidor…';
+  } else if(pend > 0){
+    el.style.display = 'flex';
+    el.className = 'aviso-sync falhou';
+    el.innerHTML = '<span>⚠️</span> ' + pend + ' foto(s) não chegaram ao servidor. ' +
+      '<button type="button" class="btn" style="padding:3px 9px;font-size:10.5px;margin-left:auto;" onclick="reenviarFotosPendentes()">Reenviar fotos</button>';
+  } else if(pendingFotosVerificacao.length || pendingFotosConclusao.length){
+    el.style.display = 'flex';
+    el.className = 'aviso-sync ok';
+    el.innerHTML = '<span>✅</span> Fotos sincronizadas com o servidor.';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
 function encerrarOS(){
+  if(bloqueiaSeNaoAdmin('encerrar uma OS')) return;
+  if(!fotosProntasParaEncerrar()) return;
   const it = items.find(x=>x.id===editingId);
   if(!it) return;
   const acao = it.acao || 'visita';
@@ -4296,6 +4517,7 @@ function gravaEncerramento(it){
 }
 
 function reabrirOS(){
+  if(bloqueiaSeNaoAdmin('reabrir uma OS')) return;
   const it = items.find(x=>x.id===editingId);
   if(!it) return;
   askConfirm('Reabrir a ' + it.code + '? A data de encerramento anterior será apagada e a OS volta para "Em andamento".', ()=>{
