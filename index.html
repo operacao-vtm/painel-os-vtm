@@ -939,6 +939,7 @@
     <button class="btn" id="btnRotaPacheco" onclick="openRotaPacheco()" style="display: none;">🔧 Rota do dia</button>
     <button class="btn" id="btnSolicitacoes" onclick="openSolicitacoes()" style="display: none;position:relative;">📥 Solicitações<span id="badgeSolicitacoes" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;"></span></button>
     <button class="btn" id="btnRotaFixa" onclick="openRotaFixa()" style="display: none;">🚌 Rota fixa</button>
+    <button class="btn" id="btnDestinatarios" onclick="openDestinatarios()" style="display: none;">📬 Destinatários</button>
     <button class="btn" id="btnDashboard" onclick="openDashboard()">📊 Dashboard</button>
     <div class="caixa-csv" id="caixaCSV">
       <span class="caixa-csv-titulo">Arquivo CSV</span>
@@ -1299,6 +1300,49 @@
   </div>
 </div>
 
+<div class="overlay" id="destinatariosOverlay">
+  <div class="modal" style="width:520px;">
+    <div style="display:flex;align-items:flex-start;">
+      <h2 style="flex:1;margin:0 0 4px;">📬 Destinatários dos avisos</h2>
+      <button class="vist-mini" onclick="closeDestinatarios()" title="fechar">✕</button>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 16px;">Quem recebe o resumo automático das 12h e das 17h. Vale para e-mail e SMS.</p>
+
+    <div class="field">
+      <label>E-mails</label>
+      <div style="display:flex;gap:6px;">
+        <input type="email" id="dNovoEmail" placeholder="nome@empresa.com.br"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();addEmailDest();}">
+        <button type="button" class="btn" onclick="addEmailDest()">+ Incluir</button>
+      </div>
+      <div id="dListaEmails" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="field">
+      <label>Telefones para SMS</label>
+      <div style="display:flex;gap:6px;">
+        <input type="tel" id="dNovoTelefone" placeholder="92984311798 (DDD + número)"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();addTelefoneDest();}">
+        <button type="button" class="btn" onclick="addTelefoneDest()">+ Incluir</button>
+      </div>
+      <div id="dListaTelefones" style="margin-top:8px;"></div>
+      <div style="font-size:9.5px;color:var(--muted);margin-top:4px;">
+        Digite com DDD, sem +55 e sem espaços. O código do país é acrescentado no envio.
+      </div>
+    </div>
+
+    <div id="dAvisoSMS" style="font-size:11px;padding:9px 12px;border-radius:var(--r-md);
+         background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber);margin-bottom:4px;">
+      ⚠️ O e-mail já funciona. O <b>SMS</b> depende de um serviço externo pago (Twilio ou Zenvia)
+      configurado no Apps Script — enquanto não estiver, só o e-mail é enviado.
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn primary" onclick="closeDestinatarios()">Concluído</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="solicitarOSOverlay">
   <div class="modal" style="width:520px;">
     <div style="display:flex;align-items:flex-start;">
@@ -1638,7 +1682,7 @@ function testeLoad(){
 
 function testeSave(){
   try{
-    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa }));
+    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios }));
     const el = document.getElementById('syncInfo');
     if(el){ el.textContent = 'teste · salvo no navegador ' + new Date().toLocaleTimeString('pt-BR'); }
     return true;
@@ -1675,6 +1719,12 @@ let userSlots = {admins:[], tecnicos:[], diretores:[]};
 let cadastro = { locais: [], placas: [], equipamentos: [] };
 let rotaPacheco = { data: '', itens: [], atualizadoPor: '', atualizadoEm: 0 };
 let solicitacoes = [];
+
+// quem recebe os avisos automáticos (12h e 17h). Gerenciado na aba de administradores.
+let destinatarios = {
+  emails: ['operacao@vtmmidia.com.br'],
+  telefones: ['92984311798'],
+};
 const DIAS_SEMANA = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
 const DIAS_SEMANA_LABEL = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
 let rotaFixa = {
@@ -1738,7 +1788,7 @@ function gasConfigured(){
 
 let isModalOpen = false;
 function anyModalOpen(){
-  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay'].some(id=>{
+  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay','destinatariosOverlay'].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains('show');
   });
@@ -1761,6 +1811,7 @@ async function loadData(){
       cadastro = normalizaCadastro(d.cadastro);
       rotaPacheco = d.rotaPacheco || rotaPacheco;
       solicitacoes = d.solicitacoes || solicitacoes;
+      destinatarios = normalizaDestinatarios(d.destinatarios);
       rotaFixa = d.rotaFixa || rotaFixa;
       migraStatusPeca();
       render();
@@ -1783,6 +1834,7 @@ async function loadData(){
     cadastro = normalizaCadastro(json && json.cadastro);
     rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
     solicitacoes = (json && json.solicitacoes) || solicitacoes;
+    destinatarios = normalizaDestinatarios(json && json.destinatarios);
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
     migraStatusPeca();
   }catch(e){
@@ -1813,7 +1865,7 @@ async function diagnosticoConexao(){
     return;
   }
 
-  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa });
+  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios });
   const tamanho = JSON.stringify(limpo).length;
   const blocos = Math.ceil(tamanho / 45000);
   const pendentes = (solicitacoes||[]).filter(s=>s.status==='pendente').length;
@@ -1900,7 +1952,7 @@ async function pushState(tentativa){
   try{
     // fotos que não subiram ficam como base64 gigante e estouram o limite da
     // planilha; só vai para o servidor o que tem endereço de verdade
-    const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa });
+    const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios });
 
     const resp = await fetch(GAS_URL, {
       method:'POST',
@@ -1949,6 +2001,7 @@ async function refreshFromServer(){
     cadastro = normalizaCadastro(json && json.cadastro);
     rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
     solicitacoes = (json && json.solicitacoes) || solicitacoes;
+    destinatarios = normalizaDestinatarios(json && json.destinatarios);
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
     migraStatusPeca();
     markSynced();
@@ -2153,6 +2206,7 @@ function updateModeUI(){
   document.getElementById('btnRotaPacheco').style.display = (isAdmin || soRota) ? 'inline-flex' : 'none';
   document.getElementById('btnSolicitacoes').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnRotaFixa').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('btnDestinatarios').style.display = isAdmin ? 'inline-flex' : 'none';
   atualizaBadgeSolicitacoes();
 }
 
@@ -3973,6 +4027,104 @@ function renderFaixaRotaFixa(){
     (rotaFixa.linhas||[]).join('  →  ');
   atualizaFaixaGenerica('faixaRotaFixa', 'faixaRotaFixaTexto', valida, conteudo);
   atualizaFaixaGenerica('faixaRotaFixaDash', 'faixaRotaFixaTextoDash', valida, conteudo);
+}
+
+// ---------- destinatários dos avisos automáticos (só administrador) ----------
+function normalizaDestinatarios(d){
+  const base = d || {};
+  return {
+    emails: Array.isArray(base.emails) ? base.emails.filter(Boolean) : (destinatarios.emails || []),
+    telefones: Array.isArray(base.telefones) ? base.telefones.filter(Boolean) : (destinatarios.telefones || []),
+  };
+}
+
+function openDestinatarios(){
+  if(bloqueiaSeNaoAdmin('gerenciar os destinatários')) return;
+  document.getElementById('dNovoEmail').value = '';
+  document.getElementById('dNovoTelefone').value = '';
+  renderDestinatarios();
+  document.getElementById('destinatariosOverlay').classList.add('show');
+}
+
+function closeDestinatarios(){
+  document.getElementById('destinatariosOverlay').classList.remove('show');
+}
+
+function renderDestinatarios(){
+  const chip = (valor, tipo, i) =>
+    '<div style="display:flex;align-items:center;gap:8px;background:var(--panel-alt);' +
+    'border:1px solid var(--border);border-radius:var(--r-md);padding:7px 10px;margin-bottom:6px;">' +
+      '<span style="flex:1;font-size:12.5px;word-break:break-all;">' + escVist(valor) + '</span>' +
+      '<button type="button" class="btn danger" style="padding:2px 9px;font-size:11px;" ' +
+        'onclick="removerDest(\'' + tipo + '\',' + i + ')" title="Remover">✕</button>' +
+    '</div>';
+
+  const emails = destinatarios.emails || [];
+  const tels = destinatarios.telefones || [];
+
+  document.getElementById('dListaEmails').innerHTML = emails.length
+    ? emails.map((e,i)=>chip(e,'emails',i)).join('')
+    : '<div style="font-size:11.5px;color:var(--muted);">Nenhum e-mail cadastrado.</div>';
+
+  document.getElementById('dListaTelefones').innerHTML = tels.length
+    ? tels.map((t,i)=>chip(formataTelefone(t),'telefones',i)).join('')
+    : '<div style="font-size:11.5px;color:var(--muted);">Nenhum telefone cadastrado.</div>';
+}
+
+function formataTelefone(t){
+  const n = String(t).replace(/\D/g,'');
+  if(n.length === 11) return '(' + n.slice(0,2) + ') ' + n.slice(2,7) + '-' + n.slice(7);
+  if(n.length === 10) return '(' + n.slice(0,2) + ') ' + n.slice(2,6) + '-' + n.slice(6);
+  return n;
+}
+
+function addEmailDest(){
+  const campo = document.getElementById('dNovoEmail');
+  const v = campo.value.trim().toLowerCase();
+  if(!v) return;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){
+    askConfirm('Esse e-mail não parece válido. Confira e tente de novo.', ()=>{});
+    return;
+  }
+  if((destinatarios.emails||[]).includes(v)){
+    askConfirm('Esse e-mail já está na lista.', ()=>{});
+    return;
+  }
+  destinatarios.emails = (destinatarios.emails||[]).concat([v]);
+  campo.value = '';
+  persistComAviso('Não foi possível confirmar a gravação do e-mail no servidor. Repita com boa conexão.');
+  renderDestinatarios();
+  campo.focus();
+}
+
+function addTelefoneDest(){
+  const campo = document.getElementById('dNovoTelefone');
+  const n = campo.value.replace(/\D/g,'');
+  if(!n) return;
+  if(n.length < 10 || n.length > 11){
+    askConfirm('Informe DDD + número (10 ou 11 dígitos). Ex.: 92984311798', ()=>{});
+    return;
+  }
+  if((destinatarios.telefones||[]).includes(n)){
+    askConfirm('Esse telefone já está na lista.', ()=>{});
+    return;
+  }
+  destinatarios.telefones = (destinatarios.telefones||[]).concat([n]);
+  campo.value = '';
+  persistComAviso('Não foi possível confirmar a gravação do telefone no servidor. Repita com boa conexão.');
+  renderDestinatarios();
+  campo.focus();
+}
+
+function removerDest(tipo, i){
+  const lista = destinatarios[tipo] || [];
+  const alvo = lista[i];
+  askConfirm('Remover "' + (tipo === 'telefones' ? formataTelefone(alvo) : alvo) + '" da lista de avisos?', ()=>{
+    lista.splice(i,1);
+    destinatarios[tipo] = lista;
+    persistComAviso('Não foi possível confirmar a remoção no servidor. Repita com boa conexão.');
+    renderDestinatarios();
+  });
 }
 
 function openRotaFixa(){
