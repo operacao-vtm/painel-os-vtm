@@ -606,12 +606,14 @@
     .modal-actions{
       flex-wrap:wrap;
       position:sticky;
-      bottom:-28px;
+      bottom:0;                    /* estava -28px: empurrava os botões fora da tela */
       background:var(--panel);
-      padding:12px 0 0;
+      padding:12px 0 calc(10px + env(safe-area-inset-bottom, 0px));
       margin-top:14px;
+      border-top:1px solid var(--border);
+      z-index:3;
     }
-    .modal-actions .btn{ flex:1 1 auto; justify-content:center; }
+    .modal-actions .btn{ flex:1 1 auto; justify-content:center; padding:12px 10px; }
 
     .os-acoes{
       position:sticky;
