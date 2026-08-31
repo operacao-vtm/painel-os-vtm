@@ -3788,6 +3788,24 @@ function removerFotoSolic(i){
   renderFotosSolic();
 }
 
+
+// Avisa o administrador por e-mail no instante da solicitação, sem esperar
+// o resumo das 12h/17h. Se falhar, a solicitação continua salva no painel.
+async function avisarSolicitacaoPorEmail(dados, tipo){
+  if(MODO_TESTE || !gasConfigured()) return;
+  try{
+    const resp = await fetch(GAS_URL, {
+      method:'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'avisarSolicitacao', tipo: tipo, data: dados })
+    });
+    const json = await resp.json().catch(()=>null);
+    if(!json || json.ok !== true) console.warn('Aviso por e-mail não confirmado:', json && json.error);
+  }catch(e){
+    console.warn('Não foi possível avisar por e-mail agora:', e);
+  }
+}
+
 function enviarSolicitacaoTecnico(){
   const local = document.getElementById('sLocal').value.trim();
   if(!local){
@@ -3823,9 +3841,10 @@ function enviarSolicitacaoTecnico(){
   });
 
   persistComAviso('Não foi possível confirmar o envio da solicitação ao servidor. Repita com boa conexão.');
+  avisarSolicitacaoPorEmail(solicitacoes[solicitacoes.length-1], 'abertura');
   closeSolicitarOS();
   render();
-  askConfirm('Solicitação enviada! O administrador vai analisar e, se aprovar, a OS entra no quadro.', ()=>{});
+  askConfirm('Solicitação enviada! O administrador foi avisado por e-mail e vai analisar.', ()=>{});
 }
 
 // ---------- pedido de encerramento feito pelo técnico ----------
@@ -3863,9 +3882,10 @@ function solicitarEncerramento(){
   });
 
   persistComAviso('Não foi possível confirmar o envio ao servidor. Repita com boa conexão.');
+  avisarSolicitacaoPorEmail(solicitacoes[solicitacoes.length-1], 'encerramento');
   closeModal();
   render();
-  askConfirm('Encerramento solicitado! O administrador vai conferir e confirmar o fechamento da OS.', ()=>{});
+  askConfirm('Encerramento solicitado! O administrador foi avisado por e-mail e vai confirmar o fechamento.', ()=>{});
 }
 
 function renderListaSolicitacoes(){
