@@ -726,6 +726,38 @@
     filter:grayscale(.4);
   }
 
+  /* estado da sincronização, ao lado do título */
+  .status-linha{
+    display:flex; align-items:center; gap:7px; margin-top:7px; flex-wrap:wrap;
+  }
+  .status-bolha{
+    width:10px; height:10px; border-radius:50%; flex-shrink:0;
+    background:var(--muted);
+    transition:background .25s ease, box-shadow .25s ease;
+  }
+  .status-bolha.verde{
+    background:#2FBFA0;
+    box-shadow:0 0 0 3px color-mix(in srgb, #2FBFA0 22%, transparent);
+  }
+  .status-bolha.vermelha{
+    background:#E5397F;
+    box-shadow:0 0 0 3px color-mix(in srgb, #E5397F 22%, transparent);
+    animation:piscaAlerta 1.4s ease-in-out infinite;
+  }
+  .status-bolha.azul{
+    background:#5B8DEF;
+    box-shadow:0 0 0 3px color-mix(in srgb, #5B8DEF 22%, transparent);
+    animation:pulsaSync .9s ease-in-out infinite;
+  }
+  @keyframes pulsaSync{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  @keyframes piscaAlerta{ 0%,100%{opacity:1;} 50%{opacity:.45;} }
+  .status-texto{ font-size:11px; color:var(--muted); }
+  .status-versao{
+    font-size:10px; color:var(--muted);
+    background:var(--panel-alt); border:1px solid var(--border);
+    border-radius:999px; padding:1px 8px;
+  }
+
   /* escolha de perfil na entrada */
   .perfil-opcao{
     display:flex; align-items:center; gap:14px; width:100%;
@@ -927,6 +959,11 @@
   <div>
     <h1>Painel de manutenção</h1>
     <p class="subtitle">Controle de ordens de serviço</p>
+    <div class="status-linha">
+      <span class="status-bolha" id="statusBolha" title=""></span>
+      <span class="status-texto" id="statusTexto">verificando…</span>
+      <span class="status-versao mono" id="statusVersao" title="Versão do painel carregada neste aparelho"></span>
+    </div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;">
     <span id="modeLabel" class="subtitle mono" style="display:none;">modo: nível 4 - observador</span>
@@ -1664,6 +1701,15 @@
 // >>> CONFIGURAÇÃO OBRIGATÓRIA <<<
 // Cole aqui a URL do Google Apps Script publicado (termina em /exec).
 // Veja o guia de configuração para os passos de implantação.
+/* ============================================================
+   VERSÃO DO PAINEL
+   Troque este número a cada alteração publicada. A versão aparece
+   ao lado do título, então dá para conferir num relance se o
+   aparelho está com a última cópia ou com uma antiga em cache.
+   ============================================================ */
+const VERSAO_PAINEL = '4.12';
+const VERSAO_DATA = '31/08/2026';
+
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyCfw3e-coIkBVTjlU1MC5REjetVXrhEZ5PxAcpDZFwi7hU9Wu1ZtVyNzwBg2zZF0q0LA/exec";
 
 // ============================================================
@@ -1828,6 +1874,7 @@ async function loadData(){
     return;
   }
   if(!gasConfigured()){ renderConfigNeeded(); return; }
+  statusSincronizando();
   try{
     const resp = await fetch(GAS_URL, { method:'GET' });
     const json = await resp.json();
@@ -1843,6 +1890,7 @@ async function loadData(){
     console.error('Erro ao carregar dados do Apps Script', e);
     if(!items) items = [];
     userSlots = normalizeUserSlots(userSlots);
+    statusDesatualizado('não foi possível ler do servidor');
   }
   markSynced();
   render();
@@ -1956,6 +2004,7 @@ async function pushState(tentativa){
     // planilha; só vai para o servidor o que tem endereço de verdade
     const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios });
 
+    if(tentativa === 1) statusSincronizando();
     const resp = await fetch(GAS_URL, {
       method:'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS no Apps Script
@@ -1970,10 +2019,12 @@ async function pushState(tentativa){
         return await pushState(tentativa + 1);
       }
       ultimoErroServidor = (json && json.error) || ('HTTP ' + resp.status);
+      statusDesatualizado(ultimoErroServidor);
       return false;
     }
     ultimoErroServidor = null;
     ultimoSalvamentoLocal = Date.now();
+    statusAtualizado();
     return true;
   }catch(e){
     console.error('Erro ao salvar no Apps Script (tentativa ' + tentativa + ')', e);
@@ -1981,13 +2032,58 @@ async function pushState(tentativa){
       await new Promise(r=>setTimeout(r, 1200));
       return await pushState(tentativa + 1);
     }
+    ultimoErroServidor = 'sem conexão com o servidor';
+    statusDesatualizado(ultimoErroServidor);
     return false;
   }
 }
 
+/* ============================================================
+   INDICADOR DE SITUAÇÃO
+   verde    = tudo gravado no servidor
+   azul     = gravando ou lendo agora
+   vermelha = a última gravação não foi confirmada
+   ============================================================ */
+let ultimaSincronizacao = 0;
+
+function pintaStatus(cor, texto, dica){
+  const bolha = document.getElementById('statusBolha');
+  const txt = document.getElementById('statusTexto');
+  if(!bolha || !txt) return;
+  bolha.className = 'status-bolha ' + cor;
+  bolha.title = dica || texto;
+  txt.textContent = texto;
+}
+
+function statusSincronizando(){
+  pintaStatus('azul', 'atualizando…', 'Trocando dados com o servidor');
+}
+
+function statusAtualizado(){
+  ultimaSincronizacao = Date.now();
+  const hora = new Date(ultimaSincronizacao).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  pintaStatus('verde', 'atualizado ' + hora, 'Tudo gravado no servidor às ' + hora);
+}
+
+function statusDesatualizado(motivo){
+  const desde = ultimaSincronizacao
+    ? ' (última vez às ' + new Date(ultimaSincronizacao).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) + ')'
+    : '';
+  pintaStatus('vermelha', 'não sincronizado', 'A última gravação não foi confirmada' + desde +
+    (motivo ? '. Servidor: ' + motivo : '') + '. Os dados estão salvos neste aparelho.');
+}
+
 function markSynced(){
-  const el = document.getElementById('syncInfo');
-  if(el) el.textContent = 'sincronizado ' + new Date().toLocaleTimeString('pt-BR');
+  statusAtualizado();
+}
+
+function mostraVersao(){
+  const el = document.getElementById('statusVersao');
+  if(el){
+    el.textContent = 'v' + VERSAO_PAINEL;
+    el.title = 'Painel versão ' + VERSAO_PAINEL + ' — publicada em ' + VERSAO_DATA +
+               '\nSe este número estiver diferente do que o Claude informou, force o recarregamento da página.';
+  }
 }
 
 let ultimoSalvamentoLocal = 0;
@@ -3286,8 +3382,33 @@ function downloadCSV(csv, filename){
   URL.revokeObjectURL(url);
 }
 
+// Antes isso baixava um arquivo CSV a cada salvamento, o que atrapalhava
+// mais do que ajudava. Agora a cópia fica guardada no próprio navegador,
+// em silêncio, e serve de rede de segurança se a conexão falhar.
+const BACKUP_LOCAL_KEY = 'os_backup_local';
+
 function backupCSV(){
-  downloadCSV(buildCSV(), 'backup-os-manutencao.csv');
+  try{
+    window.localStorage.setItem(BACKUP_LOCAL_KEY, JSON.stringify({
+      em: Date.now(),
+      csv: buildCSV(),
+    }));
+  }catch(e){
+    // sem espaço ou navegador restrito: não é motivo para interromper nada
+    console.warn('Backup local não pôde ser gravado:', e);
+  }
+}
+
+// Recupera a cópia local, se alguém precisar dela um dia
+function baixarBackupLocal(){
+  try{
+    const bruto = window.localStorage.getItem(BACKUP_LOCAL_KEY);
+    if(!bruto){ askConfirm('Ainda não há cópia local guardada neste navegador.', ()=>{}); return; }
+    const b = JSON.parse(bruto);
+    downloadCSV(b.csv, 'backup-os-' + new Date(b.em).toISOString().slice(0,10) + '.csv');
+  }catch(e){
+    askConfirm('Não foi possível ler a cópia local.', ()=>{});
+  }
 }
 
 async function exportarPlanilhaFormatada(){
@@ -5955,6 +6076,8 @@ function iniciaTema(){
 }
 
 iniciaTema();
+mostraVersao();
+statusSincronizando();
 currentUser = loadSession();
 loadData();
 updateModeUI();
