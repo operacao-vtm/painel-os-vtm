@@ -1370,10 +1370,24 @@
       </div>
     </div>
 
+    <div class="field" style="border-top:1px solid var(--border);padding-top:14px;margin-top:4px;">
+      <label>Técnicos — avisados quando a solicitação for aprovada ou negada</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <input type="text" id="dNovoTecNome" placeholder="Nome do técnico" style="flex:1 1 130px;min-width:0;">
+        <input type="email" id="dNovoTecEmail" placeholder="email@empresa.com.br" style="flex:1 1 170px;min-width:0;"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();addTecnicoDest();}">
+        <button type="button" class="btn" onclick="addTecnicoDest()">+ Incluir</button>
+      </div>
+      <div id="dListaTecnicos" style="margin-top:8px;"></div>
+      <div style="font-size:9.5px;color:var(--muted);margin-top:4px;">
+        O nome precisa ser igual ao que o técnico usa para entrar no painel. Assim o aviso
+        vai direto para quem fez o pedido.
+      </div>
+    </div>
+
     <div id="dAvisoSMS" style="font-size:11px;padding:9px 12px;border-radius:var(--r-md);
          background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber);margin-bottom:4px;">
-      ⚠️ O e-mail já funciona. O <b>SMS</b> depende de um serviço externo pago (Twilio ou Zenvia)
-      configurado no Apps Script — enquanto não estiver, só o e-mail é enviado.
+      ⚠️ O e-mail já funciona. O <b>SMS</b> depende de um serviço externo pago (Twilio ou Zenvia)      configurado no Apps Script — enquanto não estiver, só o e-mail é enviado.
     </div>
 
     <div class="modal-actions">
@@ -1701,16 +1715,83 @@
 // >>> CONFIGURAÇÃO OBRIGATÓRIA <<<
 // Cole aqui a URL do Google Apps Script publicado (termina em /exec).
 // Veja o guia de configuração para os passos de implantação.
+/* ================================================================
+   ▼▼▼  CONFIGURAÇÃO DA EMPRESA  —  EDITE SÓ ESTE BLOCO  ▼▼▼
+   ================================================================
+   Para usar este painel em outra empresa, altere apenas o que está
+   aqui. Nada mais no arquivo precisa ser tocado.
+   ================================================================ */
+const EMPRESA = {
+
+  // 1) IDENTIDADE ------------------------------------------------
+  nome: 'VTM Mídia',
+  // Logo em PNG com fundo transparente, convertida para base64.
+  // Converta em qualquer site de "png to base64" e cole aqui o
+  // texto inteiro, começando com data:image/png;base64,
+  logo: '',   // vazio = usa a logo que já está embutida no arquivo
+
+  // 2) PLANILHA VINCULADA ----------------------------------------
+  // Endereço do Apps Script publicado (Implantar → Nova implantação
+  // → Aplicativo da Web → Qualquer pessoa). Termina com /exec
+  gasUrl: 'https://script.google.com/macros/s/AKfycbyCfw3e-coIkBVTjlU1MC5REjetVXrhEZ5PxAcpDZFwi7hU9Wu1ZtVyNzwBg2zZF0q0LA/exec',
+
+  // Endereço público do painel (usado nos links de e-mail e WhatsApp)
+  urlPainel: 'https://operacao-vtm.github.io/painel-os-vtm/',
+
+  // 3) SENHAS DE ACESSO ------------------------------------------
+  senhaAdmin:     'OpecVTM2026!',
+  senhaTecnico:   'tecvtm2026',
+  senhaDiretoria: 'DiretoriaVTM2026',
+
+  // 4) TÉCNICOS DA ROTA ------------------------------------------
+  // Quem, além de atuar como técnico, também edita a rota do dia.
+  // Escreva em minúsculas. Deixe [] se não houver ninguém.
+  tecnicosDeRota: ['pacheco', 'robert'],
+  senhaTecnicosDeRota: 'PachecoVTM2026!',   // senha própria desses nomes
+
+  // 5) LOCAIS DA ROTA FIXA ---------------------------------------
+  // Rota recorrente que aparece na faixa do painel nos dias marcados.
+  // Dias: domingo, segunda, terca, quarta, quinta, sexta, sabado
+  rotaFixa: {
+    ativo: true,
+    titulo: 'ROTA DE VISTORIA — TERMINAIS E ESTAÇÕES',
+    dias: ['terca', 'sexta'],
+    locais: [
+      '📍 Estação Max Teixeira',
+      '📍 Estação Santos Dumont',
+      '📍 Estação Arena Amazônia',
+      '📍 Plataforma Tocantins',
+      '📍 Estação São Jorge',
+      '🚌 Terminal 01',
+      '🚌 Terminal 02',
+      '🚌 Terminal 05',
+      '🚌 Terminal 04',
+      '🚌 Terminal 03',
+      '🚌 Terminal 07',
+    ],
+    resumo: '📍 Total: 11 pontos de vistoria\n🚏 4 estações\n🛣️ 1 plataforma\n🚌 6 terminais',
+  },
+
+  // 6) QUEM RECEBE OS AVISOS DE 12h E 17h ------------------------
+  avisos: {
+    emails: ['operacao@vtmmidia.com.br'],
+    telefones: ['92984311798'],   // DDD + número, sem +55
+  },
+};
+/* ================================================================
+   ▲▲▲  FIM DA CONFIGURAÇÃO  —  não altere daqui para baixo  ▲▲▲
+   ================================================================ */
+
 /* ============================================================
    VERSÃO DO PAINEL
    Troque este número a cada alteração publicada. A versão aparece
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.12';
+const VERSAO_PAINEL = '4.16';
 const VERSAO_DATA = '31/08/2026';
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyCfw3e-coIkBVTjlU1MC5REjetVXrhEZ5PxAcpDZFwi7hU9Wu1ZtVyNzwBg2zZF0q0LA/exec";
+const GAS_URL = EMPRESA.gasUrl;
 
 // ============================================================
 //  MODO TESTE  —  desligado (produção)
@@ -1755,10 +1836,10 @@ function testeReset(){
   });
 }
 
-const ADMIN_CODE = 'OpecVTM2026!'; // nível 1 - administrador (acesso total)
-const TECH_CODE = 'tecvtm2026'; // nível 2 - técnico (mantido)
-const DIRETORIA_CODE = 'DiretoriaVTM2026'; // nível 3 - diretoria (só relatórios)
-const PACHECO_CODE = 'PachecoVTM2026!'; // senha exclusiva — só quem loga como "Pacheco" usa esta, não a de técnico
+const ADMIN_CODE = EMPRESA.senhaAdmin; // nível 1 - administrador (acesso total)
+const TECH_CODE = EMPRESA.senhaTecnico; // nível 2 - técnico
+const DIRETORIA_CODE = EMPRESA.senhaDiretoria; // nível 3 - diretoria (só relatórios)
+const PACHECO_CODE = EMPRESA.senhaTecnicosDeRota; // senha própria dos técnicos de rota
 const ADMIN_SLOTS = 5;
 const TECH_SLOTS = 10;
 const DIRETORIA_SLOTS = 5;
@@ -1770,29 +1851,17 @@ let solicitacoes = [];
 
 // quem recebe os avisos automáticos (12h e 17h). Gerenciado na aba de administradores.
 let destinatarios = {
-  emails: ['operacao@vtmmidia.com.br'],
-  telefones: ['92984311798'],
+  emails: (EMPRESA.avisos.emails || []).slice(),
+  telefones: (EMPRESA.avisos.telefones || []).slice(),
 };
 const DIAS_SEMANA = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
 const DIAS_SEMANA_LABEL = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
 let rotaFixa = {
-  ativo: true,
-  titulo: 'ROTA DE VISTORIA — TERMINAIS E ESTAÇÕES',
-  dias: ['terca','sexta'],
-  linhas: [
-    '📍 Estação Max Teixeira',
-    '📍 Estação Santos Dumont',
-    '📍 Estação Arena Amazônia',
-    '📍 Plataforma Tocantins',
-    '📍 Estação São Jorge',
-    '🚌 Terminal 01',
-    '🚌 Terminal 02',
-    '🚌 Terminal 05',
-    '🚌 Terminal 04',
-    '🚌 Terminal 03',
-    '🚌 Terminal 07'
-  ],
-  resumo: '📍 Total: 11 pontos de vistoria\n🚏 4 estações\n🛣️ 1 plataforma\n🚌 6 terminais'
+  ativo: EMPRESA.rotaFixa.ativo,
+  titulo: EMPRESA.rotaFixa.titulo,
+  dias: (EMPRESA.rotaFixa.dias || []).slice(),
+  linhas: (EMPRESA.rotaFixa.locais || []).slice(),
+  resumo: EMPRESA.rotaFixa.resumo || '',
 };
 
 function diaSemanaHoje(){ return DIAS_SEMANA[new Date().getDay()]; }
@@ -1875,6 +1944,7 @@ async function loadData(){
   }
   if(!gasConfigured()){ renderConfigNeeded(); return; }
   statusSincronizando();
+  let leituraOk = true;
   try{
     const resp = await fetch(GAS_URL, { method:'GET' });
     const json = await resp.json();
@@ -1890,9 +1960,12 @@ async function loadData(){
     console.error('Erro ao carregar dados do Apps Script', e);
     if(!items) items = [];
     userSlots = normalizeUserSlots(userSlots);
+    leituraOk = false;
     statusDesatualizado('não foi possível ler do servidor');
   }
-  markSynced();
+  // só marca como atualizado se a leitura realmente deu certo —
+  // antes isso pintava de verde mesmo depois de falhar
+  if(leituraOk) markSynced();
   render();
   updateModeUI();
 }
@@ -2086,6 +2159,26 @@ function mostraVersao(){
   }
 }
 
+// Aplica identidade da empresa na tela, para que trocar de empresa
+// signifique editar só o bloco EMPRESA, sem mexer no HTML.
+function aplicaIdentidadeEmpresa(){
+  document.title = 'Painel de Manutenção — ' + EMPRESA.nome;
+
+  document.querySelectorAll('.company-name').forEach(el=>{ el.textContent = EMPRESA.nome; });
+
+  if(EMPRESA.logo && EMPRESA.logo.indexOf('data:image') === 0){
+    document.querySelectorAll('.logo-img').forEach(img=>{ img.src = EMPRESA.logo; });
+    let icone = document.querySelector('link[rel="icon"]');
+    if(!icone){
+      icone = document.createElement('link');
+      icone.rel = 'icon';
+      document.head.appendChild(icone);
+    }
+    icone.type = 'image/png';
+    icone.href = EMPRESA.logo;
+  }
+}
+
 let ultimoSalvamentoLocal = 0;
 
 async function refreshFromServer(){
@@ -2104,7 +2197,10 @@ async function refreshFromServer(){
     migraStatusPeca();
     markSynced();
     render();
-  }catch(e){ console.error('Erro ao atualizar do Apps Script', e); }
+  }catch(e){
+    console.error('Erro ao atualizar do Apps Script', e);
+    statusDesatualizado('sem resposta do servidor');
+  }
 }
 
 function startPolling(){
@@ -2236,7 +2332,7 @@ function confirmCode(){
     }
     currentUser = {role:'diretoria', name};
   } else {
-    const podeEditarRota = ['pacheco','robert'].includes(name.toLowerCase());
+    const podeEditarRota = (EMPRESA.tecnicosDeRota||[]).includes(name.toLowerCase());
     const codeEsperado = podeEditarRota ? PACHECO_CODE : TECH_CODE;
     if(code !== codeEsperado){
       showLoginError(podeEditarRota ? 'Código incorreto. Este perfil usa a senha exclusiva da rota do dia, diferente da senha geral de técnico.' : 'Código incorreto.');
@@ -2286,7 +2382,7 @@ function updateModeUI(){
   document.getElementById('btnCadastro').style.display = isAdmin ? 'inline-flex' : 'none';
 
   // Pacheco e Robert cuidam da rota do dia e também atuam como técnicos
-  const soRota = isTecnico && ['pacheco','robert'].includes((currentUser.name||'').trim().toLowerCase());
+  const soRota = isTecnico && (EMPRESA.tecnicosDeRota||[]).includes((currentUser.name||'').trim().toLowerCase());
   const btnNova = document.getElementById('btnNovaOS');
   const tecnicoSolicita = isTecnico;
 
@@ -2540,8 +2636,10 @@ function aplicaModoEdicao(){
   const btnEnc = document.getElementById('btnSolicitarEnc');
 
   if(tecnicoNaOS){
-    document.getElementById('fStatus').disabled = true;   // o status quem muda é o administrador
-    btnSave.style.display = 'none';
+    // o técnico marca o andamento, escreve o diagnóstico e anexa fotos.
+    // O encerramento continua passando pelo administrador.
+    document.getElementById('fStatus').disabled = false;
+    btnSave.style.display = 'inline-flex';
     btnEnc.style.display = 'inline-flex';
   } else {
     btnSave.style.display = soLeitura ? 'none' : 'inline-flex';
@@ -2887,11 +2985,62 @@ function renderPhotoPreview(containerId, arr, kind, showRemove, uploadingIdx){
   }).join('') + '</div>';
 }
 
-async function saveOS(){
-  // técnico não altera OS existente: registra o serviço e solicita o encerramento
-  if(editingId && !ehAdmin()){
-    askConfirm('Só o administrador altera uma OS já aberta. Use "Solicitar encerramento" para enviar o pedido.', ()=>{});
+/**
+ * Salva o que o técnico realmente pode mexer numa OS já aberta:
+ * andamento, diagnóstico e fotos. Não toca em local, tipo, prioridade,
+ * material nem encerramento — esses continuam com o administrador.
+ */
+async function salvarAndamentoTecnico(){
+  const it = items.find(x=>x.id===editingId);
+  if(!it) return;
+
+  if(photosUploading > 0){
+    askConfirm('Ainda estamos enviando uma foto ao servidor. Aguarde alguns segundos e salve de novo.', ()=>{});
     return;
+  }
+  const pendentes = fotosPendentesDeSync();
+  if(pendentes > 0){
+    askConfirm(pendentes + ' foto(s) não chegaram ao servidor e seriam perdidas. ' +
+               'Use "Reenviar fotos" antes de salvar.', ()=>{});
+    return;
+  }
+
+  const statusEscolhido = document.getElementById('fStatus').value;
+  if(statusEscolhido === 'concluida'){
+    askConfirm('O encerramento não é salvo direto: use "Solicitar encerramento" para o administrador confirmar.', ()=>{});
+    return;
+  }
+
+  // marca o início dos trabalhos na primeira vez que vai para "em andamento"
+  if(statusEscolhido === 'andamento' && it.status !== 'andamento' && !it.dataInicio){
+    it.dataInicio = Date.now();
+    it.iniciadoPor = currentUser ? currentUser.name : null;
+  }
+  if(statusEscolhido) it.status = statusEscolhido;
+
+  it.requerDiagnostico = document.getElementById('fRequerDiagnostico').checked;
+  it.diagnostico = document.getElementById('fDiagnostico').value.trim();
+  it.fotoVerificacao = pendingFotosVerificacao;
+  it.fotoConclusao = pendingFotosConclusao;
+  it.atualizadoPor = currentUser ? currentUser.name : null;
+  it.atualizadoEm = Date.now();
+
+  persistComAviso('Não foi possível confirmar a gravação no servidor. Repita com boa conexão.');
+  backupCSV();
+  closeModal();
+  render();
+}
+
+async function saveOS(){
+  // Técnico atualiza apenas o que é do trabalho dele: andamento, diagnóstico
+  // e fotos. Os dados cadastrais e o encerramento seguem com o administrador.
+  const souTecnicoEditando = editingId && !ehAdmin() && currentUser && currentUser.role === 'tecnico';
+  if(editingId && !ehAdmin() && !souTecnicoEditando){
+    askConfirm('Só o administrador altera uma OS já aberta.', ()=>{});
+    return;
+  }
+  if(souTecnicoEditando){
+    return await salvarAndamentoTecnico();
   }
   const sel = document.getElementById('fLocalSel');
   const local = (sel.value === '__novo__' ? document.getElementById('fLocal').value : sel.value).trim();
@@ -3045,7 +3194,7 @@ function compartilharWhatsApp(osId){
     msg += `\n${E.camera} Foto${fotosConcl.length>1?'s':''} de conclusão:\n` + fotosConcl.join('\n') + `\n`;
   }
 
-  msg += `\n_Painel de Manutenção — VTM Mídia_`;
+  msg += `\n_Painel de Manutenção — ${EMPRESA.nome}_`;
 
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
@@ -4077,6 +4226,34 @@ function renderListaSolicitacoes(){
   }).join('');
 }
 
+// Avisa o técnico que fez o pedido sobre a decisão do administrador.
+// Se o nome dele estiver na lista de técnicos, o aviso vai direto para ele.
+async function avisarDecisaoAoTecnico(s, decisao, motivo){
+  if(MODO_TESTE || !gasConfigured()) return;
+  const tecs = destinatarios.tecnicos || [];
+  const alvo = tecs.find(t => (t.nome||'').trim().toLowerCase() === (s.solicitante||'').trim().toLowerCase());
+  if(!alvo){
+    console.warn('Técnico "' + s.solicitante + '" não está na lista de avisos: decisão não foi comunicada por e-mail.');
+    return;
+  }
+  try{
+    await fetch(GAS_URL, {
+      method:'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action:'avisarDecisao',
+        para: alvo.email,
+        nome: alvo.nome,
+        decisao: decisao,          // 'aprovada' ou 'rejeitada'
+        motivo: motivo || '',
+        data: s
+      })
+    });
+  }catch(e){
+    console.warn('Não foi possível avisar o técnico agora:', e);
+  }
+}
+
 function aprovarSolicitacao(id){
   const s = solicitacoes.find(x=>x.id===id);
   if(!s || s.status !== 'pendente') return;
@@ -4095,6 +4272,7 @@ function aprovarSolicitacao(id){
       s.decididoPor = currentUser ? currentUser.name : 'admin';
       s.decididoEm = Date.now();
       persistComAviso('Não foi possível confirmar o encerramento no servidor. Repita com boa conexão.');
+      avisarDecisaoAoTecnico(s, 'aprovada');
       render();
       renderListaSolicitacoes();
       if(it) setTimeout(()=>compartilharWhatsApp(it.id), 250);   // avisa o grupo
@@ -4144,6 +4322,7 @@ function aprovarSolicitacao(id){
     s.decididoEm = Date.now();
 
     persistComAviso('Não foi possível confirmar a aprovação no servidor. Repita com boa conexão.');
+    avisarDecisaoAoTecnico(s, 'aprovada');
     render();
     renderListaSolicitacoes();
     setTimeout(()=>compartilharWhatsApp(nova.id), 250);   // segue para o grupo de manutenção
@@ -4160,6 +4339,7 @@ function rejeitarSolicitacao(id){
   s.decididoEm = Date.now();
   s.motivoRejeicao = motivo || '';
   persistComAviso('Não foi possível confirmar a rejeição no servidor. Repita com boa conexão.');
+  avisarDecisaoAoTecnico(s, 'rejeitada', s.motivoRejeicao);
   render();
   renderListaSolicitacoes();
 }
@@ -4178,6 +4358,8 @@ function normalizaDestinatarios(d){
   return {
     emails: Array.isArray(base.emails) ? base.emails.filter(Boolean) : (destinatarios.emails || []),
     telefones: Array.isArray(base.telefones) ? base.telefones.filter(Boolean) : (destinatarios.telefones || []),
+    // cada técnico é {nome, email}: o aviso da decisão vai para quem pediu
+    tecnicos: Array.isArray(base.tecnicos) ? base.tecnicos.filter(t=>t && t.email) : (destinatarios.tecnicos || []),
   };
 }
 
@@ -4185,6 +4367,8 @@ function openDestinatarios(){
   if(bloqueiaSeNaoAdmin('gerenciar os destinatários')) return;
   document.getElementById('dNovoEmail').value = '';
   document.getElementById('dNovoTelefone').value = '';
+  document.getElementById('dNovoTecNome').value = '';
+  document.getElementById('dNovoTecEmail').value = '';
   renderDestinatarios();
   document.getElementById('destinatariosOverlay').classList.add('show');
 }
@@ -4212,6 +4396,11 @@ function renderDestinatarios(){
   document.getElementById('dListaTelefones').innerHTML = tels.length
     ? tels.map((t,i)=>chip(formataTelefone(t),'telefones',i)).join('')
     : '<div style="font-size:11.5px;color:var(--muted);">Nenhum telefone cadastrado.</div>';
+
+  const tecs = destinatarios.tecnicos || [];
+  document.getElementById('dListaTecnicos').innerHTML = tecs.length
+    ? tecs.map((t,i)=>chip(t.nome + ' — ' + t.email, 'tecnicos', i)).join('')
+    : '<div style="font-size:11.5px;color:var(--muted);">Nenhum técnico cadastrado.</div>';
 }
 
 function formataTelefone(t){
@@ -4259,10 +4448,41 @@ function addTelefoneDest(){
   campo.focus();
 }
 
+function addTecnicoDest(){
+  const campoNome = document.getElementById('dNovoTecNome');
+  const campoEmail = document.getElementById('dNovoTecEmail');
+  const nome = campoNome.value.trim();
+  const email = campoEmail.value.trim().toLowerCase();
+
+  if(!nome){
+    askConfirm('Informe o nome do técnico, igual ao que ele usa para entrar no painel.', ()=>{});
+    return;
+  }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){
+    askConfirm('Esse e-mail não parece válido. Confira e tente de novo.', ()=>{});
+    return;
+  }
+  const lista = destinatarios.tecnicos || [];
+  if(lista.some(t => (t.nome||'').toLowerCase() === nome.toLowerCase())){
+    askConfirm('Já existe um técnico com esse nome na lista.', ()=>{});
+    return;
+  }
+
+  destinatarios.tecnicos = lista.concat([{ nome: nome, email: email }]);
+  campoNome.value = '';
+  campoEmail.value = '';
+  persistComAviso('Não foi possível confirmar a gravação do técnico no servidor. Repita com boa conexão.');
+  renderDestinatarios();
+  campoNome.focus();
+}
+
 function removerDest(tipo, i){
   const lista = destinatarios[tipo] || [];
   const alvo = lista[i];
-  askConfirm('Remover "' + (tipo === 'telefones' ? formataTelefone(alvo) : alvo) + '" da lista de avisos?', ()=>{
+  const rotulo = tipo === 'telefones' ? formataTelefone(alvo)
+               : tipo === 'tecnicos'  ? (alvo && alvo.nome ? alvo.nome : '')
+               : alvo;
+  askConfirm('Remover "' + rotulo + '" da lista de avisos?', ()=>{
     lista.splice(i,1);
     destinatarios[tipo] = lista;
     persistComAviso('Não foi possível confirmar a remoção no servidor. Repita com boa conexão.');
@@ -6076,6 +6296,7 @@ function iniciaTema(){
 }
 
 iniciaTema();
+aplicaIdentidadeEmpresa();
 mostraVersao();
 statusSincronizando();
 currentUser = loadSession();
