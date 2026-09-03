@@ -1137,6 +1137,7 @@
     <option value="peca">Requisição de material</option>
     <option value="andamento">Em andamento</option>
     <option value="concluida">Encerrada</option>
+    <option value="arquivada">📦 Arquivadas (meses anteriores)</option>
   </select>
   <select id="fTipoFiltro" onchange="render()"><option value="">Tipo: todos</option></select>
   <select id="fAcaoFiltro" onchange="render()">
@@ -1788,7 +1789,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.16';
+const VERSAO_PAINEL = '4.18';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -1956,6 +1957,8 @@ async function loadData(){
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
     migraStatusPeca();
+    leituDoServidorOk = true;
+    arquivaMesesAnteriores();   // deixa o quadro só com o mês corrente
   }catch(e){
     console.error('Erro ao carregar dados do Apps Script', e);
     if(!items) items = [];
@@ -2031,6 +2034,13 @@ async function persistUserSlots(){
 
 let ultimoErroServidor = null;
 
+/* TRAVA DE SEGURANÇA CONTRA PERDA DE DADOS
+   Só gravamos no servidor depois de ter LIDO dele com sucesso. Sem isso,
+   uma falha de leitura deixaria a lista vazia na memória e a primeira
+   gravação apagaria tudo que estava lá — foi assim que o histórico se
+   perdeu uma vez. */
+let leituDoServidorOk = false;
+
 // Foto que não conseguiu subir fica como base64 (dezenas de milhares de
 // caracteres). Se isso for para a planilha, estoura o limite e NADA é gravado —
 // nem as OS, nem as solicitações. Por isso só viaja o que tem endereço real.
@@ -2077,6 +2087,13 @@ async function pushState(tentativa){
     // planilha; só vai para o servidor o que tem endereço de verdade
     const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios });
 
+    // nunca sobrescreva o servidor sem ter lido dele antes
+    if(!leituDoServidorOk){
+      console.error('Gravação bloqueada: os dados do servidor ainda não foram lidos.');
+      ultimoErroServidor = 'gravação bloqueada — os dados do servidor não foram lidos ainda';
+      statusDesatualizado(ultimoErroServidor);
+      return false;
+    }
     if(tentativa === 1) statusSincronizando();
     const resp = await fetch(GAS_URL, {
       method:'POST',
@@ -2179,6 +2196,48 @@ function aplicaIdentidadeEmpresa(){
   }
 }
 
+/* ============================================================
+   ARQUIVAMENTO NA VIRADA DO MÊS
+   ============================================================
+   OS encerradas em meses anteriores saem do quadro para ele
+   começar o mês limpo. Elas NÃO são apagadas: continuam nos
+   relatórios, no dashboard, na planilha e no filtro "Arquivadas".
+   ============================================================ */
+function mesAnoDe(ts){
+  const d = new Date(ts);
+  return d.getFullYear() * 100 + (d.getMonth() + 1);
+}
+
+function arquivaMesesAnteriores(){
+  // sem ter lido do servidor, não mexemos em nada
+  if(!leituDoServidorOk) return 0;
+
+  const mesAtual = mesAnoDe(Date.now());
+  let arquivadas = 0;
+
+  items.forEach(x=>{
+    if(x.arquivada) return;                          // já está arquivada
+    if(x.status !== 'concluida') return;             // só encerradas saem do quadro
+    if(!x.dataConclusao) return;                     // sem data, fica onde está
+    if(mesAnoDe(x.dataConclusao) >= mesAtual) return; // do mês corrente, permanece
+
+    x.arquivada = true;
+    x.arquivadaEm = Date.now();
+    arquivadas++;
+  });
+
+  if(arquivadas > 0){
+    console.log(arquivadas + ' OS encerradas em meses anteriores foram arquivadas.');
+    persist();     // grava a marcação; nada é removido
+    render();
+  }
+  return arquivadas;
+}
+
+function contaArquivadas(){
+  return items.filter(x=>x.arquivada).length;
+}
+
 let ultimoSalvamentoLocal = 0;
 
 async function refreshFromServer(){
@@ -2195,6 +2254,8 @@ async function refreshFromServer(){
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
     migraStatusPeca();
+    leituDoServidorOk = true;
+    arquivaMesesAnteriores();
     markSynced();
     render();
   }catch(e){
@@ -3405,7 +3466,7 @@ function render(){
   atualizaBadgeSolicitacoes();
 
   const counts = {aberta:0, andamento:0, peca:0, concluida:0};
-  items.forEach(x=>{
+  items.filter(x=>!x.arquivada).forEach(x=>{
     if(aguardandoPeca(x)) counts.peca++;
     else if(counts[x.status] !== undefined) counts[x.status]++;
   });
@@ -3429,12 +3490,15 @@ function render(){
   const fAte = document.getElementById('fDataAte').value; // yyyy-mm-dd ou ''
 
   const filtered = items.filter(x=>{
+    // arquivadas saem do quadro do dia a dia; aparecem só quando pedidas no filtro
+    if(fs === 'arquivada'){ if(!x.arquivada) return false; }
+    else if(x.arquivada) return false;
     const matchQ = !q || x.local.toLowerCase().includes(q) || x.code.toLowerCase().includes(q) ||
       (x.tecnico||'').toLowerCase().includes(q) || (x.solicitante||'').toLowerCase().includes(q) ||
       (x.criadoPor||'').toLowerCase().includes(q);
     const matchP = !fp || x.prioridade===fp;
     const matchT = !ft || x.tecnico===ft || x.solicitante===ft || x.criadoPor===ft;
-    const matchS = !fs || colunasDe(x).includes(fs);
+    const matchS = !fs || fs === 'arquivada' || colunasDe(x).includes(fs);
     const matchA = !fa || x.acao===fa;
     const matchTipo = !fTipo || (x.tipo||'').trim() === fTipo;
     const matchDe = !fDe || x.dataAbertura >= new Date(fDe + 'T00:00:00').getTime();
@@ -6309,79 +6373,8 @@ if(!currentUser && !jaEscolheuPerfil()){
   setTimeout(abrirBoasVindas, 400);
 }
 
-/* ============================================================
-   CARGA ÚNICA — OS-0061 (lançada a partir da mensagem do WhatsApp)
-   Roda uma vez só: se a OS já existir na planilha, não faz nada.
-   Depois que ela aparecer no quadro, este bloco pode ser apagado.
-   ============================================================ */
-(function cargaUnicaOS0061(){
-  const MARCA = 'carga_os_0061';
-  try{ if(window.localStorage.getItem(MARCA) === '1') return; }catch(e){}
-
-  const tentar = (restantes) => {
-    // espera os dados do servidor chegarem, para não duplicar nem sobrescrever
-    if(!Array.isArray(items) || (items.length === 0 && restantes > 0)){
-      return setTimeout(()=>tentar(restantes-1), 1200);
-    }
-    if(items.some(x => (x.code||'').toUpperCase() === 'OS-0061')){
-      try{ window.localStorage.setItem(MARCA,'1'); }catch(e){}
-      return;   // já está lá
-    }
-
-    const abertura = new Date(2026, 7, 28, 14, 21).getTime();   // 28/08/2026 14:21
-    items.push({
-      id: 'id' + abertura,
-      code: 'OS-0061',
-      local: 'TERMINAL 2',
-      tipo: 'REFORMA ESTRUTURAL DE CABEAMENTO DE INTERNET',
-      acao: 'preventiva',
-      prioridade: 'preventiva',
-      status: 'andamento',
-      solicitante: 'Manutenção',
-      tecnico: 'EPX',
-      criadoPor: 'Manutenção',
-      dataAbertura: abertura,
-      dataInicio: abertura,
-      dataConclusao: null,
-      requerDiagnostico: false,
-      diagnostico: '',
-      compraMaterial: true,
-      materialEntregue: false,
-      requerRelatorio: false,
-      parcial: false,
-      parcialObs: '',
-      fotoVerificacao: [],
-      fotoConclusao: [],
-      pausaInicio: abertura,   // conta como espera de material desde a abertura
-      tempoPausado: 0,
-      materiais: [
-        {nome:'CAIXA CABO CAT 5E',                   quantidade:1,  unidade:'cx'},
-        {nome:'TV BOX PRO',                          quantidade:10, unidade:'und'},
-        {nome:'FILTRO DE LINHA PRETO 4 TOMADAS',     quantidade:10, unidade:'und'},
-        {nome:'CAIXA HERMETICA BABY SLIM PRETA',     quantidade:10, unidade:'und'},
-        {nome:'ACABAMENTO DE CABEAMENTO',            quantidade:1,  unidade:'und'},
-        {nome:'CONECTOR RJ 45',                      quantidade:50, unidade:'und'},
-        {nome:'TOMADA ANTI-SURTO',                   quantidade:2,  unidade:'und'},
-        {nome:'CABO PP 2,5MM',                       quantidade:2,  unidade:'und'},
-        {nome:'CINTA PLÁSTICA 15 CM',                quantidade:50, unidade:'und'},
-        {nome:'CINTA PLÁSTICA 30 CM',                quantidade:50, unidade:'und'},
-        {nome:'FITA ISOLANTE',                       quantidade:3,  unidade:'m'},
-      ],
-    });
-
-    persist().then(ok=>{
-      if(ok){
-        try{ window.localStorage.setItem(MARCA,'1'); }catch(e){}
-        render();
-        console.log('OS-0061 lançada com sucesso.');
-      } else {
-        console.warn('OS-0061 não foi gravada no servidor; será tentada de novo na próxima abertura.');
-      }
-    });
-  };
-
-  setTimeout(()=>tentar(8), 2000);
-})();
+/* O bloco de carga única da OS-0061 foi removido: ele podia sobrescrever
+   os dados do servidor quando a leitura demorava. */
 </script>
 
 
