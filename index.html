@@ -1400,7 +1400,7 @@
 <div class="overlay" id="solicitarOSOverlay">
   <div class="modal" style="width:520px;">
     <div style="display:flex;align-items:flex-start;">
-      <h2 style="flex:1;margin:0 0 4px;">📨 Solicitar abertura de OS</h2>
+      <h2 style="flex:1;margin:0 0 4px;" id="tituloSolicitar">📨 Solicitar abertura de OS</h2>
       <button class="vist-mini" onclick="closeSolicitarOS()" title="fechar">✕</button>
     </div>
     <p style="font-size:12px;color:var(--muted);margin:0 0 16px;">A solicitação vai para o administrador. Assim que for aprovada, vira uma OS no quadro.</p>
@@ -1410,15 +1410,15 @@
       <input type="text" id="sNome" readonly style="background:var(--panel-alt);cursor:not-allowed;">
     </div>
     <div class="field">
-      <label>Local do problema</label>
+      <label id="labelLocalSolic">Local do problema</label>
       <input type="text" id="sLocal" placeholder="Ex: Terminal 3 — totem da entrada">
     </div>
     <div class="field">
-      <label>Qual é o problema</label>
+      <label id="labelProblemaSolic">Qual é o problema</label>
       <textarea id="sProblema" rows="2" placeholder="Descreva o que está acontecendo"></textarea>
     </div>
     <div class="row2">
-      <div class="field">
+      <div class="field" id="campoAcao">
         <label>Tipo de serviço</label>
         <select id="sAcao">
           <option value="corretiva">🛠️ Manutenção corretiva</option>
@@ -1442,7 +1442,7 @@
       <label>Data prevista para o serviço</label>
       <input type="date" id="sData">
     </div>
-    <div class="field checkbox-field">
+    <div class="field checkbox-field" id="campoMaterial">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="sTemMaterial" onchange="toggleMaterialSolic()" style="width:auto;">
         Precisa comprar material
@@ -1453,7 +1453,7 @@
       <textarea id="sMateriais" rows="3" placeholder="Ex: Cabo de rede Cat6 — 10m&#10;Fonte 12V — 1 und"></textarea>
     </div>
     <div class="field">
-      <label>Imagens do problema</label>
+      <label id="labelFotosSolic">Imagens do problema</label>
       <div style="display:flex;gap:6px;">
         <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById('sFotoCamera').click()">📷 Tirar foto</button>
         <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById('sFotoArquivo').click()">🖼️ Escolher arquivo</button>
@@ -1491,6 +1491,14 @@
       </span>
     </button>
 
+    <button type="button" class="perfil-opcao" onclick="escolherPerfil('comprovacao')">
+      <span class="perfil-icone">📷</span>
+      <span class="perfil-texto">
+        <strong>Comprovação de propaganda</strong>
+        <small>Solicitar comprovação de veiculação, com foto do local.</small>
+      </span>
+    </button>
+
     <button type="button" class="perfil-opcao" onclick="escolherPerfil('diretoria')">
       <span class="perfil-icone">📈</span>
       <span class="perfil-texto">
@@ -1516,6 +1524,7 @@
       <label>Perfil</label>
       <select id="loginRole" onchange="updateLoginFieldsVisibility()">
         <option value="tecnico">Técnico (nível 2)</option>
+        <option value="comprovacao">Comprovação de propaganda</option>
         <option value="diretoria">Diretoria (nível 3)</option>
         <option value="admin">Administrador (nível 1)</option>
       </select>
@@ -1743,6 +1752,8 @@ const EMPRESA = {
   senhaAdmin:     'OpecVTM2026!',
   senhaTecnico:   'tecvtm2026',
   senhaDiretoria: 'DiretoriaVTM2026',
+  // perfil que só solicita comprovação de propaganda (ex.: Daniele, do comercial)
+  senhaComprovacao: 'CompVTM2026!',
 
   // 4) TÉCNICOS DA ROTA ------------------------------------------
   // Quem, além de atuar como técnico, também edita a rota do dia.
@@ -1789,7 +1800,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.18';
+const VERSAO_PAINEL = '4.19';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -1840,6 +1851,7 @@ function testeReset(){
 const ADMIN_CODE = EMPRESA.senhaAdmin; // nível 1 - administrador (acesso total)
 const TECH_CODE = EMPRESA.senhaTecnico; // nível 2 - técnico
 const DIRETORIA_CODE = EMPRESA.senhaDiretoria; // nível 3 - diretoria (só relatórios)
+const COMPROVACAO_CODE = EMPRESA.senhaComprovacao; // perfil de comprovação
 const PACHECO_CODE = EMPRESA.senhaTecnicosDeRota; // senha própria dos técnicos de rota
 const ADMIN_SLOTS = 5;
 const TECH_SLOTS = 10;
@@ -2370,6 +2382,17 @@ function confirmCode(){
 
   if(!name){ showLoginError('Informe seu nome.'); return; }
 
+  if(role === 'comprovacao'){
+    if(code !== COMPROVACAO_CODE){ showLoginError('Código incorreto.'); return; }
+    currentUser = {role:'comprovacao', name};
+    closeCodeModal();
+    saveSession(currentUser);
+    marcarPerfilEscolhido();
+    updateModeUI();
+    render();
+    return;
+  }
+
   if(role === 'admin'){
     if(code !== ADMIN_CODE){ showLoginError('Código incorreto.'); return; }
     if(!userSlots.admins.includes(name)){
@@ -2427,7 +2450,8 @@ function updateModeUI(){
   const isAdmin = currentUser?.role === 'admin';
   const isDiretoria = currentUser?.role === 'diretoria';
   const isTecnico = currentUser?.role === 'tecnico';
-  const canCreate = isAdmin || isTecnico;
+  const isComprovacao = currentUser?.role === 'comprovacao';
+  const canCreate = isAdmin || isTecnico || isComprovacao;
 
   // planilha em Excel: liberada para todos, inclusive quem só observa
   document.getElementById('btnSheetExport').style.display = 'inline-flex';
@@ -2436,7 +2460,7 @@ function updateModeUI(){
   document.getElementById('caixaCSV').style.display = isAdmin ? 'inline-flex' : 'none';
 
   // relatórios: quem trabalha na OS ou acompanha resultados
-  const podeRelatorio = isAdmin || isDiretoria || isTecnico;
+  const podeRelatorio = isAdmin || isDiretoria || isTecnico;   // comprovação não emite relatório
   document.getElementById('btnReport').style.display = podeRelatorio ? 'inline-flex' : 'none';
   document.getElementById('btnReportVist').style.display = podeRelatorio ? 'inline-flex' : 'none';
 
@@ -2448,7 +2472,12 @@ function updateModeUI(){
   const tecnicoSolicita = isTecnico;
 
   btnNova.style.display = canCreate ? 'inline-flex' : 'none';
-  if(tecnicoSolicita){
+  if(isComprovacao){
+    // este perfil só pede comprovação de veiculação
+    btnNova.textContent = '📷 Solicitar comprovação';
+    btnNova.setAttribute('onclick', 'openSolicitarOS()');
+    btnNova.classList.add('destaque-solicitar');
+  } else if(tecnicoSolicita){
     // o técnico não abre OS direto: ele solicita, e o administrador aprova
     btnNova.textContent = '📨 Solicitar OS';
     btnNova.setAttribute('onclick', 'openSolicitarOS()');
@@ -4075,15 +4104,35 @@ function closeSolicitacoes(){
 let pendingFotosSolic = [];
 
 function openSolicitarOS(){
+  const soComprovacao = currentUser && currentUser.role === 'comprovacao';
+
   document.getElementById('sNome').value = currentUser ? currentUser.name : '';
   ['sLocal','sProblema','sMateriais'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('sAcao').value = 'corretiva';
+  document.getElementById('sAcao').value = soComprovacao ? 'comprovacao' : 'corretiva';
   document.getElementById('sPrioridade').value = 'normal';
   document.getElementById('sData').value = hojeISO();
   document.getElementById('sTemMaterial').checked = false;
   toggleMaterialSolic();
   pendingFotosSolic = [];
   renderFotosSolic();
+
+  // o perfil de comprovação tem um pedido só: comprovar veiculação.
+  // O formulário se ajusta para não pedir o que não faz sentido.
+  document.getElementById('tituloSolicitar').textContent =
+    soComprovacao ? '📷 Solicitar comprovação de propaganda' : '📨 Solicitar abertura de OS';
+  document.getElementById('sAcao').disabled = soComprovacao;
+  document.getElementById('campoAcao').style.display = soComprovacao ? 'none' : 'block';
+  document.getElementById('campoMaterial').style.display = soComprovacao ? 'none' : 'block';
+  document.getElementById('labelLocalSolic').textContent =
+    soComprovacao ? 'Local da propaganda a comprovar' : 'Local do problema';
+  document.getElementById('labelProblemaSolic').textContent =
+    soComprovacao ? 'O que precisa ser comprovado' : 'Qual é o problema';
+  document.getElementById('sProblema').placeholder =
+    soComprovacao ? 'Ex: veiculação da campanha da Loja XPTO no painel de entrada'
+                  : 'Descreva o que está acontecendo';
+  document.getElementById('labelFotosSolic').textContent =
+    soComprovacao ? 'Fotos de referência (opcional)' : 'Imagens do problema';
+
   document.getElementById('solicitarOSOverlay').classList.add('show');
 }
 
@@ -4166,6 +4215,7 @@ function enviarSolicitacaoTecnico(){
     urgencia: {normal:'Normal', urgente:'Urgente', maxima:'Emergência', preventiva:'Normal'}[document.getElementById('sPrioridade').value] || 'Normal',
     prioridade: document.getElementById('sPrioridade').value,
     acao: document.getElementById('sAcao').value,
+    origemPerfil: currentUser ? currentUser.role : '',
     servicos: [document.getElementById('sProblema').value.trim() || local],
     materiais: materiais,
     local: local,
@@ -4363,6 +4413,8 @@ function aprovarSolicitacao(id){
       tecnico: doTecnico ? s.solicitante : '',
       criadoPor: currentUser ? currentUser.name : 'admin',
       acao: s.acao || 'corretiva',
+      // comprovação já nasce com o local da foto, que é o dado central dela
+      localFoto: (s.acao === 'comprovacao') ? (s.local || '') : '',
       dataAbertura: Date.now(),
       dataPrevista: s.dataPrevista || '',
       dataConclusao: null,
