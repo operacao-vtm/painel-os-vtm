@@ -1409,11 +1409,33 @@
       <label>Seu nome</label>
       <input type="text" id="sNome" readonly style="background:var(--panel-alt);cursor:not-allowed;">
     </div>
-    <div class="field">
+
+    <!-- Campos exclusivos da comprovação de propaganda -->
+    <div id="blocoComprovacao" style="display:none;">
+      <div class="field">
+        <label>Tipo de mídia</label>
+        <select id="sTipoMidia" onchange="onTipoMidiaChange()">
+          <option value="plm">📺 PLM</option>
+          <option value="totem">🗼 Totem</option>
+        </select>
+        <div id="sResponsavelInfo" style="font-size:10px;color:var(--teal);margin-top:3px;"></div>
+      </div>
+      <div class="field">
+        <label>Qual vídeo precisa ser comprovado</label>
+        <input type="text" id="sVideo" placeholder="Ex: Campanha Loja XPTO — 30s — setembro">
+      </div>
+      <div class="field">
+        <label id="labelUnidades">Em quais PLMs</label>
+        <textarea id="sUnidades" rows="4" placeholder="Um por linha"></textarea>
+        <div id="dicaUnidades" style="font-size:9.5px;color:var(--muted);margin-top:3px;"></div>
+      </div>
+    </div>
+
+    <div class="field" id="campoLocalSolic">
       <label id="labelLocalSolic">Local do problema</label>
       <input type="text" id="sLocal" placeholder="Ex: Terminal 3 — totem da entrada">
     </div>
-    <div class="field">
+    <div class="field" id="campoProblemaSolic">
       <label id="labelProblemaSolic">Qual é o problema</label>
       <textarea id="sProblema" rows="2" placeholder="Descreva o que está acontecendo"></textarea>
     </div>
@@ -1755,6 +1777,13 @@ const EMPRESA = {
   // perfil que só solicita comprovação de propaganda (ex.: Daniele, do comercial)
   senhaComprovacao: 'CompVTM2026!',
 
+  // Quem atende cada tipo de mídia nas comprovações.
+  // O responsável é preenchido sozinho quando a solicitação é aprovada.
+  responsaveisComprovacao: {
+    plm:   'Robert',
+    totem: 'João',
+  },
+
   // 4) TÉCNICOS DA ROTA ------------------------------------------
   // Quem, além de atuar como técnico, também edita a rota do dia.
   // Escreva em minúsculas. Deixe [] se não houver ninguém.
@@ -1800,7 +1829,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.19';
+const VERSAO_PAINEL = '4.20';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -4133,7 +4162,36 @@ function openSolicitarOS(){
   document.getElementById('labelFotosSolic').textContent =
     soComprovacao ? 'Fotos de referência (opcional)' : 'Imagens do problema';
 
+  // bloco de comprovação: tipo de mídia, vídeo e as unidades
+  document.getElementById('blocoComprovacao').style.display = soComprovacao ? 'block' : 'none';
+  // na comprovação, o "local" e o "problema" viram vídeo + unidades: evitamos pedir duas vezes
+  document.getElementById('campoLocalSolic').style.display = soComprovacao ? 'none' : 'block';
+  document.getElementById('campoProblemaSolic').style.display = soComprovacao ? 'none' : 'block';
+  if(soComprovacao){
+    document.getElementById('sTipoMidia').value = 'plm';
+    document.getElementById('sVideo').value = '';
+    document.getElementById('sUnidades').value = '';
+    onTipoMidiaChange();
+  }
+
   document.getElementById('solicitarOSOverlay').classList.add('show');
+}
+
+// Ajusta o formulário conforme o tipo de mídia e mostra quem vai atender.
+function onTipoMidiaChange(){
+  const tipo = document.getElementById('sTipoMidia').value;
+  const ehPlm = tipo === 'plm';
+  const resp = (EMPRESA.responsaveisComprovacao || {})[tipo] || '';
+
+  document.getElementById('labelUnidades').textContent = ehPlm ? 'Em quais PLMs' : 'Em quais totens';
+  document.getElementById('sUnidades').placeholder = ehPlm
+    ? 'Um por linha. Ex:\nPLM Av. das Torres\nPLM Terminal 3'
+    : 'Um por linha. Ex:\nTotem Terminal 1 — entrada\nTotem Estação Norte';
+  document.getElementById('dicaUnidades').textContent =
+    'Liste um por linha. Cada linha entra na comprovação.';
+  document.getElementById('sResponsavelInfo').textContent = resp
+    ? '👤 Responsável: ' + resp + ' (preenchido automaticamente)'
+    : '';
 }
 
 function closeSolicitarOS(){
@@ -4190,8 +4248,31 @@ async function avisarSolicitacaoPorEmail(dados, tipo){
 }
 
 function enviarSolicitacaoTecnico(){
-  const local = document.getElementById('sLocal').value.trim();
-  if(!local){
+  const ehComprovacao = currentUser && currentUser.role === 'comprovacao';
+
+  // ---- comprovação: tipo de mídia, vídeo e as unidades ----
+  let tipoMidia = '', video = '', unidades = [], responsavel = '';
+  if(ehComprovacao){
+    tipoMidia = document.getElementById('sTipoMidia').value;
+    video = document.getElementById('sVideo').value.trim();
+    unidades = document.getElementById('sUnidades').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    responsavel = (EMPRESA.responsaveisComprovacao || {})[tipoMidia] || '';
+
+    if(!video){
+      askConfirm('Informe qual vídeo precisa ser comprovado.', ()=>{});
+      return;
+    }
+    if(!unidades.length){
+      askConfirm('Liste ao menos um ' + (tipoMidia === 'plm' ? 'PLM' : 'totem') + ', um por linha.', ()=>{});
+      return;
+    }
+  }
+
+  const local = ehComprovacao
+    ? (tipoMidia === 'plm' ? 'PLM' : 'Totem') + ': ' + unidades.join(' · ')
+    : document.getElementById('sLocal').value.trim();
+
+  if(!ehComprovacao && !local){
     askConfirm('Informe o local do problema antes de enviar.', ()=>{});
     return;
   }
@@ -4204,7 +4285,17 @@ function enviarSolicitacaoTecnico(){
     ? document.getElementById('sMateriais').value.split('\n').map(s=>s.trim()).filter(Boolean)
     : [];
 
+  const descricao = ehComprovacao
+    ? ('Comprovar veiculação do vídeo: ' + video +
+       '\n' + (tipoMidia === 'plm' ? 'PLMs' : 'Totens') + ' (' + unidades.length + '):\n' +
+       unidades.map(u=>'• ' + u).join('\n'))
+    : (document.getElementById('sProblema').value.trim() || local);
+
   solicitacoes.push({
+    tipoMidia: tipoMidia,
+    video: video,
+    unidades: unidades,
+    responsavel: responsavel,
     id: 'sol' + Date.now(),
     protocolo: 'SOL-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + String(solicitacoes.length+1).padStart(3,'0'),
     origem: 'tecnico',
@@ -4216,7 +4307,7 @@ function enviarSolicitacaoTecnico(){
     prioridade: document.getElementById('sPrioridade').value,
     acao: document.getElementById('sAcao').value,
     origemPerfil: currentUser ? currentUser.role : '',
-    servicos: [document.getElementById('sProblema').value.trim() || local],
+    servicos: [descricao],
     materiais: materiais,
     local: local,
     dataPrevista: document.getElementById('sData').value,
@@ -4406,11 +4497,14 @@ function aprovarSolicitacao(id){
       id: 'id' + Date.now(),
       code: genCode(),
       local: s.local || ((s.servicos && s.servicos[0]) ? s.servicos[0].slice(0,80) : ('Solicitação ' + s.protocolo)),
-      tipo: doTecnico ? servicosTxt.slice(0,120) : ('Solicitação externa — ' + (s.empresa || s.solicitante)),
+      tipo: (s.acao === 'comprovacao' && s.video)
+              ? ('Comprovação — ' + s.video)
+              : (doTecnico ? servicosTxt.slice(0,120) : ('Solicitação externa — ' + (s.empresa || s.solicitante))),
       prioridade: s.prioridade || prioMap[s.urgencia] || 'normal',
       status: 'aberta',
       solicitante: s.solicitante,
-      tecnico: doTecnico ? s.solicitante : '',
+      // comprovação já vem com responsável definido pelo tipo de mídia
+      tecnico: s.responsavel || (doTecnico ? s.solicitante : ''),
       criadoPor: currentUser ? currentUser.name : 'admin',
       acao: s.acao || 'corretiva',
       // comprovação já nasce com o local da foto, que é o dado central dela
