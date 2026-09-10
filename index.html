@@ -758,6 +758,215 @@
     border-radius:999px; padding:1px 8px;
   }
 
+
+  /* ---------- Mapa de Telas ---------- */
+  .mt-legenda{display:flex; gap:15px; flex-wrap:wrap; margin:14px 0 10px; font-size:11px; color:var(--muted);}
+  .mt-legenda span{display:flex; align-items:center; gap:5px;}
+  .mt-legenda b{width:11px; height:11px; border-radius:3px;}
+
+  .mt-alerta{background:var(--red-bg); border:1px solid var(--red); border-radius:14px; padding:15px 18px; margin-bottom:16px;}
+  .mt-alerta.ok{background:var(--teal-bg); border-color:var(--teal);}
+  .mt-alerta h2{margin:0 0 3px; font-size:16px; color:var(--red);}
+  .mt-alerta.ok h2{color:var(--teal);}
+  .mt-alerta .q{font-size:11.5px; color:var(--muted); margin-bottom:11px;}
+  .mt-lista{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr)); gap:8px;}
+  .mt-item{display:flex; align-items:center; gap:10px; background:var(--panel);
+    border:1px solid var(--border); border-radius:9px; padding:9px 12px; cursor:pointer;}
+  .mt-item:hover{border-color:var(--red);}
+  .mt-item .cd{font-size:11px; font-weight:700; background:var(--red-bg); color:var(--red);
+    border:1px solid var(--red); border-radius:6px; padding:3px 8px; white-space:nowrap;}
+  .mt-item .tx{flex:1; min-width:0;}
+  .mt-item .on{font-size:12.5px; font-weight:600;}
+  .mt-item .oc{font-size:11px; color:var(--red);}
+  .mt-item .dd{font-size:10.5px; color:var(--muted); white-space:nowrap;}
+
+  .mt-num{background:var(--panel-alt); border:1px solid var(--border); border-radius:10px; padding:10px 11px;}
+  .mt-num .r{font-size:9.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:700;}
+  .mt-num .v{font-size:22px; font-weight:700; line-height:1.2;}
+
+  .mt-grupo{background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    padding:14px 16px; margin-bottom:11px;}
+  .mt-grupo.prob{border-color:var(--red);}
+  .mt-gh{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px;}
+  .mt-gh .nm{font-size:15px; font-weight:700;}
+  .mt-gh .tg{font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    padding:2px 7px; border-radius:999px; background:var(--panel-alt); color:var(--muted); border:1px solid var(--border);}
+  .mt-gh .tg.al{background:var(--red-bg); color:var(--red); border-color:var(--red);}
+  .mt-barra{height:6px; border-radius:99px; background:var(--panel-alt); display:flex; overflow:hidden; margin:8px 0 12px;}
+  .mt-barra i{height:100%;}
+
+  .mt-uh{display:flex; align-items:baseline; gap:8px; margin-bottom:5px;}
+  .mt-uh .un{font-size:12.5px; font-weight:600;}
+  .mt-uh .qt{font-size:10.5px; color:var(--muted);}
+  .mt-telas{display:flex; flex-wrap:wrap; gap:4px; margin-bottom:9px;}
+  .mt-tela{width:31px; height:31px; border-radius:7px; border:1px solid transparent;
+    display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700;
+    cursor:pointer; position:relative; transition:transform .1s ease;}
+  .mt-tela:hover{transform:scale(1.15); z-index:3;}
+
+  .mt-chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .mt-chip{display:flex; align-items:center; gap:7px; border:1px solid transparent;
+    border-radius:9px; padding:7px 11px 7px 8px; cursor:pointer; font-size:12px;}
+  .mt-chip:hover{transform:translateY(-1px);}
+  .mt-chip .pt{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+  .mt-chip .nn{font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:190px;}
+  .mt-chip .oc2{font-size:10.5px;}
+  .mt-conf{border-style:dashed; opacity:.75;}
+  .mt-conf .nn::after, .mt-conf::after{content:'';}
+
+  .s-ok{background:var(--teal-bg); color:var(--teal); border-color:color-mix(in srgb,var(--teal) 35%,transparent);}
+  .s-nc{background:var(--red); color:#fff; border-color:var(--red);}
+  .s-local{background:var(--amber-bg); color:var(--amber); border-color:var(--amber);}
+  .s-pend{background:var(--panel-alt); color:var(--muted); border-color:var(--border);}
+
+  @media (max-width:860px){ #mtFaixa{grid-template-columns:1fr !important;} }
+  @media (max-width:640px){
+    .mt-lista{grid-template-columns:1fr;}
+    .mt-item .on{white-space:normal;}
+    .mt-chip .nn{max-width:140px;}
+  }
+
+
+  /* ---------------- MAPA DE TELAS ---------------- */
+  .mt-faixa{display:grid; grid-template-columns:1.15fr 1fr; gap:14px; margin-bottom:16px;}
+  .mt-bloco{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:15px 17px;}
+  .mt-bloco h3{margin:0 0 2px; font-size:14px;}
+  .mt-dica{font-size:11px; color:var(--muted); margin-bottom:12px;}
+  .mt-nums{display:grid; grid-template-columns:repeat(auto-fit,minmax(96px,1fr)); gap:9px;}
+  .mt-num{background:var(--panel-alt); border:1px solid var(--border); border-radius:10px; padding:10px 11px;}
+  .mt-num .r{font-size:9.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:700;}
+  .mt-num .v{font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.2;}
+
+  .mt-alerta{background:var(--red-bg); border:1px solid var(--red); border-radius:14px; padding:15px 18px; margin-bottom:16px;}
+  .mt-alerta.ok{background:var(--teal-bg); border-color:var(--teal);}
+  .mt-alerta h2{margin:0 0 3px; font-size:16px; color:var(--red);}
+  .mt-alerta.ok h2{color:var(--teal);}
+  .mt-alerta .q{font-size:12px; color:var(--muted); margin-bottom:11px;}
+  .mt-lista{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr)); gap:8px;}
+  .mt-item{display:flex; align-items:center; gap:10px; background:var(--panel);
+    border:1px solid var(--border); border-radius:9px; padding:9px 12px; cursor:pointer;}
+  .mt-item:hover{border-color:var(--red);}
+  .mt-item .cod{font-size:11px; font-weight:700; font-variant-numeric:tabular-nums;
+    background:var(--red-bg); color:var(--red); border:1px solid var(--red);
+    border-radius:6px; padding:3px 8px; white-space:nowrap;}
+  .mt-item .tx{flex:1; min-width:0;}
+  .mt-item .onde{font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .mt-item .oc{font-size:11px; color:var(--red);}
+  .mt-item .dd{font-size:10.5px; color:var(--muted); white-space:nowrap;}
+
+  .mt-grupo{background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    padding:14px 16px; margin-bottom:11px;}
+  .mt-grupo.prob{border-color:var(--red);}
+  .mt-gh{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .mt-gh .nome{font-size:15px; font-weight:700;}
+  .mt-gh .tg{font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em;
+    padding:2px 7px; border-radius:999px; background:var(--panel-alt); color:var(--muted); border:1px solid var(--border);}
+  .mt-gh .tg.al{background:var(--red-bg); color:var(--red); border-color:var(--red);}
+  .mt-gh .esp{flex:1;}
+  .mt-gh .pc{font-size:17px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .mt-barra{height:6px; border-radius:99px; background:var(--panel-alt); display:flex; overflow:hidden; margin:8px 0 12px;}
+  .mt-barra i{height:100%;}
+
+  .mt-unid{margin-bottom:9px;}
+  .mt-unid:last-child{margin-bottom:0;}
+  .mt-uh{display:flex; align-items:baseline; gap:8px; margin-bottom:5px; flex-wrap:wrap;}
+  .mt-uh .un{font-size:12.5px; font-weight:600;}
+  .mt-uh .qt{font-size:10.5px; color:var(--muted);}
+  .mt-uh .am{font-size:10px; font-weight:700; color:var(--red);}
+  .mt-telas{display:flex; flex-wrap:wrap; gap:4px;}
+  .mt-tela{width:31px; height:31px; border-radius:7px; border:1px solid transparent;
+    display:flex; align-items:center; justify-content:center;
+    font-size:10.5px; font-weight:700; cursor:pointer; position:relative;
+    font-variant-numeric:tabular-nums; transition:transform .1s ease;}
+  .mt-tela:hover{transform:scale(1.15); z-index:3;}
+  .mt-tela.renomeada{box-shadow:inset 0 0 0 1px var(--blue);}
+
+  .mt-chips{display:flex; flex-wrap:wrap; gap:6px;}
+  .mt-chip{display:flex; align-items:center; gap:7px; border:1px solid transparent;
+    border-radius:9px; padding:7px 11px 7px 8px; cursor:pointer; font-size:12px;}
+  .mt-chip:hover{transform:translateY(-1px);}
+  .mt-chip .pt{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+  .mt-chip .nm{font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:190px;}
+  .mt-chip .oc{font-size:10.5px; opacity:.9;}
+
+  .m-ok{background:var(--teal-bg); color:var(--teal); border-color:color-mix(in srgb,var(--teal) 35%,transparent);}
+  .m-nc{background:var(--red); color:#fff; border-color:var(--red);}
+  .m-pend{background:var(--amber-bg); color:var(--amber); border-color:color-mix(in srgb,var(--amber) 45%,transparent);}
+  .m-na{background:var(--panel-alt); color:var(--muted); border-color:var(--border);}
+
+  .legenda-mt{display:flex; gap:15px; flex-wrap:wrap; margin:14px 0 8px; font-size:11px; color:var(--muted);}
+  .legenda-mt span{display:flex; align-items:center; gap:5px;}
+  .legenda-mt b{width:11px; height:11px; border-radius:3px;}
+
+  body.editandoNomes .mt-tela, body.editandoNomes .mt-chip{ cursor:text; }
+  body.editandoNomes .mt-tela:hover, body.editandoNomes .mt-chip:hover{ outline:2px solid var(--blue); }
+
+  @media (max-width:860px){ .mt-faixa{grid-template-columns:1fr;} }
+  @media (max-width:720px){
+    .mt-lista{grid-template-columns:1fr;}
+    .mt-item .onde{white-space:normal;}
+    .mt-chip .nm{max-width:140px;}
+  }
+
+  /* ---- resumo do mapa na tela inicial ---- */
+  .mtr{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    padding:13px 16px; margin-bottom:18px;
+  }
+  .mtr.alerta{ border-color:var(--red); }
+  .mtr-top{display:flex; align-items:center; gap:11px; flex-wrap:wrap; margin-bottom:11px;}
+  .mtr-tit{font-size:13.5px; font-weight:700; display:flex; align-items:center; gap:7px;}
+  .mtr-sub{font-size:11px; color:var(--muted);}
+  .mtr-esp{flex:1;}
+  .mtr-ver{
+    font-size:11.5px; font-weight:700; color:var(--brand-1);
+    background:none; border:none; cursor:pointer; padding:4px 2px; font-family:inherit;
+  }
+  .mtr-ver:hover{ text-decoration:underline; }
+
+  /* barras horizontais, uma por cliente */
+  .mtr-linhas{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:8px 16px;}
+  .mtr-linha{display:flex; align-items:center; gap:9px; cursor:pointer;}
+  .mtr-linha:hover .mtr-nome{ color:var(--brand-1); }
+  .mtr-nome{font-size:11.5px; font-weight:600; width:88px; flex-shrink:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .mtr-barra{flex:1; height:8px; border-radius:99px; background:var(--panel-alt);
+    display:flex; overflow:hidden; min-width:40px;}
+  .mtr-barra i{height:100%;}
+  .mtr-qt{font-size:10.5px; color:var(--muted); font-variant-numeric:tabular-nums;
+    width:26px; text-align:right; flex-shrink:0;}
+  .mtr-nc{font-size:10.5px; font-weight:700; color:var(--red);
+    width:30px; text-align:right; flex-shrink:0;}
+
+  /* telas que precisam de ação, em fila */
+  .mtr-chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:11px;
+    padding-top:11px; border-top:1px solid var(--border);}
+  .mtr-chip{
+    display:flex; align-items:center; gap:6px; cursor:pointer;
+    background:var(--red-bg); border:1px solid var(--red); border-radius:8px;
+    padding:5px 10px; font-size:11px;
+  }
+  .mtr-chip:hover{ transform:translateY(-1px); }
+  .mtr-chip b{font-weight:700; color:var(--red); font-variant-numeric:tabular-nums;}
+  .mtr-chip span{color:var(--text);}
+  .mtr-chip em{font-style:normal; color:var(--muted); font-size:10px;}
+
+  @media (max-width:640px){
+    .mtr-linhas{grid-template-columns:1fr;}
+    .mtr-nome{width:76px;}
+  }
+
+  /* Modais abertos de dentro das páginas cheias (Dashboard, Mapa de Telas)
+     precisam ficar acima delas — antes abriam por baixo e pareciam não abrir. */
+  #confirmOverlay, #mtRenOverlay{ z-index:80; }
+
+  .mt-tela.nomeada{ box-shadow:inset 0 0 0 1.5px var(--blue); }
+  .mt-tela.inativa{ opacity:.45; text-decoration:line-through; }
+  body.mt-modo-edicao .mt-tela, body.mt-modo-edicao .mt-chip{ cursor:cell; }
+  body.mt-modo-edicao .mt-tela:hover, body.mt-modo-edicao .mt-chip:hover{
+    outline:2px solid var(--blue); outline-offset:1px;
+  }
+
   /* escolha de perfil na entrada */
   .perfil-opcao{
     display:flex; align-items:center; gap:14px; width:100%;
@@ -979,6 +1188,7 @@
     <button class="btn" id="btnSolicitacoes" onclick="openSolicitacoes()" style="display: none;position:relative;">📥 Solicitações<span id="badgeSolicitacoes" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;"></span></button>
     <button class="btn" id="btnRotaFixa" onclick="openRotaFixa()" style="display: none;">🚌 Rota fixa</button>
     <button class="btn" id="btnDestinatarios" onclick="openDestinatarios()" style="display: none;">📬 Destinatários</button>
+    <button class="btn" id="btnMapaTelas" onclick="openMapaTelas()">🖥️ Mapa de Telas</button>
     <button class="btn" id="btnDashboard" onclick="openDashboard()">📊 Dashboard</button>
     <div class="caixa-csv" id="caixaCSV">
       <span class="caixa-csv-titulo">Arquivo CSV</span>
@@ -1054,6 +1264,11 @@
 
 <div class="stats" id="stats"></div>
 
+<!-- Resumo do mapa de telas, na tela inicial: mostra onde tem problema
+     sem precisar abrir o mapa completo -->
+<div id="mtResumo"></div>
+
+
 <div id="dashboardPage" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:60;overflow-y:auto;">
   <div style="max-width:1100px;margin:0 auto;padding:24px 20px 60px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
@@ -1097,6 +1312,57 @@
       <h2 style="margin:0 0 12px;font-size:16px;">Últimas OS encerradas</h2>
       <table id="dashTabelaEncerradas" style="width:100%;border-collapse:collapse;font-size:12.5px;"></table>
     </div>
+  </div>
+</div>
+
+<div id="mapaTelasPage" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:60;overflow-y:auto;">
+  <div style="max-width:1280px;margin:0 auto;padding:24px 20px 60px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
+      <div>
+        <h1 style="margin:0;">🖥️ Mapa de Telas</h1>
+        <p class="subtitle" style="margin-top:3px;">Situação de cada tela, a partir das OS abertas · <span id="mtData"></span></p>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;">
+        <button class="btn" id="mtFtudo" onclick="mtFiltrar('tudo')">Todas</button>
+        <button class="btn" id="mtFnc" onclick="mtFiltrar('nc')">Com problema</button>
+        <button class="btn" id="mtFpend" onclick="mtFiltrar('pend')">Sem registro</button>
+        <button class="btn" id="btnMtEditar" onclick="mtAlternarEdicao()" style="display:none;">✏️ Nomear telas</button>
+        <button class="btn" onclick="closeMapaTelas()">← Voltar ao painel</button>
+      </div>
+    </div>
+
+    <div id="mtAvisoEdicao" style="display:none;align-items:center;gap:9px;
+         background:var(--blue-bg);border:1px solid var(--blue);border-radius:12px;
+         padding:11px 15px;margin-bottom:14px;font-size:12.5px;color:var(--blue);">
+      <span>✏️</span>
+      <span>Modo de nomeação ligado — toque em qualquer tela para dar um nome a ela.
+      Telas nomeadas ficam com um contorno azul.</span>
+    </div>
+
+    <div id="mtAlerta"></div>
+
+    <div id="mtFaixa" style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:16px;">
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:15px 17px;">
+        <h3 style="margin:0 0 2px;font-size:14px;">Telas por cliente</h3>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Da rede com mais problema para a com menos.</div>
+        <div id="mtEscada" style="overflow-x:auto;"></div>
+      </div>
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:15px 17px;">
+        <h3 style="margin:0 0 2px;font-size:14px;">Situação geral</h3>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Proporção do parque de telas.</div>
+        <div id="mtRosca" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;"></div>
+        <div id="mtNums" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(94px,1fr));gap:9px;margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <div class="mt-legenda">
+      <span><b style="background:var(--teal)"></b> Sem OS aberta</span>
+      <span><b style="background:var(--red)"></b> Com OS aberta nesta tela</span>
+      <span><b style="background:var(--amber)"></b> OS aberta no local, tela não identificada</span>
+      <span><b style="background:var(--muted)"></b> Nunca vistoriada</span>
+    </div>
+
+    <div id="mtGrupos"></div>
   </div>
 </div>
 
@@ -1336,6 +1602,31 @@
     <div class="modal-actions">
       <button class="btn" onclick="closeColarOS()">Cancelar</button>
       <button class="btn primary" id="btnCriarColada" onclick="criarOSColada()" disabled>Criar OS</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="mtRenOverlay">
+  <div class="modal" style="width:420px;">
+    <h2 id="mtRenTitulo">Nomear tela</h2>
+    <p style="font-size:12px;color:var(--muted);margin:0 0 14px;" id="mtRenOnde"></p>
+    <div class="field">
+      <label>Nome desta tela</label>
+      <input type="text" id="mtRenNome" placeholder="Ex: Totem da entrada norte"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();mtSalvarNome();}">
+      <div style="font-size:9.5px;color:var(--muted);margin-top:3px;">
+        Aparece no lugar do número. Deixe vazio para voltar ao código automático.
+      </div>
+    </div>
+    <div class="field checkbox-field">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="mtRenInativa" style="width:auto;">
+        Tela inativa — sinalizada como fora de operação
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="mtFecharRenomear()">Cancelar</button>
+      <button class="btn primary" onclick="mtSalvarNome()">Salvar</button>
     </div>
   </div>
 </div>
@@ -1818,6 +2109,68 @@ const EMPRESA = {
     emails: ['operacao@vtmmidia.com.br'],
     telefones: ['92984311798'],   // DDD + número, sem +55
   },
+
+  // 7) MAPA DE TELAS ---------------------------------------------
+  // Cada local e quantas telas ele tem. Alimenta o "Mapa de Telas".
+  // A situação de cada tela vem das OS abertas — não é digitada aqui.
+  telas: [
+    { grupo:'Terminais', tipo:'Terminal', locais:[
+        {nome:'Terminal 1', qtd:8},  {nome:'Terminal 2', qtd:10},
+        {nome:'Terminal 3', qtd:16}, {nome:'Terminal 4', qtd:14},
+        {nome:'Terminal 5', qtd:13}, {nome:'Terminal 7', qtd:8},
+    ]},
+    { grupo:'Estações', tipo:'Estação', locais:[
+        {nome:'Estação 1', qtd:8}, {nome:'Estação 2', qtd:8},
+        {nome:'Estação 3', qtd:8}, {nome:'Estação 4', qtd:8},
+    ]},
+    { grupo:'Nova Era', tipo:'Supermercado', locais:[
+        {nome:'Max Teixeira (Cidade Nova)', qtd:1},
+        {nome:'Des. João Machado (Alvorada)', qtd:1},
+        {nome:'Torquato Tapajós 2871', qtd:1},
+        {nome:'Torquato Tapajós (Flores)', qtd:1},
+        {nome:'Unidade 5', qtd:1, aconferir:true},
+        {nome:'Unidade 6', qtd:1, aconferir:true},
+        {nome:'Unidade 7', qtd:1, aconferir:true},
+        {nome:'Unidade 8', qtd:1, aconferir:true},
+        {nome:'Unidade 9', qtd:1, aconferir:true},
+        {nome:'Unidade 10', qtd:1, aconferir:true},
+        {nome:'Unidade 11', qtd:1, aconferir:true},
+        {nome:'Unidade 12', qtd:1, aconferir:true},
+        {nome:'Unidade 13', qtd:1, aconferir:true},
+        {nome:'Unidade 14', qtd:1, aconferir:true},
+    ]},
+    { grupo:'Coema', tipo:'Supermercado', locais:[
+        {nome:'Eliza Miranda (Japiim)', qtd:1},
+        {nome:'Camapuã (Cidade de Deus)', qtd:1},
+        {nome:'Campos Sales', qtd:1},
+        {nome:'Novo Aleixo', qtd:1},
+        {nome:'Torquato Tapajós', qtd:1},
+        {nome:'Lírio do Vale', qtd:1},
+        {nome:'Monte das Oliveiras', qtd:1},
+    ]},
+    { grupo:'RB Diagnósticos', tipo:'Laboratório', locais:[
+        {nome:'Matriz — Joaquim Nabuco', qtd:1},
+        {nome:'Beneficente Portuguesa', qtd:1},
+        {nome:'Cedaclin', qtd:1},
+        {nome:'Pátio Gourmet', qtd:1},
+        {nome:'Manauara Shopping', qtd:1},
+        {nome:'Unidade 6', qtd:1, aconferir:true},
+        {nome:'Unidade 7', qtd:1, aconferir:true},
+        {nome:'Unidade 8', qtd:1, aconferir:true},
+    ]},
+    { grupo:'Prodimagem', tipo:'Diagnóstico', locais:[
+        {nome:'Matriz — Tapajós 685', qtd:1},
+        {nome:'Femme', qtd:1},
+        {nome:'Check-up Executivo', qtd:1},
+        {nome:'Préférence', qtd:1},
+        {nome:'Vacinas', qtd:1},
+        {nome:'Unidade 6', qtd:1, aconferir:true},
+    ]},
+    { grupo:'Sensumed', tipo:'Clínica', locais:[
+        {nome:'Adrianópolis', qtd:1},
+        {nome:'Morada do Sol', qtd:1},
+    ]},
+  ],
 };
 /* ================================================================
    ▲▲▲  FIM DA CONFIGURAÇÃO  —  não altere daqui para baixo  ▲▲▲
@@ -1829,7 +2182,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.20';
+const VERSAO_PAINEL = '4.22';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -1852,7 +2205,7 @@ function testeLoad(){
 
 function testeSave(){
   try{
-    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios }));
+    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios, telasInfo }));
     const el = document.getElementById('syncInfo');
     if(el){ el.textContent = 'teste · salvo no navegador ' + new Date().toLocaleTimeString('pt-BR'); }
     return true;
@@ -1895,7 +2248,12 @@ let solicitacoes = [];
 let destinatarios = {
   emails: (EMPRESA.avisos.emails || []).slice(),
   telefones: (EMPRESA.avisos.telefones || []).slice(),
+  tecnicos: [],
 };
+
+/* Nomes e ajustes das telas feitos pelo administrador no painel.
+   Formato: { 'T1-03': { nome:'Totem entrada norte', inativa:false } } */
+let telasInfo = {};
 const DIAS_SEMANA = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
 const DIAS_SEMANA_LABEL = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
 let rotaFixa = {
@@ -1947,7 +2305,7 @@ function gasConfigured(){
 
 let isModalOpen = false;
 function anyModalOpen(){
-  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay','destinatariosOverlay'].some(id=>{
+  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay','mtRenOverlay','destinatariosOverlay'].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains('show');
   });
@@ -1971,6 +2329,7 @@ async function loadData(){
       rotaPacheco = d.rotaPacheco || rotaPacheco;
       solicitacoes = d.solicitacoes || solicitacoes;
       destinatarios = normalizaDestinatarios(d.destinatarios);
+      telasInfo = (d.telasInfo && typeof d.telasInfo === 'object') ? d.telasInfo : telasInfo;
       rotaFixa = d.rotaFixa || rotaFixa;
       migraStatusPeca();
       render();
@@ -1996,6 +2355,7 @@ async function loadData(){
     rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
     solicitacoes = (json && json.solicitacoes) || solicitacoes;
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
+    telasInfo = (json && json.telasInfo && typeof json.telasInfo === 'object') ? json.telasInfo : telasInfo;
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
     migraStatusPeca();
     leituDoServidorOk = true;
@@ -2032,7 +2392,7 @@ async function diagnosticoConexao(){
     return;
   }
 
-  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios });
+  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios, telasInfo });
   const tamanho = JSON.stringify(limpo).length;
   const blocos = Math.ceil(tamanho / 45000);
   const pendentes = (solicitacoes||[]).filter(s=>s.status==='pendente').length;
@@ -2126,7 +2486,7 @@ async function pushState(tentativa){
   try{
     // fotos que não subiram ficam como base64 gigante e estouram o limite da
     // planilha; só vai para o servidor o que tem endereço de verdade
-    const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios });
+    const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios, telasInfo });
 
     // nunca sobrescreva o servidor sem ter lido dele antes
     if(!leituDoServidorOk){
@@ -2293,6 +2653,7 @@ async function refreshFromServer(){
     rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
     solicitacoes = (json && json.solicitacoes) || solicitacoes;
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
+    telasInfo = (json && json.telasInfo && typeof json.telasInfo === 'object') ? json.telasInfo : telasInfo;
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
     migraStatusPeca();
     leituDoServidorOk = true;
@@ -2866,6 +3227,17 @@ function openModal(id){
     renderPhotoPreview('previewVerif', [], 'verificacao', true);
     renderPhotoPreview('previewConclusao', [], 'conclusao', true);
     atualizaAvisoSync();
+
+    // veio do Mapa de Telas: já entra com o local e a tela identificados
+    if(telaPreSelecionada){
+      document.getElementById('modalTitle').textContent =
+        'Nova OS — tela ' + telaPreSelecionada.codigo;
+      preencheSelectLocais(telaPreSelecionada.local);
+      document.getElementById('fLocal').value = telaPreSelecionada.local;
+      document.getElementById('fTipo').value = 'Tela ' + telaPreSelecionada.codigo + ' — ';
+      document.getElementById('fAcao').value = 'corretiva';
+      onAcaoChange();
+    }
   }
 }
 
@@ -3000,6 +3372,7 @@ function coletarMateriais(){
 }
 
 function closeModal(){
+  telaPreSelecionada = null;   // a tela vale só para a OS que está sendo criada
   fecharPreview();
   document.getElementById('overlay').classList.remove('show');
 }
@@ -3210,6 +3583,8 @@ async function saveOS(){
     requerRelatorio: requerRelatorio,
     acao: acaoEscolhida,
     localFoto: acaoEscolhida === 'comprovacao' ? document.getElementById('fLocalFoto').value.trim() : '',
+    telaCodigo: telaPreSelecionada ? telaPreSelecionada.codigo :
+                (editingId ? ((items.find(x=>x.id===editingId)||{}).telaCodigo || '') : ''),
     materiais: materiais,
   };
   if(editingId){
@@ -3519,6 +3894,8 @@ function populateTipoFilter(){
 function render(){
   populateTecnicoFilter();
   populateTipoFilter();
+  renderResumoMapa();
+  renderMapaTelasSeAberto();
   renderFaixaRota();
   renderFaixaRotaFixa();
   atualizaBadgeSolicitacoes();
@@ -4737,6 +5114,446 @@ function salvarRotaFixa(){
   closeRotaFixa();
 }
 
+
+/* ================================================================
+   RESUMO DO MAPA NA TELA INICIAL
+   ================================================================
+   Versão curta do Mapa de Telas: uma barra por cliente e a fila
+   das telas que precisam de ação. Serve para bater o olho ao
+   abrir o painel, sem precisar entrar no mapa completo.
+   ================================================================ */
+function renderResumoMapa(){
+  const el = document.getElementById('mtResumo');
+  if(!el) return;
+  if(!EMPRESA.telas || !EMPRESA.telas.length){ el.innerHTML = ''; return; }
+
+  const mapa = mtMontar();
+  const todas = mapa.flatMap(g => g.locais.flatMap(l => l.telas));
+  if(!todas.length){ el.innerHTML = ''; return; }
+
+  const c = mtConta(todas);
+  const precisamAcao = c.nc + c.local;
+
+  // uma linha por cliente, quem tem problema primeiro
+  const linhas = mapa.map(g => {
+    const l = g.locais.flatMap(x => x.telas);
+    const cc = mtConta(l);
+    return { nome: g.grupo, total: l.length, ok: cc.ok, nc: cc.nc + cc.local, pend: cc.pend };
+  }).filter(x => x.total > 0)
+    .sort((a,b) => (b.nc - a.nc) || (b.total - a.total));
+
+  const maior = Math.max(...linhas.map(l => l.total));
+
+  const linhasHtml = linhas.map(l => {
+    const prop = (l.total / maior) * 100;   // largura relativa ao maior cliente
+    const p = s => l.total ? (l[s] / l.total * 100) : 0;
+    return '<div class="mtr-linha" onclick="openMapaTelas()" title="' + l.nome + ': ' +
+        l.total + ' telas' + (l.nc ? ' · ' + l.nc + ' precisam de ação' : '') + '">' +
+      '<span class="mtr-nome">' + l.nome + '</span>' +
+      '<span class="mtr-barra" style="max-width:' + prop + '%">' +
+        '<i style="width:' + p('ok') + '%;background:var(--teal)"></i>' +
+        '<i style="width:' + p('nc') + '%;background:var(--red)"></i>' +
+        '<i style="width:' + p('pend') + '%;background:var(--muted)"></i>' +
+      '</span>' +
+      '<span class="mtr-qt">' + l.total + '</span>' +
+      '<span class="mtr-nc">' + (l.nc ? l.nc + '✕' : '') + '</span>' +
+    '</div>';
+  }).join('');
+
+  // fila das telas com OS aberta, mais antiga primeiro
+  const urgentes = todas.filter(t => t.status === 'nc' || t.status === 'local')
+    .sort((a,b) => (a.os ? a.os.dataAbertura : 0) - (b.os ? b.os.dataAbertura : 0));
+
+  const chipsHtml = urgentes.length ? '<div class="mtr-chips">' +
+    urgentes.slice(0,8).map(t => {
+      const d = t.os ? Math.floor((Date.now() - t.os.dataAbertura)/86400000) : 0;
+      return '<div class="mtr-chip" onclick="mtAbrirOS(\'' + (t.os ? t.os.id : '') + '\')" ' +
+        'title="' + escVist(t.local) + ' — ' + MT_ROT[t.status] + '">' +
+        '<b>' + t.codigo + '</b>' +
+        '<span>' + escVist((t.os && t.os.tipo) ? String(t.os.tipo).slice(0,26) : '') + '</span>' +
+        '<em>' + d + 'd</em></div>';
+    }).join('') +
+    (urgentes.length > 8 ? '<div class="mtr-chip" style="background:var(--panel-alt);border-color:var(--border);" onclick="openMapaTelas()"><span>+' + (urgentes.length-8) + ' no mapa</span></div>' : '') +
+    '</div>' : '';
+
+  el.innerHTML =
+    '<div class="mtr' + (precisamAcao ? ' alerta' : '') + '">' +
+      '<div class="mtr-top">' +
+        '<span class="mtr-tit">🖥️ Telas' +
+          (precisamAcao
+            ? ' <span style="color:var(--red)">· ' + precisamAcao + ' precisam de ação</span>'
+            : ' <span style="color:var(--teal)">· todas sem OS aberta</span>') +
+        '</span>' +
+        '<span class="mtr-sub">' + todas.length + ' telas · ' + c.pend + ' sem registro</span>' +
+        '<span class="mtr-esp"></span>' +
+        '<button class="mtr-ver" onclick="openMapaTelas()">ver o mapa completo →</button>' +
+      '</div>' +
+      '<div class="mtr-linhas">' + linhasHtml + '</div>' +
+      chipsHtml +
+    '</div>';
+}
+
+/* ============================================================
+   MAPA DE TELAS
+   ============================================================
+   A situação de cada tela NÃO é digitada: vem das OS abertas.
+
+     s-nc     OS aberta que identifica esta tela        (telaCodigo)
+     s-local  OS aberta no local, sem dizer qual tela
+     s-ok     nenhuma OS aberta, e já houve OS encerrada aqui
+     s-pend   nunca teve OS: sem registro de vistoria
+
+   Ao clicar numa tela, abre uma OS nova já com o local e o
+   código da tela preenchidos — é assim que o mapa fica cada vez
+   mais preciso com o uso.
+   ============================================================ */
+let mtFiltro = 'tudo';
+
+function mtCodigo(grupo, local, i){
+  const m = String(local).match(/(\d+)/);
+  let pre;
+  if(grupo === 'Terminais')      pre = 'T' + (m ? m[1] : '');
+  else if(grupo === 'Estações')  pre = 'E' + (m ? m[1] : '');
+  else pre = String(local).split(/[\s(—]/)[0].slice(0,7).toUpperCase();
+  return pre + '-' + String(i).padStart(2,'0');
+}
+
+// OS em aberto (qualquer coisa que não esteja encerrada)
+function mtOSAbertas(){
+  return items.filter(x => x.status !== 'concluida' && !x.arquivada);
+}
+
+// casa o nome do local do cadastro com o campo "local" da OS
+function mtMesmoLocal(nomeLocal, localOS){
+  if(!localOS) return false;
+  const a = nomeLocal.toLowerCase(), b = String(localOS).toLowerCase();
+  return b.includes(a) || a.includes(b);
+}
+
+function mtMontar(){
+  const abertas = mtOSAbertas();
+  const grupos = (EMPRESA.telas || []);
+
+  return grupos.map(g => ({
+    grupo: g.grupo,
+    tipo: g.tipo,
+    locais: (g.locais || []).map(loc => {
+      // OS abertas relacionadas a este local
+      const doLocal = abertas.filter(os => mtMesmoLocal(loc.nome, os.local));
+      const jaTeveOS = items.some(os => mtMesmoLocal(loc.nome, os.local));
+
+      const telas = [];
+      for(let i = 1; i <= (loc.qtd || 0); i++){
+        const cod = mtCodigo(g.grupo, loc.nome, i);
+        const osDaTela = doLocal.find(os => (os.telaCodigo || '') === cod);
+        const osSemTela = doLocal.find(os => !os.telaCodigo);
+
+        let st, os = null;
+        if(osDaTela){ st = 'nc'; os = osDaTela; }
+        else if(osSemTela){ st = 'local'; os = osSemTela; }
+        else if(jaTeveOS){ st = 'ok'; }
+        else { st = 'pend'; }
+
+        telas.push({ num:i, codigo:cod, status:st, os:os, local:loc.nome, grupo:g.grupo });
+      }
+      return { ...loc, telas };
+    })
+  }));
+}
+
+const MT_ROT = { ok:'Sem OS aberta', nc:'Com OS aberta nesta tela',
+                 local:'OS aberta no local', pend:'Nunca vistoriada' };
+const MT_COR = { ok:'var(--teal)', nc:'var(--red)', local:'var(--amber)', pend:'var(--muted)' };
+
+function mtConta(telas){
+  const c = {ok:0, nc:0, local:0, pend:0};
+  telas.forEach(t => c[t.status]++);
+  return c;
+}
+function mtDias(ts){ return Math.floor((Date.now() - ts) / 86400000); }
+
+/* ---------- rosca ---------- */
+function mtRosca(fatias, total){
+  if(!total) return '<div style="font-size:12px;color:var(--muted);padding:14px;">Sem telas cadastradas.</div>';
+  const R=52, r=33, cx=60, cy=60;
+  let a = -Math.PI/2;
+  const setores = fatias.filter(f=>f.v>0).map(f=>{
+    const ang = (f.v/total)*Math.PI*2, fim = a+ang, big = ang > Math.PI ? 1 : 0;
+    const p = (rr,an) => [cx+rr*Math.cos(an), cy+rr*Math.sin(an)];
+    const [x1,y1]=p(R,a), [x2,y2]=p(R,fim), [x3,y3]=p(r,fim), [x4,y4]=p(r,a);
+    const d = (f.v===total)
+      ? 'M '+(cx-R)+' '+cy+' A '+R+' '+R+' 0 1 1 '+(cx+R)+' '+cy+' A '+R+' '+R+' 0 1 1 '+(cx-R)+' '+cy+' Z '+
+        'M '+(cx-r)+' '+cy+' A '+r+' '+r+' 0 1 0 '+(cx+r)+' '+cy+' A '+r+' '+r+' 0 1 0 '+(cx-r)+' '+cy+' Z'
+      : 'M '+x1+' '+y1+' A '+R+' '+R+' 0 '+big+' 1 '+x2+' '+y2+' L '+x3+' '+y3+' A '+r+' '+r+' 0 '+big+' 0 '+x4+' '+y4+' Z';
+    a = fim;
+    return '<path d="'+d+'" fill="'+f.c+'" fill-rule="evenodd"><title>'+f.n+': '+f.v+'</title></path>';
+  }).join('');
+  const pct = Math.round((fatias[0].v/total)*100);
+  return '<svg width="120" height="120" viewBox="0 0 120 120" role="img" aria-label="Situação das telas">' +
+    setores +
+    '<text x="60" y="57" text-anchor="middle" font-size="21" font-weight="700" fill="var(--text)">'+pct+'%</text>' +
+    '<text x="60" y="73" text-anchor="middle" font-size="9" fill="var(--muted)">sem OS</text></svg>' +
+    '<div style="font-size:11.5px;">' + fatias.map(f=>
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">' +
+      '<span style="width:10px;height:10px;border-radius:3px;background:'+f.c+'"></span>' +
+      '<span style="color:var(--muted)">'+f.n+'</span><b style="margin-left:auto">'+f.v+'</b></div>').join('') +
+    '</div>';
+}
+
+/* ---------- escada ---------- */
+function mtEscada(mapa){
+  const linhas = mapa.map(g => {
+    const t = g.locais.flatMap(l => l.telas);
+    const c = mtConta(t);
+    return { nome:g.grupo, total:t.length, nc:c.nc, local:c.local, pend:c.pend, ok:c.ok };
+  }).filter(x => x.total > 0).sort((a,b) => ((b.nc+b.local) - (a.nc+a.local)) || (b.total - a.total));
+
+  if(!linhas.length) return '<div style="font-size:12px;color:var(--muted);padding:14px;">Sem telas cadastradas.</div>';
+  const max = Math.max(...linhas.map(l => l.total));
+  const H = 30;
+
+  return '<svg width="100%" height="'+(linhas.length*H+14)+'" viewBox="0 0 430 '+(linhas.length*H+14)+'"' +
+    ' preserveAspectRatio="xMinYMin meet" role="img" aria-label="Telas por cliente">' +
+    linhas.map((l,i)=>{
+      const y = i*H + 6, larg = (l.total/max)*228;
+      const w = s => (l[s]/l.total)*larg;
+      const wok=w('ok'), wpe=w('pend'), wlo=w('local'), wnc=w('nc');
+      return '<text x="0" y="'+(y+13)+'" font-size="11" font-weight="600" fill="var(--text)">'+l.nome+'</text>' +
+        '<g transform="translate(126,'+(y+3)+')">' +
+          '<rect x="0" y="0" width="'+wok+'" height="14" rx="3" fill="var(--teal)"></rect>' +
+          '<rect x="'+wok+'" y="0" width="'+wpe+'" height="14" fill="var(--muted)"></rect>' +
+          '<rect x="'+(wok+wpe)+'" y="0" width="'+wlo+'" height="14" fill="var(--amber)"></rect>' +
+          '<rect x="'+(wok+wpe+wlo)+'" y="0" width="'+wnc+'" height="14" rx="3" fill="var(--red)"></rect>' +
+          '<title>'+l.nome+': '+l.total+' telas · '+l.nc+' com OS na tela · '+l.local+' com OS no local</title>' +
+        '</g>' +
+        '<text x="'+(126+larg+7)+'" y="'+(y+14)+'" font-size="10.5" font-weight="700" fill="var(--text)">'+l.total+'</text>' +
+        ((l.nc+l.local) ? '<text x="'+(126+larg+32)+'" y="'+(y+14)+'" font-size="10" font-weight="700" fill="var(--red)">'+(l.nc+l.local)+' ✕</text>' : '');
+    }).join('') + '</svg>';
+}
+
+/* ---------- render ---------- */
+function renderMapaTelas(){
+  const mapa = mtMontar();
+  const todas = mapa.flatMap(g => g.locais.flatMap(l => l.telas));
+  const c = mtConta(todas);
+
+  document.getElementById('mtData').textContent = 'atualizado em ' + new Date().toLocaleDateString('pt-BR');
+
+  // botão do filtro ativo
+  ['tudo','nc','pend'].forEach(f=>{
+    const b = document.getElementById('mtF'+f);
+    if(b) b.classList.toggle('primary', mtFiltro === f);
+  });
+
+  /* alerta: o que precisa de ação, já visível */
+  const problemas = todas.filter(t => t.status === 'nc' || t.status === 'local')
+    .sort((a,b) => (a.os ? a.os.dataAbertura : 0) - (b.os ? b.os.dataAbertura : 0));
+  const al = document.getElementById('mtAlerta');
+  if(problemas.length){
+    al.className = 'mt-alerta';
+    al.innerHTML = '<h2>⚠ ' + problemas.length + ' tela(s) com OS aberta</h2>' +
+      '<div class="q">Da mais antiga para a mais recente. Toque para abrir a OS.</div>' +
+      '<div class="mt-lista">' + problemas.slice(0,12).map(t=>
+        '<div class="mt-item" onclick="mtAbrirOS(\''+(t.os ? t.os.id : '')+'\')">' +
+          '<span class="cd">'+t.codigo+'</span>' +
+          '<span class="tx"><span class="on">'+escVist(t.local)+'</span>' +
+          '<span class="oc">'+escVist((t.os && (t.os.tipo || t.os.code)) || '')+'</span></span>' +
+          '<span class="dd">'+(t.os ? mtDias(t.os.dataAbertura)+'d' : '')+'</span>' +
+        '</div>').join('') + '</div>' +
+      (problemas.length > 12 ? '<div style="font-size:11px;color:var(--muted);margin-top:9px;">e mais '+(problemas.length-12)+' — use o filtro "Com problema".</div>' : '');
+  } else {
+    al.className = 'mt-alerta ok';
+    al.innerHTML = '<h2>✓ Nenhuma tela com OS aberta</h2><div class="q" style="margin:0;">Todo o parque está sem pendência registrada.</div>';
+  }
+
+  /* gráficos */
+  document.getElementById('mtRosca').innerHTML = mtRosca([
+    {n:'Sem OS aberta', v:c.ok, c:'var(--teal)'},
+    {n:'OS nesta tela', v:c.nc, c:'var(--red)'},
+    {n:'OS no local', v:c.local, c:'var(--amber)'},
+    {n:'Nunca vistoriada', v:c.pend, c:'var(--muted)'},
+  ], todas.length);
+
+  document.getElementById('mtEscada').innerHTML = mtEscada(mapa);
+
+  document.getElementById('mtNums').innerHTML =
+    '<div class="mt-num"><div class="r">Telas</div><div class="v">'+todas.length+'</div></div>' +
+    '<div class="mt-num"><div class="r">Com OS</div><div class="v" style="color:var(--red)">'+(c.nc+c.local)+'</div></div>' +
+    '<div class="mt-num"><div class="r">Sem registro</div><div class="v" style="color:var(--muted)">'+c.pend+'</div></div>';
+
+  /* grupos, problema primeiro */
+  const ord = mapa.slice().sort((a,b)=>{
+    const ca = mtConta(a.locais.flatMap(l=>l.telas));
+    const cb = mtConta(b.locais.flatMap(l=>l.telas));
+    return (cb.nc+cb.local) - (ca.nc+ca.local);
+  });
+
+  const passa = t => mtFiltro === 'tudo' ||
+                     (mtFiltro === 'nc' && (t.status==='nc' || t.status==='local')) ||
+                     (mtFiltro === 'pend' && t.status==='pend');
+
+  document.getElementById('mtGrupos').innerHTML = ord.map(g=>{
+    const t = g.locais.flatMap(l=>l.telas);
+    if(!t.length) return '';
+    const cg = mtConta(t);
+    const probs = cg.nc + cg.local;
+    const pct = t.length ? (cg.ok/t.length*100) : 0;
+
+    const comTela = g.locais.filter(l=>l.telas.length);
+    const compacto = comTela.length > 0 && comTela.every(l=>l.qtd === 1);
+
+    let corpo = '';
+    if(compacto){
+      let itens = comTela.map(l=>({l:l, t:l.telas[0]})).filter(x=>passa(x.t));
+      if(!itens.length) return '';
+      itens.sort((a,b)=> ((b.t.status==='nc'||b.t.status==='local')?1:0) - ((a.t.status==='nc'||a.t.status==='local')?1:0));
+      corpo = '<div class="mt-chips">' + itens.map(({l,t})=>
+        '<div class="mt-chip s-'+t.status+(l.aconferir?' mt-conf':'')+'" onclick="mtClique(\''+t.codigo+'\')" ' +
+        'title="'+escVist(l.nome)+' — '+MT_ROT[t.status]+(l.aconferir?' · unidade a confirmar':'')+'">' +
+        '<span class="pt" style="background:'+MT_COR[t.status]+'"></span>' +
+        '<span><span class="nn">'+escVist(l.nome)+(l.aconferir?' ?':'')+'</span>' +
+        (t.os ? '<br><span class="oc2">'+escVist(t.os.code)+'</span>' : '') +
+        '</span></div>').join('') + '</div>';
+    } else {
+      corpo = g.locais.map(l=>{
+        const vis = l.telas.filter(passa);
+        if(!vis.length) return '';
+        const cl = mtConta(l.telas);
+        return '<div class="mt-uh"><span class="un">'+escVist(l.nome)+'</span>' +
+          '<span class="qt">'+l.qtd+' tela'+(l.qtd>1?'s':'')+'</span>' +
+          ((cl.nc+cl.local) ? '<span style="font-size:10px;font-weight:700;color:var(--red)">⚠ '+(cl.nc+cl.local)+'</span>' : '') +
+          '</div><div class="mt-telas">' + vis.map(t=>
+            '<div class="mt-tela s-'+t.status+((telasInfo[t.codigo]||{}).nome ? ' nomeada' : '')+
+              ((telasInfo[t.codigo]||{}).inativa ? ' inativa' : '')+'" onclick="mtClique(\''+t.codigo+'\')" ' +
+            'title="'+t.codigo+((telasInfo[t.codigo]||{}).nome ? ' — '+escVist(telasInfo[t.codigo].nome) : '')+
+              ' — '+MT_ROT[t.status]+(t.os ? ' ('+escVist(t.os.code)+')' : '')+'">'+escVist(mtRotulo(t))+'</div>').join('') +
+          '</div>';
+      }).join('');
+      if(!corpo.trim()) return '';
+    }
+
+    return '<div class="mt-grupo'+(probs?' prob':'')+'">' +
+      '<div class="mt-gh"><span class="nm">'+g.grupo+'</span>' +
+      '<span class="tg">'+g.tipo+'</span>' +
+      (probs ? '<span class="tg al">'+probs+' com OS</span>' : '') +
+      '<span style="flex:1"></span>' +
+      '<div style="text-align:right"><div style="font-size:17px;font-weight:700;color:' +
+        (pct===100?'var(--teal)':pct>=85?'var(--text)':'var(--red)')+'">'+pct.toFixed(0)+'%</div>' +
+      '<div style="font-size:10.5px;color:var(--muted)">'+cg.ok+' de '+t.length+' sem OS</div></div></div>' +
+      '<div class="mt-barra">' +
+        '<i style="width:'+(cg.ok/t.length*100)+'%;background:var(--teal)"></i>' +
+        '<i style="width:'+(cg.pend/t.length*100)+'%;background:var(--muted)"></i>' +
+        '<i style="width:'+(cg.local/t.length*100)+'%;background:var(--amber)"></i>' +
+        '<i style="width:'+(cg.nc/t.length*100)+'%;background:var(--red)"></i>' +
+      '</div>' + corpo + '</div>';
+  }).join('') || '<div class="mt-grupo" style="text-align:center;color:var(--muted);font-size:13px;">Nenhuma tela neste filtro. 🎉</div>';
+}
+
+// clique numa tela: abre a OS existente, ou cria uma nova já identificada
+function mtClique(codigo){
+  const mapa = mtMontar();
+  const t = mapa.flatMap(g=>g.locais.flatMap(l=>l.telas)).find(x=>x.codigo===codigo);
+  if(!t) return;
+
+  // com o modo de edição ligado, o clique serve para dar nome à tela
+  if(mtEditando){ mtAbrirRenomear(codigo, t.local); return; }
+
+  if(t.os){ mtAbrirOS(t.os.id); return; }
+
+  if(!currentUser || !(ehAdmin() || currentUser.role === 'tecnico')){
+    askConfirm('Tela ' + codigo + ' — ' + t.local + '\n' + MT_ROT[t.status] +
+               '\n\nEntre como técnico ou administrador para abrir uma OS aqui.', ()=>{});
+    return;
+  }
+
+  askConfirm('Abrir OS para a tela ' + codigo + ' (' + t.local + ')?', ()=>{
+    closeMapaTelas();
+    telaPreSelecionada = { codigo: t.codigo, local: t.local };
+    openModal();   // o formulário lê telaPreSelecionada e já preenche
+  });
+}
+
+/* ---------- nomes das telas (só administrador) ---------- */
+let mtEditando = false;
+let mtTelaEmEdicao = null;
+
+function mtAlternarEdicao(){
+  if(!ehAdmin()){
+    askConfirm('Só o administrador pode renomear telas.', ()=>{});
+    return;
+  }
+  mtEditando = !mtEditando;
+  document.body.classList.toggle('mt-modo-edicao', mtEditando);
+  const b = document.getElementById('btnMtEditar');
+  if(b){
+    b.textContent = mtEditando ? '✓ Concluir' : '✏️ Nomear telas';
+    b.classList.toggle('primary', mtEditando);
+  }
+  const aviso = document.getElementById('mtAvisoEdicao');
+  if(aviso) aviso.style.display = mtEditando ? 'flex' : 'none';
+}
+
+function mtAbrirRenomear(codigo, local){
+  mtTelaEmEdicao = codigo;
+  const info = telasInfo[codigo] || {};
+  document.getElementById('mtRenTitulo').textContent = 'Tela ' + codigo;
+  document.getElementById('mtRenOnde').textContent = local || '';
+  document.getElementById('mtRenNome').value = info.nome || '';
+  document.getElementById('mtRenInativa').checked = !!info.inativa;
+  document.getElementById('mtRenOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('mtRenNome').focus(), 60);
+}
+
+function mtFecharRenomear(){
+  document.getElementById('mtRenOverlay').classList.remove('show');
+  mtTelaEmEdicao = null;
+}
+
+function mtSalvarNome(){
+  if(!mtTelaEmEdicao) return;
+  const nome = document.getElementById('mtRenNome').value.trim();
+  const inativa = document.getElementById('mtRenInativa').checked;
+  // sem nome e ativa: não guarda nada, volta ao código automático
+  if(!nome && !inativa) delete telasInfo[mtTelaEmEdicao];
+  else telasInfo[mtTelaEmEdicao] = { nome: nome, inativa: inativa };
+  persistComAviso('Não foi possível confirmar a gravação do nome no servidor. Repita com boa conexão.');
+  mtFecharRenomear();
+  renderMapaTelas();
+}
+
+// o que aparece dentro do quadradinho: nome curto dado pelo admin, ou o número
+function mtRotulo(t){
+  const info = telasInfo[t.codigo] || {};
+  if(!info.nome) return String(t.num);
+  return info.nome.length > 4 ? info.nome.slice(0,4) : info.nome;
+}
+
+function mtAbrirOS(id){
+  if(!id) return;
+  closeMapaTelas();
+  openModal(id);
+}
+
+function mtFiltrar(f){ mtFiltro = f; renderMapaTelas(); }
+
+function openMapaTelas(){
+  const b = document.getElementById('btnMtEditar');
+  if(b) b.style.display = ehAdmin() ? 'inline-flex' : 'none';
+  renderMapaTelas();
+  document.getElementById('mapaTelasPage').style.display = 'block';
+}
+function closeMapaTelas(){
+  if(mtEditando) mtAlternarEdicao();
+  document.getElementById('mapaTelasPage').style.display = 'none';
+}
+
+let telaPreSelecionada = null;
+
+function renderMapaTelasSeAberto(){
+  const p = document.getElementById('mapaTelasPage');
+  if(p && p.style.display === 'block') renderMapaTelas();
+}
+
 function openDashboard(){
   renderFaixaRota();
   renderFaixaRotaFixa();
@@ -4904,6 +5721,7 @@ function desenhaPizzas(r){
     svgRosca(porSituacao, r.emitidas, 'Emitidas por situação') +
     svgRosca(cumprimento, r.emitidas, 'Realizadas x pendentes');
 }
+
 
 function renderDashboard(){
   const MESES_LABEL = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
