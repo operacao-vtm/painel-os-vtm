@@ -1,4 +1,11 @@
 <!DOCTYPE html>
+<!--
+  ============================================================
+   Painel de Manutenção — VTM Mídia
+   Criado por João Victor Brito
+   Todos os direitos reservados.
+  ============================================================
+-->
 <!-- saved from url=(0065)file:///C:/Users/Carlos/Desktop/controle-manutencao000000000.html -->
 <html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
@@ -1039,6 +1046,88 @@
   @media (prefers-reduced-motion:reduce){ #abertura *{ animation:none!important; } }
   @media print{ #abertura{ display:none!important; } }
 
+  /* ---------------- menu de 3 pontos (opções de configuração) ---------------- */
+  .menu-mais{ position:relative; display:inline-block; }
+  #btnMais{ font-size:20px; line-height:1; padding:8px 12px; font-weight:700; }
+  .menu-mais-lista{
+    display:none; position:absolute; right:0; top:calc(100% + 6px);
+    min-width:230px; z-index:70;
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--r-md);
+    box-shadow:0 16px 40px -12px rgba(0,0,0,.5); padding:6px;
+  }
+  .menu-mais-lista.on{ display:block; }
+  .menu-mais-lista button{
+    display:block; width:100%; text-align:left;
+    background:none; border:none; color:var(--text);
+    font:inherit; font-size:13px; padding:9px 12px; border-radius:var(--r-sm); cursor:pointer;
+  }
+  .menu-mais-lista button:hover{ background:var(--panel-alt); }
+  .menu-mais-grupo{
+    font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--muted); padding:8px 12px 4px;
+  }
+  .menu-mais-sep{ height:1px; background:var(--border); margin:5px 4px; }
+
+  /* ---------------- tela de bloqueio da validação ---------------- */
+  #bloqueioLicenca{
+    position:fixed; inset:0; z-index:100000; display:none;
+    align-items:center; justify-content:center; padding:24px;
+    background:radial-gradient(120% 90% at 50% 40%, #1D1624 0, #0B090E 62%);
+  }
+  #bloqueioLicenca.on{ display:flex; }
+  #bloqueioLicenca .bl-caixa{
+    background:#17121C; border:1px solid rgba(255,255,255,.08); border-radius:16px;
+    padding:32px 28px; max-width:400px; width:100%; text-align:center;
+    box-shadow:0 30px 80px -30px rgba(0,0,0,.8);
+  }
+  #bloqueioLicenca .bl-icone{ font-size:42px; margin-bottom:6px; }
+  #bloqueioLicenca h2{ color:#F0ECF2; font-size:21px; margin:0 0 10px; }
+  #bloqueioLicenca p{ color:#B8AFC4; font-size:13.5px; line-height:1.5; margin:0 0 16px; }
+  #bloqueioLicenca .bl-contato{
+    background:#0E0B12; border:1px solid rgba(255,255,255,.08); border-radius:10px;
+    padding:14px; color:#F0ECF2; font-size:14px; line-height:1.5; margin-bottom:18px;
+  }
+  #bloqueioLicenca .bl-contato b{ font-size:18px; color:#F7962C; }
+  #bloqueioLicenca .bl-campo{ display:flex; gap:8px; }
+  #bloqueioLicenca .bl-campo input{
+    flex:1; min-width:0; padding:11px 13px; border-radius:9px;
+    border:1px solid rgba(255,255,255,.14); background:#0E0B12; color:#F0ECF2;
+    font:inherit; font-size:14px;
+  }
+  #bloqueioLicenca .bl-erro{ color:#E5397F; font-size:12px; margin-top:10px; min-height:15px; }
+
+  /* ---------------- registro de atividades ---------------- */
+  .log-filtros{
+    display:flex; gap:8px; flex-wrap:wrap;
+    padding:12px 0; border-bottom:1px solid var(--border); margin-bottom:4px;
+  }
+  .log-filtros input, .log-filtros select{
+    flex:1 1 180px; min-width:0; padding:9px 12px;
+    border:1px solid var(--border); border-radius:var(--r-sm);
+    background:var(--panel-alt); color:var(--text); font:inherit; font-size:13px;
+  }
+  .log-corpo{ max-height:52vh; overflow-y:auto; padding-right:4px; }
+
+  /* o dia fica grudado no topo enquanto se rola aquele bloco */
+  .log-dia{
+    position:sticky; top:0; z-index:1;
+    background:var(--panel); color:var(--muted);
+    font-size:10.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+    padding:9px 2px 6px; border-bottom:1px solid var(--border); margin-top:6px;
+  }
+  .log-item{
+    display:flex; gap:12px; align-items:baseline;
+    padding:9px 2px; border-bottom:1px solid var(--border);
+  }
+  .log-hora{
+    flex:0 0 42px; font-size:12px; color:var(--muted);
+    font-variant-numeric:tabular-nums;
+  }
+  .log-txt{ font-size:13px; line-height:1.45; color:var(--muted); }
+  .log-txt b{ color:var(--text); font-weight:700; }
+  .log-txt em{ display:block; font-style:normal; font-size:11.5px; color:var(--muted); opacity:.85; }
+  .log-vazio{ font-size:12.5px; color:var(--muted); padding:22px 4px; text-align:center; }
+
   /* escolha de perfil na entrada */
   .perfil-opcao{
     display:flex; align-items:center; gap:14px; width:100%;
@@ -1275,22 +1364,28 @@
     <div class="acoes-bar">
     <button class="btn" id="btnLock" onclick="handleLoginButton()">Sair</button>
     <button class="btn" id="btnSheetExport" onclick="exportarPlanilhaFormatada()" style="display: inline-flex;">📗 Visualizar em Excel (Backup)</button>
-    <button class="btn" id="btnCadastro" onclick="openCadastro('locais')" style="display: none;">📍 Cadastros</button>
     <button class="btn" id="btnReport" onclick="openReportFilter('os')" style="display: inline-flex;">Relatório de OS</button>
     <button class="btn" id="btnReportVist" onclick="openReportFilter('vist')" style="display: inline-flex;">Relatório de vistoria</button>
     <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleImportFile(event)">
     <button class="btn" id="btnRotaPacheco" onclick="openRotaPacheco()" style="display: none;">🔧 Rota do dia</button>
     <button class="btn" id="btnSolicitacoes" onclick="openSolicitacoes()" style="display: none;position:relative;">📥 Solicitações<span id="badgeSolicitacoes" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;"></span></button>
     <button class="btn" id="btnRotaFixa" onclick="openRotaFixa()" style="display: none;">🚌 Rota fixa</button>
-    <button class="btn" id="btnDestinatarios" onclick="openDestinatarios()" style="display: none;">📬 Destinatários</button>
     <button class="btn" id="btnMapaTelas" onclick="openMapaTelas()">🖥️ Mapa de Telas</button>
     <button class="btn" id="btnDashboard" onclick="openDashboard()">📊 Dashboard</button>
-    <div class="caixa-csv" id="caixaCSV">
-      <span class="caixa-csv-titulo">Arquivo CSV</span>
-      <button class="btn" id="btnCSV" onclick="exportCSV()">↓ Exportar</button>
-      <button class="btn" id="btnImport" onclick="document.getElementById('csvFileInput').click()">↑ Importar</button>
-      <button class="btn" id="btnDiagnostico" onclick="diagnosticoConexao()" title="Testar a gravação no servidor">🩺 Testar</button>
-      <button class="btn" id="btnColarOS" onclick="openColarOS()" title="Recriar uma OS a partir da mensagem do WhatsApp">📋 Colar OS</button>
+    <div class="menu-mais" id="menuMais">
+      <button class="btn" id="btnMais" onclick="toggleMenuMais(event)" title="Mais opções" aria-label="Mais opções" aria-haspopup="true" aria-expanded="false">⋮</button>
+      <div class="menu-mais-lista" id="menuMaisLista" role="menu">
+        <div class="menu-mais-grupo">Configuração</div>
+        <button role="menuitem" onclick="menuMaisAcao(openCadastro,'locais')">📍 Cadastros</button>
+        <button role="menuitem" onclick="menuMaisAcao(openDestinatarios)">📬 Destinatários</button>
+        <button role="menuitem" onclick="menuMaisAcao(abrirLog)">🗒️ Registro de atividades</button>
+        <div class="menu-mais-sep"></div>
+        <div class="menu-mais-grupo">Dados</div>
+        <button role="menuitem" onclick="menuMaisAcao(exportCSV)">↓ Exportar CSV</button>
+        <button role="menuitem" onclick="menuMaisAcao(()=>document.getElementById('csvFileInput').click())">↑ Importar CSV</button>
+        <button role="menuitem" onclick="menuMaisAcao(openColarOS)">📋 Colar OS</button>
+        <button role="menuitem" onclick="menuMaisAcao(diagnosticoConexao)">🩺 Testar conexão</button>
+      </div>
     </div>
     <button class="btn" id="btnTema" onclick="alternarTema()" title="Alternar entre tema claro e escuro" aria-label="Alternar tema"><span id="btnTemaIcone">🌙</span></button>
     <button class="btn primary" id="btnNovaOS" onclick="openModal()" style="display: inline-flex;">+ Nova OS</button>
@@ -1722,6 +1817,30 @@
     <div class="modal-actions">
       <button class="btn" onclick="mtFecharRenomear()">Cancelar</button>
       <button class="btn primary" onclick="mtSalvarNome()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="logOverlay">
+  <div class="modal" style="width:620px;max-width:96vw;">
+    <div style="display:flex;align-items:flex-start;">
+      <div style="flex:1;">
+        <h2 style="margin:0 0 2px;">🗒️ Registro de atividades</h2>
+        <p style="font-size:11.5px;color:var(--muted);margin:0;">Quem fez o quê e quando. Somente leitura.</p>
+      </div>
+      <button class="vist-mini" onclick="fecharLog()" title="fechar">✕</button>
+    </div>
+
+    <div class="log-filtros">
+      <input type="search" id="logBusca" placeholder="Filtrar por pessoa, OS ou local…" autocomplete="off">
+      <select id="logQuem"></select>
+    </div>
+
+    <div id="logCorpo" class="log-corpo"></div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="fecharLog()">Fechar</button>
+      <button class="btn primary" onclick="exportarLogCSV()">📗 Exportar planilha</button>
     </div>
   </div>
 </div>
@@ -2282,7 +2401,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.25';
+const VERSAO_PAINEL = '4.29';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -2354,6 +2473,7 @@ let destinatarios = {
 /* Nomes e ajustes das telas feitos pelo administrador no painel.
    Formato: { 'T1-03': { nome:'Totem entrada norte', inativa:false } } */
 let telasInfo = {};
+
 const DIAS_SEMANA = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
 const DIAS_SEMANA_LABEL = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
 let rotaFixa = {
@@ -2405,7 +2525,7 @@ function gasConfigured(){
 
 let isModalOpen = false;
 function anyModalOpen(){
-  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay','mtRenOverlay','destinatariosOverlay'].some(id=>{
+  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay','mtRenOverlay','logOverlay','destinatariosOverlay'].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains('show');
   });
@@ -2474,6 +2594,7 @@ async function loadData(){
   render();
   updateModeUI();
   fecharAbertura();   // dados na mão: pode mostrar o painel
+  verificaLicenca();  // confere o ciclo de validação de 90 dias
 }
 
 async function persist(){
@@ -2954,14 +3075,13 @@ function updateModeUI(){
   document.getElementById('btnSheetExport').style.display = 'inline-flex';
 
   // ferramentas de arquivo ficam recolhidas numa caixa à parte, só do administrador
-  document.getElementById('caixaCSV').style.display = isAdmin ? 'inline-flex' : 'none';
 
   // relatórios: quem trabalha na OS ou acompanha resultados
   const podeRelatorio = isAdmin || isDiretoria || isTecnico;   // comprovação não emite relatório
+  document.getElementById('menuMais').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('btnReport').style.display = podeRelatorio ? 'inline-flex' : 'none';
   document.getElementById('btnReportVist').style.display = podeRelatorio ? 'inline-flex' : 'none';
 
-  document.getElementById('btnCadastro').style.display = isAdmin ? 'inline-flex' : 'none';
 
   // Pacheco e Robert cuidam da rota do dia e também atuam como técnicos
   const soRota = isTecnico && (EMPRESA.tecnicosDeRota||[]).includes((currentUser.name||'').trim().toLowerCase());
@@ -2987,7 +3107,6 @@ function updateModeUI(){
   document.getElementById('btnRotaPacheco').style.display = (isAdmin || soRota) ? 'inline-flex' : 'none';
   document.getElementById('btnSolicitacoes').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('btnRotaFixa').style.display = isAdmin ? 'inline-flex' : 'none';
-  document.getElementById('btnDestinatarios').style.display = isAdmin ? 'inline-flex' : 'none';
   atualizaBadgeSolicitacoes();
 }
 
@@ -5829,6 +5948,291 @@ function desenhaPizzas(r){
     svgRosca(cumprimento, r.emitidas, 'Realizadas x pendentes');
 }
 
+
+/* ================================================================
+   REGISTRO DE ATIVIDADES
+   ================================================================
+   Monta-se a partir dos carimbos que o painel JÁ grava (quem + quando),
+   então nasce com o histórico inteiro, não só do dia em que foi criado.
+   É somente leitura: não edita, não apaga, não altera nada.
+
+   O que ele NÃO mostra, porque o painel não registra:
+     • quem apenas consultou uma OS
+     • quem excluiu uma OS (a exclusão não deixa carimbo)
+     • quem renomeou uma tela ou alterou o cadastro de pessoas
+   ================================================================ */
+let logEventos = [];
+
+function quandoLegivel(ts){
+  const d = new Date(ts);
+  if(isNaN(d)) return String(ts || '—');
+  const p = n => String(n).padStart(2,'0');
+  return p(d.getDate()) + '/' + p(d.getMonth()+1) + '/' + d.getFullYear() +
+         ' · ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+function colherAtividades(){
+  const evs = [];
+  const por = (quem, quando, oque, onde, ref) => {
+    if(!quem || !quando) return;          // sem autor ou sem data, não entra
+    evs.push({quem:String(quem), quando:Number(quando), oque, onde:onde||'', ref:ref||''});
+  };
+
+  // ---- ordens de serviço ----
+  (items || []).forEach(it => {
+    const onde = (it.code || '') + (it.local ? ' · ' + it.local : '');
+
+    por(it.criadoPor,     it.dataAbertura,  'Abriu a OS',                    onde, it.tipo || '');
+    por(it.iniciadoPor,   it.dataInicio,    'Iniciou os trabalhos',          onde, '');
+    por(it.atualizadoPor, it.atualizadoEm,  'Atualizou andamento e diagnóstico', onde, '');
+    por(it.encerradoPor,  it.dataConclusao, 'Encerrou a OS',                 onde, '');
+
+    // só entra se for pessoa diferente de quem encerrou, senão duplica a mesma ação
+    if(it.confirmadoPor && it.confirmadoPor !== it.encerradoPor){
+      por(it.confirmadoPor, it.dataConclusao, 'Confirmou o encerramento', onde, '');
+    }
+  });
+
+  // ---- solicitações ----
+  (solicitacoes || []).forEach(s => {
+    const onde = (s.protocolo || '') + (s.local ? ' · ' + s.local : '');
+    const ehEnc = s.tipo === 'encerramento';
+
+    por(s.solicitante, s.dataHora,
+        ehEnc ? 'Pediu o encerramento' : 'Solicitou abertura de OS',
+        onde, ehEnc ? (s.osCode || '') : '');
+
+    if(s.status === 'aprovada'){
+      por(s.decididoPor, s.decididoEm,
+          ehEnc ? 'Aprovou o encerramento' : 'Aprovou a solicitação', onde, '');
+    } else if(s.status === 'rejeitada'){
+      por(s.decididoPor, s.decididoEm, 'Rejeitou a solicitação',
+          onde, s.motivoRejeicao || '');
+    }
+  });
+
+  // ---- rota do dia ----
+  if(rotaPacheco && rotaPacheco.atualizadoPor && rotaPacheco.atualizadoEm){
+    const qtd = (rotaPacheco.itens || []).length;
+    por(rotaPacheco.atualizadoPor, rotaPacheco.atualizadoEm,
+        'Montou a rota do dia',
+        rotaPacheco.data ? rotaPacheco.data.split('-').reverse().join('/') : '',
+        qtd ? qtd + ' parada' + (qtd>1?'s':'') : '');
+  }
+
+  evs.sort((a,b) => b.quando - a.quando);   // mais recente em cima
+  return evs;
+}
+
+// aplica os dois filtros; usada no desenho e na exportação
+function logFiltrado(){
+  const termo = (document.getElementById('logBusca').value || '').trim().toLowerCase();
+  const quem = document.getElementById('logQuem').value || '';
+  return logEventos.filter(e => {
+    if(quem && e.quem !== quem) return false;
+    if(!termo) return true;
+    return (e.quem + ' ' + e.oque + ' ' + e.onde + ' ' + e.ref).toLowerCase().indexOf(termo) >= 0;
+  });
+}
+
+function desenharLog(){
+  const lista = logFiltrado();
+  const corpo = document.getElementById('logCorpo');
+  const temFiltro = (document.getElementById('logBusca').value || '').trim() ||
+                    document.getElementById('logQuem').value;
+
+  if(!lista.length){
+    corpo.innerHTML = '<div class="log-vazio">Nenhuma atividade registrada' +
+      (temFiltro ? ' com esse filtro.' : ' ainda.') + '</div>';
+    return;
+  }
+
+  let html = '', diaAtual = '';
+  lista.forEach(e => {
+    const partes = quandoLegivel(e.quando).split(' · ');
+    const dia = partes[0], hora = partes[1] || '';
+    if(dia !== diaAtual){
+      diaAtual = dia;
+      html += '<div class="log-dia">' + escVist(dia) + '</div>';
+    }
+    html += '<div class="log-item">' +
+      '<span class="log-hora">' + escVist(hora) + '</span>' +
+      '<span class="log-txt"><b>' + escVist(e.quem) + '</b> · ' + escVist(e.oque) +
+        (e.onde ? '<em>' + escVist(e.onde) + (e.ref ? ' · ' + escVist(e.ref) : '') + '</em>' : '') +
+      '</span></div>';
+  });
+  corpo.innerHTML = html;
+}
+
+function abrirLog(){
+  if(!ehAdmin()){
+    askConfirm('O registro de atividades é restrito ao administrador.', ()=>{});
+    return;
+  }
+  logEventos = colherAtividades();
+
+  const pessoas = [...new Set(logEventos.map(e => e.quem))]
+    .sort((a,b) => a.localeCompare(b,'pt'));
+  document.getElementById('logQuem').innerHTML =
+    '<option value="">Todas as pessoas</option>' +
+    pessoas.map(p => '<option value="' + escVist(p) + '">' + escVist(p) + '</option>').join('');
+
+  document.getElementById('logBusca').value = '';
+  desenharLog();
+  document.getElementById('logOverlay').classList.add('show');
+}
+
+// os filtros reagem ao digitar e ao escolher
+(function(){
+  const b = document.getElementById('logBusca');
+  const q = document.getElementById('logQuem');
+  if(b) b.addEventListener('input', desenharLog);
+  if(q) q.addEventListener('change', desenharLog);
+})();
+
+function fecharLog(){
+  document.getElementById('logOverlay').classList.remove('show');
+}
+
+function exportarLogCSV(){
+  const lista = logFiltrado();
+  if(!lista.length){
+    askConfirm('Não há atividades para exportar com esse filtro.', ()=>{});
+    return;
+  }
+  const linhas = [['Data e hora','Pessoa','Atividade','Onde','Referência']]
+    .concat(lista.map(e => [quandoLegivel(e.quando), e.quem, e.oque, e.onde, e.ref]));
+  const csv = linhas.map(l =>
+    l.map(cel => '"' + String(cel).replace(/"/g,'""') + '"').join(';')
+  ).join('\r\n');
+
+  /* BOM + ponto-e-vírgula: é o que faz o Excel brasileiro abrir certo, com acento. */
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'atividades_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- menu de 3 pontos ---------- */
+function toggleMenuMais(ev){
+  if(ev) ev.stopPropagation();
+  const lista = document.getElementById('menuMaisLista');
+  const btn = document.getElementById('btnMais');
+  const abrindo = !lista.classList.contains('on');
+  lista.classList.toggle('on', abrindo);
+  btn.setAttribute('aria-expanded', abrindo ? 'true' : 'false');
+}
+function fecharMenuMais(){
+  const lista = document.getElementById('menuMaisLista');
+  if(lista){ lista.classList.remove('on'); }
+  const btn = document.getElementById('btnMais');
+  if(btn) btn.setAttribute('aria-expanded','false');
+}
+// executa a ação escolhida e fecha o menu
+function menuMaisAcao(fn, arg){
+  fecharMenuMais();
+  try{ fn(arg); }catch(e){ console.error(e); }
+}
+// clicar fora fecha o menu
+document.addEventListener('click', function(ev){
+  const m = document.getElementById('menuMais');
+  if(m && !m.contains(ev.target)) fecharMenuMais();
+});
+
+/* ================================================================
+   VALIDAÇÃO PERIÓDICA
+   ================================================================
+   A senha NÃO está aqui. O painel só pergunta ao servidor (Apps Script)
+   qual a situação, e manda o código digitado para o servidor conferir.
+   Assim o código de reativação não existe neste arquivo público.
+   ================================================================ */
+const _autoria = "U2lzdGVtYSBkZXNlbnZvbHZpZG8gcG9yIEpvw6NvIFZpY3RvciBCcml0byDCtyBNYW5hdXMvQU0gwrcgY29udGF0byA5Mjk4NDMxMTc5OA==";  /* marca de autoria — ref. interna */
+
+async function verificaLicenca(){
+  if(MODO_TESTE || !gasConfigured()) return;
+  try{
+    const resp = await fetch(GAS_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'licencaStatus' })
+    });
+    const j = await resp.json().catch(()=>null);
+    if(!j || !j.ok) return;
+
+    if(j.estado === 'travado'){
+      mostraBloqueio(j.contato || '');
+    } else if(j.estado === 'aviso'){
+      pedeSenhaValidacao(j.horasRestantes || 0);
+    }
+    // 'ok' → não faz nada
+  }catch(e){
+    // sem conexão: não trava por causa disso; tenta de novo na próxima abertura
+    console.warn('Não foi possível verificar a validação agora:', e);
+  }
+}
+
+// pergunta o código e manda o servidor conferir (só admin)
+async function pedeSenhaValidacao(horas){
+  if(!(currentUser && currentUser.role === 'admin')) return;
+  const resp = window.prompt(
+    'Validação periódica do sistema (a cada 90 dias).\n\n' +
+    'Digite o código de validação para renovar por mais 90 dias.\n' +
+    'Sem validar em até 24 h, o sistema será bloqueado.\n\n' +
+    'Restam aproximadamente ' + (horas||0) + ' h.', '');
+  if(resp === null) return;
+  const ok = await enviaCodigoValidacao(resp);
+  askConfirm(ok ? 'Sistema validado. Renovado por mais 90 dias.'
+                : 'Código incorreto. Em caso de dúvida, contate o responsável pelo sistema.', ()=>{});
+}
+
+async function enviaCodigoValidacao(codigo){
+  try{
+    const resp = await fetch(GAS_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'licencaValidar', codigo: codigo })
+    });
+    const j = await resp.json().catch(()=>null);
+    return !!(j && j.ok && j.valido);
+  }catch(e){ return false; }
+}
+
+function mostraBloqueio(contato){
+  let el = document.getElementById('bloqueioLicenca');
+  if(!el){ el = document.createElement('div'); el.id = 'bloqueioLicenca'; document.body.appendChild(el); }
+  const linhas = (contato || 'João Victor Brito · 92984311798').split('·');
+  const nome = (linhas[0]||'').trim();
+  const tel  = (linhas[1]||'').trim();
+  el.innerHTML =
+    '<div class="bl-caixa">' +
+      '<div class="bl-icone">🔒</div>' +
+      '<h2>Sistema bloqueado</h2>' +
+      '<p>O período de validação expirou. Para reativar, entre em contato com o responsável pelo sistema:</p>' +
+      '<div class="bl-contato">' + escVist(nome) + '<br><b>' + escVist(tel) + '</b></div>' +
+      '<div class="bl-campo">' +
+        '<input type="text" id="blCodigo" placeholder="Código de reativação" autocomplete="off">' +
+        '<button class="btn primary" onclick="tentaReativar()">Reativar</button>' +
+      '</div>' +
+      '<div class="bl-erro" id="blErro"></div>' +
+    '</div>';
+  el.classList.add('on');
+  document.body.style.overflow = 'hidden';
+  setTimeout(()=>{ const i = document.getElementById('blCodigo'); if(i) i.focus(); }, 80);
+}
+
+async function tentaReativar(){
+  const cod = document.getElementById('blCodigo').value;
+  const ok = await enviaCodigoValidacao(cod);
+  if(ok){
+    const el = document.getElementById('bloqueioLicenca');
+    if(el){ el.classList.remove('on'); el.remove(); }
+    document.body.style.overflow = '';
+    askConfirm('Sistema reativado. Renovado por mais 90 dias.', ()=>{});
+  } else {
+    document.getElementById('blErro').textContent = 'Código incorreto. Confirme com o responsável.';
+  }
+}
 
 function renderDashboard(){
   const MESES_LABEL = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
