@@ -7,7 +7,13 @@
   ============================================================
 -->
 <!-- saved from url=(0065)file:///C:/Users/Carlos/Desktop/controle-manutencao000000000.html -->
-<html lang="pt-BR"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<html lang="pt-BR"><head>
+<!--
+  ================================================================
+  Sistema desenvolvido por João Victor Brito e Carlos Pontes
+  Manaus/AM · Todos os direitos reservados
+  ================================================================
+--><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 
 <title>Painel de Manutenção — VTM</title>
@@ -2413,7 +2419,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.30';
+const VERSAO_PAINEL = '4.31';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -6175,7 +6181,7 @@ document.addEventListener('click', function(ev){
    qual a situação, e manda o código digitado para o servidor conferir.
    Assim o código de reativação não existe neste arquivo público.
    ================================================================ */
-const _autoria = "U2lzdGVtYSBkZXNlbnZvbHZpZG8gcG9yIEpvw6NvIFZpY3RvciBCcml0byDCtyBNYW5hdXMvQU0gwrcgY29udGF0byA5Mjk4NDMxMTc5OA==";  /* marca de autoria — ref. interna */
+const _autoria = "U2lzdGVtYSBkZXNlbnZvbHZpZG8gcG9yIEpvw6NvIFZpY3RvciBCcml0byBlIENhcmxvcyBQb250ZXMgwrcgTWFuYXVzL0FNIMK3IGNvbnRhdG8gOTI5ODQzMTE3OTg=";  /* marca de autoria — ref. interna */
 
 async function verificaLicenca(){
   if(MODO_TESTE || !gasConfigured()) return;
