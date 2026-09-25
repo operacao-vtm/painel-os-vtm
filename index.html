@@ -1046,6 +1046,20 @@
   @media (prefers-reduced-motion:reduce){ #abertura *{ animation:none!important; } }
   @media print{ #abertura{ display:none!important; } }
 
+  /* ---------------- voltar flutuante nas páginas que rolam ---------------- */
+  .voltar-fixo{
+    position:fixed; z-index:90;
+    top:calc(14px + env(safe-area-inset-top,0px)); left:16px;
+    display:inline-flex; align-items:center; gap:7px;
+    background:var(--panel); color:var(--text);
+    border:1px solid var(--border); border-radius:999px;
+    padding:9px 16px 9px 13px; font:inherit; font-size:13px; font-weight:700;
+    cursor:pointer; box-shadow:0 6px 18px -6px rgba(0,0,0,.45);
+    transition:transform .12s ease, border-color .12s ease;
+  }
+  .voltar-fixo:hover{ transform:translateY(-1px); border-color:var(--brand-1); }
+  .voltar-fixo .seta{ font-size:15px; line-height:1; }
+
   /* ---------------- menu de 3 pontos (opções de configuração) ---------------- */
   .menu-mais{ position:relative; display:inline-block; }
   #btnMais{ font-size:20px; line-height:1; padding:8px 12px; font-weight:700; }
@@ -1460,10 +1474,9 @@
 
 
 <div id="dashboardPage" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:60;overflow-y:auto;">
-  <div style="max-width:1100px;margin:0 auto;padding:24px 20px 60px;">
+  <div style="max-width:1100px;margin:0 auto;padding:64px 20px 60px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
       <h1 style="margin:0;">📊 Dashboard</h1>
-      <button class="btn" onclick="closeDashboard()">← Voltar ao painel</button>
     </div>
 
     <div id="faixaRotaDash" style="display:none;background:var(--rota-bg);border:1px solid var(--rota-bd);border-radius:8px;padding:8px 14px;margin-bottom:10px;overflow:hidden;white-space:nowrap;position:relative;">
@@ -1506,7 +1519,7 @@
 </div>
 
 <div id="mapaTelasPage" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:60;overflow-y:auto;">
-  <div style="max-width:1280px;margin:0 auto;padding:24px 20px 60px;">
+  <div style="max-width:1280px;margin:0 auto;padding:64px 20px 60px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:14px;">
       <div>
         <h1 style="margin:0;">🖥️ Mapa de Telas</h1>
@@ -1517,7 +1530,6 @@
         <button class="btn" id="mtFnc" onclick="mtFiltrar('nc')">Com problema</button>
         <button class="btn" id="mtFpend" onclick="mtFiltrar('pend')">Sem registro</button>
         <button class="btn" id="btnMtEditar" onclick="mtAlternarEdicao()" style="display:none;">✏️ Nomear telas</button>
-        <button class="btn" onclick="closeMapaTelas()">← Voltar ao painel</button>
       </div>
     </div>
 
@@ -2401,7 +2413,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.29';
+const VERSAO_PAINEL = '4.30';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -5767,8 +5779,10 @@ function openMapaTelas(){
   if(b) b.style.display = ehAdmin() ? 'inline-flex' : 'none';
   renderMapaTelas();
   document.getElementById('mapaTelasPage').style.display = 'block';
+  mostrarVoltar(closeMapaTelas);
 }
 function closeMapaTelas(){
+  esconderVoltar();
   if(mtEditando) mtAlternarEdicao();
   document.getElementById('mapaTelasPage').style.display = 'none';
 }
@@ -5780,15 +5794,29 @@ function renderMapaTelasSeAberto(){
   if(p && p.style.display === 'block') renderMapaTelas();
 }
 
+// mostra o "Voltar" flutuante ligado à página aberta (fica no body, sempre visível)
+function mostrarVoltar(qualFechar){
+  const b = document.getElementById('voltarFixo');
+  if(!b) return;
+  b.onclick = qualFechar;
+  b.style.display = 'inline-flex';
+}
+function esconderVoltar(){
+  const b = document.getElementById('voltarFixo');
+  if(b) b.style.display = 'none';
+}
+
 function openDashboard(){
   renderFaixaRota();
   renderFaixaRotaFixa();
   renderDashboard();
   document.getElementById('dashboardPage').style.display = 'block';
+  mostrarVoltar(closeDashboard);
 }
 
 function closeDashboard(){
   document.getElementById('dashboardPage').style.display = 'none';
+  esconderVoltar();
 }
 
 // números do resumo rápido, usados no painel e na planilha
@@ -7876,4 +7904,5 @@ if(!currentUser && !jaEscolheuPerfil()){
 
 
 
+<button class="voltar-fixo" id="voltarFixo" style="display:none;"><span class="seta">←</span> Voltar</button>
 </body></html>
