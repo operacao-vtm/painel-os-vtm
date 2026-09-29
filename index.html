@@ -1078,6 +1078,32 @@
     padding:3px 2px; line-height:1.3;
   }
   .locais-check .loc-item input{ width:auto; flex-shrink:0; }
+  /* grupos de comprovação dentro do card (compacto) */
+  .card-comp{ margin:6px 0 2px; }
+  .card-comp .comp-grupo{ padding:6px 8px; }
+  .card-comp .comp-gh{ font-size:11px; margin-bottom:4px; }
+  .card-comp .comp-pt{ font-size:10px; padding:1px 6px; }
+
+  /* comprovação: locais agrupados por cliente, empilhado (sem rolar de lado) */
+  .comp-grupos{ display:flex; flex-direction:column; gap:8px; }
+  .comp-grupo{ background:var(--panel-alt); border:1px solid var(--border); border-radius:9px; padding:8px 10px; }
+  .comp-gh{ font-size:12px; font-weight:700; color:var(--text); margin-bottom:5px; }
+  .comp-gh span{ color:var(--muted); font-weight:600; font-size:11px; }
+  .comp-pts{ display:flex; flex-wrap:wrap; gap:5px; }
+  .comp-pt{
+    font-size:11px; background:var(--panel); border:1px solid var(--border);
+    border-radius:6px; padding:2px 8px; color:var(--muted); white-space:nowrap;
+  }
+
+  .atalho-loc{
+    background:var(--panel-alt); border:1px solid var(--border); color:var(--text);
+    border-radius:99px; padding:4px 11px; font:inherit; font-size:10.5px; font-weight:600;
+    cursor:pointer; transition:border-color .12s ease, background .12s ease;
+  }
+  .atalho-loc:hover{ border-color:var(--brand-1); }
+  .atalho-loc.lim{ color:var(--muted); }
+  .atalho-loc.lim:hover{ border-color:var(--red); color:var(--red); }
+
   .loc-todos{
     background:none; border:none; color:var(--brand-1); font:inherit; font-size:9.5px;
     font-weight:700; cursor:pointer; padding:0; text-decoration:underline;
@@ -1670,9 +1696,11 @@
       <div id="fAcaoInfo" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
     </div>
     <div class="field" id="comprovacaoWrap" style="display:none;">
-      <label>Onde a foto da propaganda foi tirada</label>
+      <label>Locais desta comprovação</label>
+      <div id="fCompGrupos" style="margin-bottom:8px;"></div>
+      <label style="margin-top:4px;">Onde a foto da propaganda foi tirada (observação)</label>
       <input type="text" id="fLocalFoto" placeholder="Ex: Painel de entrada do shopping, virado para a Av. Principal">
-      <div style="font-size:9px;color:var(--muted);margin-top:3px;">Preenchido pelo prestador, para registrar o local exato da comprovação fotográfica. Anexe a foto nos campos "Foto de verificação/conclusão" abaixo.</div>
+      <div style="font-size:9px;color:var(--muted);margin-top:3px;">Anexe a foto nos campos "Foto de verificação/conclusão" abaixo.</div>
     </div>
     <div class="row2">
       <div class="field">
@@ -2507,7 +2535,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.46';
+const VERSAO_PAINEL = '4.49';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3519,6 +3547,11 @@ function openModal(id){
   preencheSelectLocais(it.local);
   document.getElementById('fAcao').value = it.acao || 'visita';
     document.getElementById('fLocalFoto').value = it.localFoto || '';
+    const gEl = document.getElementById('fCompGrupos');
+    if(gEl){
+      gEl.innerHTML = (it.compUnidades && it.compUnidades.length) ? agrupaLocaisComprovacao(it.compUnidades) : '';
+      gEl.style.display = (it.compUnidades && it.compUnidades.length) ? 'block' : 'none';
+    }
     document.getElementById('comprovacaoWrap').style.display = (it.acao === 'comprovacao') ? 'block' : 'none';
     document.getElementById('fTipo').value = it.tipo;
     document.getElementById('fPrioridadeM').value = it.prioridade;
@@ -3549,6 +3582,8 @@ function openModal(id){
     ['fLocal','fTipo','fSolicitante','fTecnicoM','fDiagnostico'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('fAcao').value = 'visita';
     document.getElementById('fLocalFoto').value = '';
+    const gElN = document.getElementById('fCompGrupos');
+    if(gElN){ gElN.innerHTML=''; gElN.style.display='none'; }
     document.getElementById('comprovacaoWrap').style.display = 'none';
     preencheSelectLocais('');
     document.getElementById('fPrioridadeM').value = 'normal';
@@ -4300,6 +4335,7 @@ function render(){
         ${it.prioridade==='maxima' ? '<div class="tag-maxima">PRIORIDADE MÁXIMA!!!!</div>' : ''}
         <div class="code mono">${it.code}${(temFoto(it.fotoVerificacao)||temFoto(it.fotoConclusao)) ? ' 📷' : ''}${it.vistoria ? ' 📋' + contaConjuntos(it) + 'c' + (contaNC(it) ? '/' + contaNC(it) + 'NC' : '') : (it.requerRelatorio ? ' 📋?' : '')}</div>
         <div class="loc">${it.local}</div>
+        ${(it.acao === 'comprovacao' && it.compUnidades && it.compUnidades.length) ? '<div class="card-comp">' + agrupaLocaisComprovacao(it.compUnidades) + '</div>' : ''}
         <div class="meta" style="color:var(--amber);"><span>${(ACOES[it.acao||'visita']||ACOES.visita).icone} ${(ACOES[it.acao||'visita']||ACOES.visita).curto}</span><span>${aguardandoPeca(it) ? '<span class="tag-peca">requisição de material</span>' : ''}${estaAtrasada(it) ? ' <span class="tag-atrasada" title="Prazo de ' + PRAZO_DIAS + ' dias vencido">⏱ atrasada ' + Math.abs(diasRestantes(it)) + 'd</span>' : ''}${it.parcial ? ' <span class="tag-parcial" title="' + escVist(it.parcialObs||'') + '">◐ parcialmente atendida</span>' : ''}</span></div>
         <div class="meta">
           <span>${it.tecnico||'sem técnico'}</span>
@@ -4916,8 +4952,9 @@ function onTipoMidiaChange(){
       return '<label class="loc-item"><input type="checkbox" class="loc-cb" value="' + escVist(loc) + '"> ' +
              escVist(loc) + '</label>';
     }).join('');
-    dica.innerHTML = '<button type="button" class="loc-todos" onclick="marcarTodosLocais(true)">marcar todos</button> · ' +
-                     '<button type="button" class="loc-todos" onclick="marcarTodosLocais(false)">limpar</button>';
+    // atalhos: descobre os "grupos" pela primeira palavra antes do "—"
+    // (Coema, Sensumed, RB Diagnósticos...) ou por Terminal/Estação
+    dica.innerHTML = montaAtalhosLocais(locais);
   }
 
   document.getElementById('sResponsavelInfo').textContent = resp
@@ -4925,8 +4962,75 @@ function onTipoMidiaChange(){
     : '';
 }
 
+// Agrupa uma lista de locais de comprovação por cliente (Coema, RB, Terminais…)
+// e devolve HTML empilhado — um cliente por linha, os pontos embaixo.
+function agrupaLocaisComprovacao(unidades){
+  if(!unidades || !unidades.length) return '';
+  const grupos = {};
+  const ordem = [];
+  unidades.forEach(function(u){
+    const g = grupoDoLocal(u);   // mesma regra dos botões (Coema, Sensumed, RB…)
+    let ponto;
+    if(/—/.test(u)) ponto = u.split('—').slice(1).join('—').trim();
+    else ponto = u.replace(new RegExp('^'+g+'\\s*','i'), '').trim() || u;
+    if(!grupos[g]){ grupos[g] = []; ordem.push(g); }
+    grupos[g].push(ponto);
+  });
+
+  return '<div class="comp-grupos">' + ordem.map(function(g){
+    const pts = grupos[g];
+    return '<div class="comp-grupo">' +
+      '<div class="comp-gh">' + escVist(g) + ' <span>(' + pts.length + ')</span></div>' +
+      '<div class="comp-pts">' + pts.map(function(p){
+        return '<span class="comp-pt">' + escVist(p) + '</span>';
+      }).join('') + '</div></div>';
+  }).join('') + '</div>';
+}
+
+function agrupaLocaisComprovacao_END(){}
+
 function marcarTodosLocais(v){
   document.querySelectorAll('#sLocaisCheck .loc-cb').forEach(function(cb){ cb.checked = v; });
+}
+
+// nome do grupo de um local, para agrupar os atalhos
+function grupoDoLocal(nome){
+  const n = String(nome);
+  if(/^terminal/i.test(n))  return 'Terminais';
+  if(/^esta[çc][ãa]o/i.test(n)) return 'Estações';
+  // "Coema — Novo Aleixo" → grupo "Coema" (antes do travessão)
+  if(/—/.test(n)) return n.split('—')[0].trim();
+  // sem travessão (ex: "Sensumed Adrianópolis") → primeira palavra = grupo
+  return n.split(/\s+/)[0].trim() || n;
+}
+
+// monta a fileira de botões de atalho, um por grupo presente na lista
+function montaAtalhosLocais(locais){
+  const grupos = [];
+  locais.forEach(function(loc){
+    const g = grupoDoLocal(loc);
+    if(!grupos.includes(g)) grupos.push(g);
+  });
+  var html = '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">';
+  html += '<span style="font-size:10px;color:var(--muted);font-weight:700;">Marcar:</span>';
+  grupos.forEach(function(g){
+    html += '<button type="button" class="atalho-loc" onclick="marcarGrupoLocais(\''+
+            g.replace(/'/g,"\\'")+'\')">todos ' + escVist(g) + '</button>';
+  });
+  html += '<span style="width:1px;height:14px;background:var(--border);margin:0 2px;"></span>';
+  html += '<button type="button" class="atalho-loc" onclick="marcarTodosLocais(true)">marcar tudo</button>';
+  html += '<button type="button" class="atalho-loc lim" onclick="marcarTodosLocais(false)">limpar</button>';
+  html += '</div>';
+  return html;
+}
+
+// marca (ou desmarca alternando) todas as caixas de um grupo
+function marcarGrupoLocais(grupo){
+  const cbs = [...document.querySelectorAll('#sLocaisCheck .loc-cb')]
+    .filter(function(cb){ return grupoDoLocal(cb.value) === grupo; });
+  // se todas já estão marcadas, desmarca; senão marca todas (toggle prático)
+  const todasMarcadas = cbs.length > 0 && cbs.every(function(cb){ return cb.checked; });
+  cbs.forEach(function(cb){ cb.checked = !todasMarcadas; });
 }
 
 // devolve os locais escolhidos, seja por checkbox ou pelo campo livre do PLM
@@ -5014,9 +5118,9 @@ function enviarSolicitacaoTecnico(){
     }
   }
 
-  const rotuloTipo = {terminais:'Terminais/Estações', totem:'Clínicas e supermercados', plm:'PLM'}[tipoMidia] || 'Comprovação';
+  const rotuloTipo = {terminais:'Terminais / Estações', totem:'Clínicas e supermercados', plm:'PLM'}[tipoMidia] || 'Comprovação';
   const local = ehComprovacao
-    ? rotuloTipo + ': ' + unidades.join(' · ')
+    ? 'Comprovação — ' + rotuloTipo + ' (' + unidades.length + ' local' + (unidades.length>1?'is':'') + ')'
     : document.getElementById('sLocal').value.trim();
 
   if(!ehComprovacao && !local){
@@ -5287,6 +5391,10 @@ function aprovarSolicitacao(id){
       acao: s.acao || 'corretiva',
       // comprovação já nasce com o local da foto, que é o dado central dela
       localFoto: (s.acao === 'comprovacao') ? (s.local || '') : '',
+      // guarda a lista completa (para exibir agrupada) e o tipo de mídia
+      compUnidades: (s.acao === 'comprovacao' && s.unidades) ? s.unidades.slice() : null,
+      compCampanhas: (s.acao === 'comprovacao' && s.campanhas) ? s.campanhas.slice() : null,
+      compTipo: (s.acao === 'comprovacao') ? (s.tipoMidia || '') : '',
       dataAbertura: Date.now(),
       dataPrevista: s.dataPrevista || '',
       dataConclusao: null,
