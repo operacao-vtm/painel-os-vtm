@@ -2535,7 +2535,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.55';
+const VERSAO_PAINEL = '4.56';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -4806,7 +4806,7 @@ function salvarRotaPacheco(){
     const it = items.find(x=>x.id===osId);
     if(!it) return;
     const horario = row.querySelector('.rota-hora').value || '';
-    itens.push({ osId, codigo: it.code, local: it.local, tipo: it.tipo||'', tecnico: it.tecnico||'', horario });
+    itens.push({ osId, codigo: it.code, local: it.local, tipo: it.tipo||'', acao: it.acao||'', tecnico: it.tecnico||'', horario });
   });
   itens.sort((a,b)=> (a.horario||'99:99').localeCompare(b.horario||'99:99'));
 
@@ -4832,11 +4832,15 @@ function limparRotaPacheco(){
 
 function textoDaRota(){
   if(!rotaPacheco || !rotaPacheco.itens || !rotaPacheco.itens.length) return '';
-  return rotaPacheco.itens.map(i=>
-    (i.horario ? i.horario+'h ' : '') + i.local +
-    ' (' + i.codigo + (i.tipo ? ' — '+i.tipo : '') + ')' +
-    (i.tecnico ? ' 👷 '+i.tecnico : '')
-  ).join('  →  ');
+  return rotaPacheco.itens.map(i=>{
+    // se a OS ainda existe, usa o mesmo título padronizado do card;
+    // senão, monta com o que o item guardou (funciona para rotas antigas)
+    const os = (typeof items !== 'undefined') ? items.find(x=>x.id===i.osId) : null;
+    const titulo = os ? tituloCurtoOS(os) : tituloCurtoOS({acao:i.acao, tipo:i.tipo, local:i.local});
+    return (i.horario ? i.horario+'h ' : '') + titulo +
+           ' (' + i.codigo + ')' +
+           (i.tecnico ? ' 👷 '+i.tecnico : '');
+  }).join('  →  ');
 }
 
 function atualizaFaixaGenerica(idFaixa, idTexto, mostrar, conteudo){
