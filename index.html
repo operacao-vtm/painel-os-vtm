@@ -1594,10 +1594,6 @@
     <h2>🔧 Rota do dia</h2>
     <p style="font-size:12px;color:var(--muted);margin:0 0 14px;">Marque as OS que serão feitas hoje e preencha o horário de cada uma. O local e os dados são preenchidos automaticamente. Isso aparece numa faixa no topo do painel, para todo mundo ver.</p>
     <div class="field">
-      <label>Data</label>
-      <input type="date" id="fRotaData">
-    </div>
-    <div class="field">
       <label>OS de hoje</label>
       <div id="rotaListaOS" style="max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
       <div style="font-size:9px;color:var(--muted);margin-top:5px;" id="rotaSemOS"></div>
@@ -2511,7 +2507,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.44';
+const VERSAO_PAINEL = '4.45';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -4718,7 +4714,6 @@ function hojeISO(){
 }
 
 function openRotaPacheco(){
-  document.getElementById('fRotaData').value = rotaPacheco.data || hojeISO();
   renderRotaListaOS();
   document.getElementById('rotaOverlay').classList.add('show');
 }
@@ -4779,7 +4774,7 @@ function salvarRotaPacheco(){
   itens.sort((a,b)=> (a.horario||'99:99').localeCompare(b.horario||'99:99'));
 
   rotaPacheco = {
-    data: document.getElementById('fRotaData').value || hojeISO(),
+    data: hojeISO(),   // a rota do dia é sempre de hoje
     itens: itens,
     atualizadoPor: currentUser ? currentUser.name : '',
     atualizadoEm: Date.now(),
@@ -4826,7 +4821,7 @@ function atualizaFaixaGenerica(idFaixa, idTexto, mostrar, conteudo){
 }
 
 function renderFaixaRota(){
-  const valida = rotaPacheco && rotaPacheco.data === hojeISO() && rotaPacheco.itens && rotaPacheco.itens.length;
+  const valida = rotaPacheco && rotaPacheco.itens && rotaPacheco.itens.length;
   const quem = rotaPacheco.atualizadoPor ? ' (' + rotaPacheco.atualizadoPor + ')' : '';
   const conteudo = '🔧 Rota de hoje' + quem + ': ' + textoDaRota();
   atualizaFaixaGenerica('faixaRota', 'faixaRotaTexto', valida, conteudo);
@@ -8135,7 +8130,7 @@ function generateReport(filteredItems){
     <hr style="border:none;border-top:1px solid #999;margin:0 0 14px;">
     <h1 style="font-size:20px;margin:0 0 4px;">Relatório de manutenção</h1>
     <p style="font-size:12px;color:#555;margin:0 0 10px;">Gerado em ${new Date().toLocaleString('pt-BR')} — ${list.length} de ${items.length} ordens de serviço (com os filtros aplicados)</p>
-    ${ (rotaPacheco && rotaPacheco.data === hojeISO() && rotaPacheco.itens && rotaPacheco.itens.length) ? `
+    ${ (rotaPacheco && rotaPacheco.itens && rotaPacheco.itens.length) ? `
     <div style="background:#FFF6E0;border:1px solid #C98A2C;border-radius:6px;padding:8px 12px;margin:0 0 14px;font-size:11.5px;">
       <b>Rota do dia (Pacheco / Robert):</b> ${textoDaRota()}
       <div style="color:#7A5A0F;font-size:10px;margin-top:2px;">Atualizado por ${rotaPacheco.atualizadoPor||'-'} em ${fmtDataHora(rotaPacheco.atualizadoEm)}</div>
