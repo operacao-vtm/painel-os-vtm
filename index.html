@@ -1066,6 +1066,29 @@
   .voltar-fixo:hover{ transform:translateY(-1px); border-color:var(--brand-1); }
   .voltar-fixo .seta{ font-size:15px; line-height:1; }
 
+  /* ---------------- locais da comprovação (checkboxes) ---------------- */
+  .locais-check{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:5px 10px;
+    max-height:230px; overflow-y:auto; padding:4px 2px;
+    border:1px solid var(--border); border-radius:var(--r-sm); padding:8px;
+  }
+  .locais-check .loc-item{
+    display:flex; align-items:center; gap:7px; font-size:12.5px; cursor:pointer;
+    padding:3px 2px; line-height:1.3;
+  }
+  .locais-check .loc-item input{ width:auto; flex-shrink:0; }
+  .loc-todos{
+    background:none; border:none; color:var(--brand-1); font:inherit; font-size:9.5px;
+    font-weight:700; cursor:pointer; padding:0; text-decoration:underline;
+  }
+  /* player do vídeo na aprovação */
+  .video-embed{
+    position:relative; width:100%; aspect-ratio:16/9; margin-top:8px;
+    border-radius:var(--r-sm); overflow:hidden; background:#000; border:1px solid var(--border);
+  }
+  .video-embed iframe, .video-embed video{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .video-link-cru{ font-size:11.5px; word-break:break-all; }
+
   /* ---------------- menu de 3 pontos (opções de configuração) ---------------- */
   .menu-mais{ position:relative; display:inline-block; }
   #btnMais{ font-size:20px; line-height:1; padding:8px 12px; font-weight:700; }
@@ -1938,19 +1961,26 @@
       <div class="field">
         <label>Tipo de mídia</label>
         <select id="sTipoMidia" onchange="onTipoMidiaChange()">
+          <option value="terminais">🚌 Terminais / Estações</option>
+          <option value="totem">🏥 Clínicas e supermercados</option>
           <option value="plm">📺 PLM</option>
-          <option value="totem">🗼 Totem</option>
         </select>
         <div id="sResponsavelInfo" style="font-size:10px;color:var(--teal);margin-top:3px;"></div>
       </div>
       <div class="field">
-        <label>Qual vídeo precisa ser comprovado</label>
-        <input type="text" id="sVideo" placeholder="Ex: Campanha Loja XPTO — 30s — setembro">
+        <label>Campanhas a comprovar (uma por linha)</label>
+        <textarea id="sVideo" rows="3" placeholder="Ex:&#10;Bolsa Universidade&#10;Proteja-se contra fumaça&#10;Manaus Be Cuidada"></textarea>
+        <div style="font-size:9.5px;color:var(--muted);margin-top:3px;">Liste quantas precisar — uma em cada linha.</div>
       </div>
       <div class="field">
-        <label id="labelUnidades">Em quais PLMs</label>
-        <textarea id="sUnidades" rows="4" placeholder="Um por linha"></textarea>
-        <div id="dicaUnidades" style="font-size:9.5px;color:var(--muted);margin-top:3px;"></div>
+        <label>Link do vídeo (YouTube, Drive ou Vimeo)</label>
+        <input type="url" id="sLinkVideo" placeholder="Cole o link aqui — dá para assistir dentro da plataforma">
+        <div style="font-size:9.5px;color:var(--muted);margin-top:3px;">Opcional. Se colar, o vídeo aparece no pedido, sem precisar baixar.</div>
+      </div>
+      <div class="field">
+        <label id="labelUnidades">Marque os locais</label>
+        <div id="sLocaisCheck" class="locais-check"></div>
+        <div id="dicaUnidades" style="font-size:9.5px;color:var(--muted);margin-top:5px;"></div>
       </div>
     </div>
 
@@ -2308,8 +2338,39 @@ const EMPRESA = {
   // Quem atende cada tipo de mídia nas comprovações.
   // O responsável é preenchido sozinho quando a solicitação é aprovada.
   responsaveisComprovacao: {
-    plm:   'Robert',
-    totem: 'João',
+    terminais: 'Robert',   // terminais/estações sempre vão para o Robert
+    totem:     'João',
+    plm:       'Robert',
+  },
+
+  // Locais que aparecem como caixas de seleção na comprovação, por tipo.
+  locaisComprovacao: {
+    terminais: [
+      'Terminal 1', 'Terminal 2', 'Terminal 3', 'Terminal 4', 'Terminal 5', 'Terminal 7',
+      'Estação 1', 'Estação 2', 'Estação 3', 'Estação 4',
+    ],
+    totem: [
+      'Sensumed Adrianópolis',
+      'Sensumed Morada do Sol',
+      'Coema — Cidade de Deus (Totem 01)',
+      'Coema — Novo Aleixo (Totem 01)',
+      'Coema — Monte das Oliveiras (Totem 01)',
+      'Coema — Resid. Elisa Miranda',
+      'Coema — Torquato Tapajós (Totem 01)',
+      'Coema — Torquato Tapajós (Totem 02)',
+      'Coema — Lírio do Vale (Totem 01)',
+      'RB Diagnósticos — Aleixo',
+      'RB Diagnósticos — Maceió (Horizontal)',
+      'RB Diagnósticos — Pátio Gourmet (Totem 01, Horizontal)',
+      'RB Diagnósticos — Pátio Gourmet (Totem 02)',
+      'RB Diagnósticos — Ponta Negra (Horizontal)',
+      'RB Diagnósticos — Sollarium Mall (Horizontal)',
+      'RB Diagnósticos — Sumaúma (Horizontal)',
+      'RB Diagnósticos — Franceses (Horizontal)',
+      'RB Diagnósticos — Centro (Horizontal)',
+      'RB Diagnósticos — Manauara (Horizontal)',
+    ],
+    plm: [],   // PLM: sem lista fixa, usa campo livre
   },
 
   // 4) TÉCNICOS DA ROTA ------------------------------------------
@@ -2419,7 +2480,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.31';
+const VERSAO_PAINEL = '4.33';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -4789,30 +4850,56 @@ function openSolicitarOS(){
   document.getElementById('campoLocalSolic').style.display = soComprovacao ? 'none' : 'block';
   document.getElementById('campoProblemaSolic').style.display = soComprovacao ? 'none' : 'block';
   if(soComprovacao){
-    document.getElementById('sTipoMidia').value = 'plm';
+    document.getElementById('sTipoMidia').value = 'terminais';
     document.getElementById('sVideo').value = '';
-    document.getElementById('sUnidades').value = '';
+    document.getElementById('sLinkVideo').value = '';
     onTipoMidiaChange();
   }
 
   document.getElementById('solicitarOSOverlay').classList.add('show');
 }
 
-// Ajusta o formulário conforme o tipo de mídia e mostra quem vai atender.
+// Ajusta o formulário conforme o tipo de mídia: monta os locais e mostra quem atende.
 function onTipoMidiaChange(){
   const tipo = document.getElementById('sTipoMidia').value;
-  const ehPlm = tipo === 'plm';
   const resp = (EMPRESA.responsaveisComprovacao || {})[tipo] || '';
+  const locais = (EMPRESA.locaisComprovacao || {})[tipo] || [];
+  const wrap = document.getElementById('sLocaisCheck');
+  const label = document.getElementById('labelUnidades');
+  const dica = document.getElementById('dicaUnidades');
 
-  document.getElementById('labelUnidades').textContent = ehPlm ? 'Em quais PLMs' : 'Em quais totens';
-  document.getElementById('sUnidades').placeholder = ehPlm
-    ? 'Um por linha. Ex:\nPLM Av. das Torres\nPLM Terminal 3'
-    : 'Um por linha. Ex:\nTotem Terminal 1 — entrada\nTotem Estação Norte';
-  document.getElementById('dicaUnidades').textContent =
-    'Liste um por linha. Cada linha entra na comprovação.';
+  if(tipo === 'plm'){
+    // PLM não tem lista fixa: volta ao campo livre, um por linha
+    label.textContent = 'Em quais PLMs';
+    wrap.innerHTML = '<textarea id="sUnidadesLivre" rows="4" placeholder="Um por linha. Ex:\nPLM Av. das Torres\nPLM Terminal 3" ' +
+      'style="width:100%;box-sizing:border-box;"></textarea>';
+    dica.textContent = 'Liste um por linha. Cada linha entra na comprovação.';
+  } else {
+    label.textContent = (tipo === 'terminais') ? 'Marque os terminais e estações' : 'Marque as clínicas';
+    wrap.innerHTML = locais.map(function(loc, i){
+      return '<label class="loc-item"><input type="checkbox" class="loc-cb" value="' + escVist(loc) + '"> ' +
+             escVist(loc) + '</label>';
+    }).join('');
+    dica.innerHTML = '<button type="button" class="loc-todos" onclick="marcarTodosLocais(true)">marcar todos</button> · ' +
+                     '<button type="button" class="loc-todos" onclick="marcarTodosLocais(false)">limpar</button>';
+  }
+
   document.getElementById('sResponsavelInfo').textContent = resp
     ? '👤 Responsável: ' + resp + ' (preenchido automaticamente)'
     : '';
+}
+
+function marcarTodosLocais(v){
+  document.querySelectorAll('#sLocaisCheck .loc-cb').forEach(function(cb){ cb.checked = v; });
+}
+
+// devolve os locais escolhidos, seja por checkbox ou pelo campo livre do PLM
+function locaisEscolhidos(){
+  const livre = document.getElementById('sUnidadesLivre');
+  if(livre){
+    return livre.value.split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+  }
+  return [...document.querySelectorAll('#sLocaisCheck .loc-cb:checked')].map(function(cb){ return cb.value; });
 }
 
 function closeSolicitarOS(){
@@ -4872,25 +4959,28 @@ function enviarSolicitacaoTecnico(){
   const ehComprovacao = currentUser && currentUser.role === 'comprovacao';
 
   // ---- comprovação: tipo de mídia, vídeo e as unidades ----
-  let tipoMidia = '', video = '', unidades = [], responsavel = '';
+  let tipoMidia = '', campanhas = [], video = '', unidades = [], responsavel = '';
   if(ehComprovacao){
     tipoMidia = document.getElementById('sTipoMidia').value;
-    video = document.getElementById('sVideo').value.trim();
-    unidades = document.getElementById('sUnidades').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    campanhas = document.getElementById('sVideo').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    video = campanhas.join(' · ');   // resumo das campanhas em uma linha
+    unidades = locaisEscolhidos();
     responsavel = (EMPRESA.responsaveisComprovacao || {})[tipoMidia] || '';
 
-    if(!video){
-      askConfirm('Informe qual vídeo precisa ser comprovado.', ()=>{});
+    if(!campanhas.length){
+      askConfirm('Informe ao menos uma campanha a comprovar.', ()=>{});
       return;
     }
     if(!unidades.length){
-      askConfirm('Liste ao menos um ' + (tipoMidia === 'plm' ? 'PLM' : 'totem') + ', um por linha.', ()=>{});
+      const alvo = tipoMidia === 'plm' ? 'um PLM' : (tipoMidia === 'terminais' ? 'um terminal ou estação' : 'uma clínica');
+      askConfirm('Marque ao menos ' + alvo + '.', ()=>{});
       return;
     }
   }
 
+  const rotuloTipo = {terminais:'Terminais/Estações', totem:'Clínicas e supermercados', plm:'PLM'}[tipoMidia] || 'Comprovação';
   const local = ehComprovacao
-    ? (tipoMidia === 'plm' ? 'PLM' : 'Totem') + ': ' + unidades.join(' · ')
+    ? rotuloTipo + ': ' + unidades.join(' · ')
     : document.getElementById('sLocal').value.trim();
 
   if(!ehComprovacao && !local){
@@ -4906,15 +4996,20 @@ function enviarSolicitacaoTecnico(){
     ? document.getElementById('sMateriais').value.split('\n').map(s=>s.trim()).filter(Boolean)
     : [];
 
+  const linkVideo = ehComprovacao ? (document.getElementById('sLinkVideo').value || '').trim() : '';
   const descricao = ehComprovacao
-    ? ('Comprovar veiculação do vídeo: ' + video +
-       '\n' + (tipoMidia === 'plm' ? 'PLMs' : 'Totens') + ' (' + unidades.length + '):\n' +
+    ? ('Comprovar ' + campanhas.length + ' campanha' + (campanhas.length>1?'s':'') + ':\n' +
+       campanhas.map(nm=>'• ' + nm).join('\n') +
+       (linkVideo ? '\nVídeo: ' + linkVideo : '') +
+       '\n' + rotuloTipo + ' (' + unidades.length + '):\n' +
        unidades.map(u=>'• ' + u).join('\n'))
     : (document.getElementById('sProblema').value.trim() || local);
 
   solicitacoes.push({
     tipoMidia: tipoMidia,
+    campanhas: campanhas,
     video: video,
+    linkVideo: linkVideo,
     unidades: unidades,
     responsavel: responsavel,
     id: 'sol' + Date.now(),
@@ -4984,6 +5079,30 @@ function solicitarEncerramento(){
   askConfirm('Encerramento solicitado! O administrador foi avisado por e-mail e vai confirmar o fechamento.', ()=>{});
 }
 
+// Converte o link do vídeo em player embutido, para assistir sem baixar.
+function embedVideo(url){
+  if(!url) return '';
+  url = String(url).trim();
+  let src = '';
+  // YouTube
+  let m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,})/);
+  if(m) src = 'https://www.youtube.com/embed/' + m[1];
+  // Google Drive
+  if(!src){ m = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/); if(m) src = 'https://drive.google.com/file/d/' + m[1] + '/preview'; }
+  // Vimeo
+  if(!src){ m = url.match(/vimeo\.com\/(\d+)/); if(m) src = 'https://player.vimeo.com/video/' + m[1]; }
+
+  if(src){
+    return '<div class="video-embed"><iframe src="' + src + '" allow="autoplay; encrypted-media" allowfullscreen loading="lazy"></iframe></div>';
+  }
+  // arquivo de vídeo direto (mp4/webm)
+  if(/\.(mp4|webm|ogg)(\?|$)/i.test(url)){
+    return '<div class="video-embed"><video src="' + escVist(url) + '" controls preload="none"></video></div>';
+  }
+  // não reconhecido: mostra o link clicável
+  return '<a class="video-link-cru" href="' + escVist(url) + '" target="_blank" rel="noopener">▶ Abrir vídeo: ' + escVist(url) + '</a>';
+}
+
 function renderListaSolicitacoes(){
   const wrap = document.getElementById('listaSolicitacoes');
   const verHistorico = document.getElementById('fVerHistoricoSolic').checked;
@@ -5043,6 +5162,7 @@ function renderListaSolicitacoes(){
         <div style="margin-top:6px;"><b class="solic-linha" style="display:block;">${rotuloServico}</b>${servicosHtml || '<div class="solic-linha">—</div>'}</div>
         ${(s.materiais||[]).length ? '<div style="margin-top:6px;"><b class="solic-linha" style="display:block;">Material a comprar</b>'+materiaisHtml+'</div>' : ''}
         ${fotos.length ? '<div style="margin-top:6px;"><b class="solic-linha" style="display:block;">Imagens</b>'+fotosHtml+'</div>' : ''}
+        ${s.linkVideo ? '<div style="margin-top:8px;"><b class="solic-linha" style="display:block;">Vídeo da campanha</b>'+embedVideo(s.linkVideo)+'</div>' : ''}
         ${tagStatus ? '<div style="margin-top:8px;">'+tagStatus+'</div>' : `
         <div class="solic-acoes">
           ${acoesBotoes}
@@ -5118,14 +5238,15 @@ function aprovarSolicitacao(id){
       id: 'id' + Date.now(),
       code: genCode(),
       local: s.local || ((s.servicos && s.servicos[0]) ? s.servicos[0].slice(0,80) : ('Solicitação ' + s.protocolo)),
-      tipo: (s.acao === 'comprovacao' && s.video)
-              ? ('Comprovação — ' + s.video)
+      tipo: (s.acao === 'comprovacao' && (s.campanhas || s.video))
+              ? ('Comprovação — ' + ((s.campanhas && s.campanhas.length) ? s.campanhas.join(' · ') : s.video))
               : (doTecnico ? servicosTxt.slice(0,120) : ('Solicitação externa — ' + (s.empresa || s.solicitante))),
       prioridade: s.prioridade || prioMap[s.urgencia] || 'normal',
       status: 'aberta',
       solicitante: s.solicitante,
       // comprovação já vem com responsável definido pelo tipo de mídia
       tecnico: s.responsavel || (doTecnico ? s.solicitante : ''),
+      linkVideo: s.linkVideo || '',   // vídeo da campanha, para assistir na OS
       criadoPor: currentUser ? currentUser.name : 'admin',
       acao: s.acao || 'corretiva',
       // comprovação já nasce com o local da foto, que é o dado central dela
