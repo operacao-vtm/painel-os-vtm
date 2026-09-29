@@ -1995,6 +1995,7 @@
       </div>
       <div class="field">
         <label id="labelUnidades">Marque os locais</label>
+        <div id="atalhosUnidades" style="margin-bottom:7px;"></div>
         <div id="sLocaisCheck" class="locais-check"></div>
         <div id="dicaUnidades" style="font-size:9.5px;color:var(--muted);margin-top:5px;"></div>
       </div>
@@ -2535,7 +2536,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.56';
+const VERSAO_PAINEL = '4.57';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -4943,23 +4944,25 @@ function onTipoMidiaChange(){
   const locais = (EMPRESA.locaisComprovacao || {})[tipo] || [];
   const wrap = document.getElementById('sLocaisCheck');
   const label = document.getElementById('labelUnidades');
+  const atalhos = document.getElementById('atalhosUnidades');
   const dica = document.getElementById('dicaUnidades');
 
   if(tipo === 'plm'){
     // PLM não tem lista fixa: volta ao campo livre, um por linha
     label.textContent = 'Em quais PLMs';
+    atalhos.innerHTML = '';   // PLM é texto livre, não tem o que marcar
     wrap.innerHTML = '<textarea id="sUnidadesLivre" rows="4" placeholder="Um por linha. Ex:\nPLM Av. das Torres\nPLM Terminal 3" ' +
       'style="width:100%;box-sizing:border-box;"></textarea>';
     dica.textContent = 'Liste um por linha. Cada linha entra na comprovação.';
   } else {
     label.textContent = (tipo === 'terminais') ? 'Marque os terminais e estações' : 'Marque as clínicas';
+    // botões de atalho ACIMA da lista (sempre visíveis, sem precisar rolar)
+    atalhos.innerHTML = montaAtalhosLocais(locais);
     wrap.innerHTML = locais.map(function(loc, i){
       return '<label class="loc-item"><input type="checkbox" class="loc-cb" value="' + escVist(loc) + '"> ' +
              escVist(loc) + '</label>';
     }).join('');
-    // atalhos: descobre os "grupos" pela primeira palavra antes do "—"
-    // (Coema, Sensumed, RB Diagnósticos...) ou por Terminal/Estação
-    dica.innerHTML = montaAtalhosLocais(locais);
+    dica.textContent = '';
   }
 
   document.getElementById('sResponsavelInfo').textContent = resp
