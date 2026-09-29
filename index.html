@@ -1090,6 +1090,16 @@
   .video-embed iframe, .video-embed video{ position:absolute; inset:0; width:100%; height:100%; border:0; }
   .video-link-cru{ font-size:11.5px; word-break:break-all; }
 
+  /* ---------------- menu de 3 pontos (somente leitura) */
+  #faixaLicenca{
+    position:fixed; top:0; left:0; right:0; z-index:95;
+    display:none; align-items:center; gap:10px;
+    background:#B00020; color:#fff;
+    padding:calc(9px + env(safe-area-inset-top,0px)) 16px 9px;
+    font-size:13px; font-weight:600; line-height:1.35;
+    box-shadow:0 2px 10px rgba(0,0,0,.35);
+  }
+
   /* ---------------- menu de 3 pontos (opções de configuração) ---------------- */
   .menu-mais{ position:relative; display:inline-block; }
   #btnMais{ font-size:20px; line-height:1; padding:8px 12px; font-weight:700; }
@@ -1113,32 +1123,6 @@
   .menu-mais-sep{ height:1px; background:var(--border); margin:5px 4px; }
 
   /* ---------------- tela de bloqueio da validação ---------------- */
-  #bloqueioLicenca{
-    position:fixed; inset:0; z-index:100000; display:none;
-    align-items:center; justify-content:center; padding:24px;
-    background:radial-gradient(120% 90% at 50% 40%, #1D1624 0, #0B090E 62%);
-  }
-  #bloqueioLicenca.on{ display:flex; }
-  #bloqueioLicenca .bl-caixa{
-    background:#17121C; border:1px solid rgba(255,255,255,.08); border-radius:16px;
-    padding:32px 28px; max-width:400px; width:100%; text-align:center;
-    box-shadow:0 30px 80px -30px rgba(0,0,0,.8);
-  }
-  #bloqueioLicenca .bl-icone{ font-size:42px; margin-bottom:6px; }
-  #bloqueioLicenca h2{ color:#F0ECF2; font-size:21px; margin:0 0 10px; }
-  #bloqueioLicenca p{ color:#B8AFC4; font-size:13.5px; line-height:1.5; margin:0 0 16px; }
-  #bloqueioLicenca .bl-contato{
-    background:#0E0B12; border:1px solid rgba(255,255,255,.08); border-radius:10px;
-    padding:14px; color:#F0ECF2; font-size:14px; line-height:1.5; margin-bottom:18px;
-  }
-  #bloqueioLicenca .bl-contato b{ font-size:18px; color:#F7962C; }
-  #bloqueioLicenca .bl-campo{ display:flex; gap:8px; }
-  #bloqueioLicenca .bl-campo input{
-    flex:1; min-width:0; padding:11px 13px; border-radius:9px;
-    border:1px solid rgba(255,255,255,.14); background:#0E0B12; color:#F0ECF2;
-    font:inherit; font-size:14px;
-  }
-  #bloqueioLicenca .bl-erro{ color:#E5397F; font-size:12px; margin-top:10px; min-height:15px; }
 
   /* ---------------- registro de atividades ---------------- */
   .log-filtros{
@@ -1371,6 +1355,10 @@
 </script>
 </head>
 <body>
+<div id="faixaLicenca" style="display:none;">
+  <span style="font-size:16px;">🔒</span>
+  <span class="fl-txt" style="flex:1;"></span>
+</div>
 <!-- Tela de abertura: aparece na hora, some quando os dados chegam.
      Cobre o intervalo em que o app ficava só escuro. -->
 <div id="abertura" role="status" aria-label="Abrindo o painel de manutenção">
@@ -2523,7 +2511,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.42';
+const VERSAO_PAINEL = '4.43';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -2700,6 +2688,7 @@ async function loadData(){
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
     telasInfo = (json && json.telasInfo && typeof json.telasInfo === 'object') ? json.telasInfo : telasInfo;
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
+    if(json && json.licenca) licenca = json.licenca;
     migraStatusPeca();
     leituDoServidorOk = true;
     arquivaMesesAnteriores();   // deixa o quadro só com o mês corrente
@@ -2716,10 +2705,16 @@ async function loadData(){
   render();
   updateModeUI();
   fecharAbertura();   // dados na mão: pode mostrar o painel
-  verificaLicenca();  // confere o ciclo de validação de 90 dias
+  aplicaLicenca();  // aplica a licença mensal (vinda no GET)
 }
 
 async function persist(){
+  // licença vencida: modo somente leitura, não grava
+  if(!licencaOk()){
+    askConfirm((licenca.recado || 'Sistema em modo somente leitura.') +
+               '\n\nA gravação está bloqueada até a renovação. Seus dados continuam intactos.', ()=>{});
+    return false;
+  }
   return await pushState();
 }
 
@@ -3191,7 +3186,8 @@ function updateModeUI(){
   const isDiretoria = currentUser?.role === 'diretoria';
   const isTecnico = currentUser?.role === 'tecnico';
   const isComprovacao = currentUser?.role === 'comprovacao';
-  const canCreate = isAdmin || isTecnico || isComprovacao;
+  const licOk = (typeof licencaOk === 'function') ? licencaOk() : true;
+  const canCreate = (isAdmin || isTecnico || isComprovacao) && licOk;
 
   // planilha em Excel: liberada para todos, inclusive quem só observa
   document.getElementById('btnSheetExport').style.display = 'inline-flex';
@@ -4240,6 +4236,7 @@ function populateTipoFilter(){
 }
 
 function render(){
+  aplicaLicenca();
   populateTecnicoFilter();
   populateTipoFilter();
   renderResumoMapa();
@@ -6557,97 +6554,42 @@ document.addEventListener('click', function(ev){
 });
 
 /* ================================================================
-   VALIDAÇÃO PERIÓDICA
+   LICENÇA MENSAL
    ================================================================
-   A senha NÃO está aqui. O painel só pergunta ao servidor (Apps Script)
-   qual a situação, e manda o código digitado para o servidor conferir.
-   Assim o código de reativação não existe neste arquivo público.
+   A validade mora na planilha (aba "licenca"). O HTML não guarda
+   senha, telefone nem data — só recebe a situação pelo GET.
+   Vencido = somente leitura. Na dúvida, MANTÉM LIBERADO.
    ================================================================ */
 const _autoria = "U2lzdGVtYSBkZXNlbnZvbHZpZG8gcG9yIEpvw6NvIFZpY3RvciBCcml0byBlIENhcmxvcyBQb250ZXMgwrcgTWFuYXVzL0FNIMK3IGNvbnRhdG8gOTI5ODQzMTE3OTg=";  /* marca de autoria — ref. interna */
 
-async function verificaLicenca(){
-  if(MODO_TESTE || !gasConfigured()) return;
-  try{
-    const resp = await fetch(GAS_URL, {
-      method:'POST',
-      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'licencaStatus' })
-    });
-    const j = await resp.json().catch(()=>null);
-    if(!j || !j.ok) return;
+let licenca = { liberado: true };   // na dúvida, liberado
 
-    if(j.estado === 'travado'){
-      mostraBloqueio(j.contato || '');
-    } else if(j.estado === 'aviso'){
-      pedeSenhaValidacao(j.horasRestantes || 0);
+function licencaOk(){
+  return licenca.liberado !== false;   // só trava se vier explicitamente false
+}
+
+// ações que GRAVAM na planilha — barradas quando a licença vence.
+// consulta, relatório e impressão NÃO entram aqui.
+const ACOES_QUE_GRAVAM = [
+  'nova-os','editar-os','excluir-os','aprovar','rejeitar','solicitar',
+  'encerrar','cadastro','usuarios','destinatarios','rota','nomear-tela',
+  'colar-os','importar-csv'
+];
+
+function aplicaLicenca(){
+  const faixa = document.getElementById('faixaLicenca');
+  if(faixa){
+    if(!licencaOk()){
+      faixa.style.display = 'flex';
+      faixa.querySelector('.fl-txt').textContent =
+        (licenca.recado || 'Sistema em modo somente leitura.') +
+        (licenca.ate ? '  (vencido em ' + licenca.ate.split('-').reverse().join('/') + ')' : '');
+    } else {
+      faixa.style.display = 'none';
     }
-    // 'ok' → não faz nada
-  }catch(e){
-    // sem conexão: não trava por causa disso; tenta de novo na próxima abertura
-    console.warn('Não foi possível verificar a validação agora:', e);
   }
-}
-
-// pergunta o código e manda o servidor conferir (só admin)
-async function pedeSenhaValidacao(horas){
-  if(!(currentUser && currentUser.role === 'admin')) return;
-  const resp = window.prompt(
-    'Validação periódica do sistema (a cada 90 dias).\n\n' +
-    'Digite o código de validação para renovar por mais 90 dias.\n' +
-    'Sem validar em até 24 h, o sistema será bloqueado.\n\n' +
-    'Restam aproximadamente ' + (horas||0) + ' h.', '');
-  if(resp === null) return;
-  const ok = await enviaCodigoValidacao(resp);
-  askConfirm(ok ? 'Sistema validado. Renovado por mais 90 dias.'
-                : 'Código incorreto. Em caso de dúvida, contate o responsável pelo sistema.', ()=>{});
-}
-
-async function enviaCodigoValidacao(codigo){
-  try{
-    const resp = await fetch(GAS_URL, {
-      method:'POST',
-      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action:'licencaValidar', codigo: codigo })
-    });
-    const j = await resp.json().catch(()=>null);
-    return !!(j && j.ok && j.valido);
-  }catch(e){ return false; }
-}
-
-function mostraBloqueio(contato){
-  let el = document.getElementById('bloqueioLicenca');
-  if(!el){ el = document.createElement('div'); el.id = 'bloqueioLicenca'; document.body.appendChild(el); }
-  const linhas = (contato || 'João Victor Brito · 92984311798').split('·');
-  const nome = (linhas[0]||'').trim();
-  const tel  = (linhas[1]||'').trim();
-  el.innerHTML =
-    '<div class="bl-caixa">' +
-      '<div class="bl-icone">🔒</div>' +
-      '<h2>Sistema bloqueado</h2>' +
-      '<p>O período de validação expirou. Para reativar, entre em contato com o responsável pelo sistema:</p>' +
-      '<div class="bl-contato">' + escVist(nome) + '<br><b>' + escVist(tel) + '</b></div>' +
-      '<div class="bl-campo">' +
-        '<input type="text" id="blCodigo" placeholder="Código de reativação" autocomplete="off">' +
-        '<button class="btn primary" onclick="tentaReativar()">Reativar</button>' +
-      '</div>' +
-      '<div class="bl-erro" id="blErro"></div>' +
-    '</div>';
-  el.classList.add('on');
-  document.body.style.overflow = 'hidden';
-  setTimeout(()=>{ const i = document.getElementById('blCodigo'); if(i) i.focus(); }, 80);
-}
-
-async function tentaReativar(){
-  const cod = document.getElementById('blCodigo').value;
-  const ok = await enviaCodigoValidacao(cod);
-  if(ok){
-    const el = document.getElementById('bloqueioLicenca');
-    if(el){ el.classList.remove('on'); el.remove(); }
-    document.body.style.overflow = '';
-    askConfirm('Sistema reativado. Renovado por mais 90 dias.', ()=>{});
-  } else {
-    document.getElementById('blErro').textContent = 'Código incorreto. Confirme com o responsável.';
-  }
+  // reaplica permissões: no modo leitura, os botões de gravar somem
+  if(typeof updateModeUI === 'function') updateModeUI();
 }
 
 function renderDashboard(){
