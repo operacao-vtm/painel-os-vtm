@@ -837,6 +837,7 @@
   .s-ok{background:var(--teal-bg); color:var(--teal); border-color:color-mix(in srgb,var(--teal) 35%,transparent);}
   .s-nc{background:var(--red); color:#fff; border-color:var(--red);}
   .s-local{background:var(--amber-bg); color:var(--amber); border-color:var(--amber);}
+  .s-vistoria{background:var(--blue-bg); color:var(--blue); border-color:color-mix(in srgb,var(--blue) 45%,transparent);}
   .s-pend{background:var(--panel-alt); color:var(--muted); border-color:var(--border);}
 
   @media (max-width:860px){ #mtFaixa{grid-template-columns:1fr !important;} }
@@ -1588,6 +1589,7 @@
 
     <div class="mt-legenda">
       <span><b style="background:var(--teal)"></b> Sem OS aberta</span>
+      <span><b style="background:var(--blue)"></b> Em vistoria (visita técnica)</span>
       <span><b style="background:var(--red)"></b> Com OS aberta nesta tela</span>
       <span><b style="background:var(--amber)"></b> OS aberta no local, tela não identificada</span>
       <span><b style="background:var(--muted)"></b> Nunca vistoriada</span>
@@ -2480,7 +2482,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.34';
+const VERSAO_PAINEL = '4.35';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -5617,26 +5619,43 @@ function mtMontar(){
       const doLocal = abertas.filter(os => mtMesmoLocal(loc.nome, os.local));
       const jaTeveOS = items.some(os => mtMesmoLocal(loc.nome, os.local));
 
-      // OS sem telaCodigo, separadas entre "cita uma tela no texto" e "não cita"
+      // visita técnica é rotina, não defeito: entra como "em vistoria" (azul)
+      const ehVisita = os => (os.acao === 'visita');
+
+      // OS sem telaCodigo, separadas por: cita uma tela no texto x não cita
       const semCodigo = doLocal.filter(os => !os.telaCodigo);
-      // mapa: número da tela -> OS que a menciona no texto
-      const osPorNumero = {};
-      let osLocalGenerica = null;   // OS no local que não aponta tela nenhuma
+      const osPorNumero = {};       // número da tela -> OS de PROBLEMA que a menciona
+      const vistoriaPorNumero = {}; // número da tela -> OS de VISITA que a menciona
+      let osLocalGenerica = null;   // problema no local, sem apontar tela
+      let vistoriaGenerica = null;  // visita no local, sem apontar tela
       semCodigo.forEach(os => {
         const n = mtNumeroTelaNoTexto(os);
-        if(n){ if(!osPorNumero[n]) osPorNumero[n] = os; }
-        else if(!osLocalGenerica){ osLocalGenerica = os; }
+        if(ehVisita(os)){
+          if(n){ if(!vistoriaPorNumero[n]) vistoriaPorNumero[n] = os; }
+          else if(!vistoriaGenerica){ vistoriaGenerica = os; }
+        } else {
+          if(n){ if(!osPorNumero[n]) osPorNumero[n] = os; }
+          else if(!osLocalGenerica){ osLocalGenerica = os; }
+        }
       });
 
       const telas = [];
       for(let i = 1; i <= (loc.qtd || 0); i++){
         const cod = mtCodigo(g.grupo, loc.nome, i);
-        const osDaTela = doLocal.find(os => (os.telaCodigo || '') === cod);
+        const osDaTelaBruta = doLocal.find(os => (os.telaCodigo || '') === cod);
+        // OS com telaCodigo: se for visita, vira estado de vistoria
+        const osDaTela = (osDaTelaBruta && !ehVisita(osDaTelaBruta)) ? osDaTelaBruta : null;
+        const vistoriaDaTela = (osDaTelaBruta && ehVisita(osDaTelaBruta)) ? osDaTelaBruta : null;
 
         let st, os = null;
+        // problemas primeiro (têm prioridade sobre vistoria)
         if(osDaTela){ st = 'nc'; os = osDaTela; }
         else if(osPorNumero[i]){ st = 'nc'; os = osPorNumero[i]; }  // "tela 3" no texto → só a 3
-        else if(osLocalGenerica){ st = 'local'; os = osLocalGenerica; }  // OS no local sem tela definida
+        else if(osLocalGenerica){ st = 'local'; os = osLocalGenerica; }  // problema no local, sem tela definida
+        // depois, vistoria (rotina, não é problema)
+        else if(vistoriaDaTela){ st = 'vistoria'; os = vistoriaDaTela; }
+        else if(vistoriaPorNumero[i]){ st = 'vistoria'; os = vistoriaPorNumero[i]; }
+        else if(vistoriaGenerica){ st = 'vistoria'; os = vistoriaGenerica; }
         else if(jaTeveOS){ st = 'ok'; }
         else { st = 'pend'; }
 
@@ -5648,11 +5667,13 @@ function mtMontar(){
 }
 
 const MT_ROT = { ok:'Sem OS aberta', nc:'Com OS aberta nesta tela',
-                 local:'OS aberta no local', pend:'Nunca vistoriada' };
-const MT_COR = { ok:'var(--teal)', nc:'var(--red)', local:'var(--amber)', pend:'var(--muted)' };
+                 local:'OS aberta no local', vistoria:'Em vistoria (visita técnica)',
+                 pend:'Nunca vistoriada' };
+const MT_COR = { ok:'var(--teal)', nc:'var(--red)', local:'var(--amber)',
+                 vistoria:'var(--blue)', pend:'var(--muted)' };
 
 function mtConta(telas){
-  const c = {ok:0, nc:0, local:0, pend:0};
+  const c = {ok:0, nc:0, local:0, vistoria:0, pend:0};
   telas.forEach(t => c[t.status]++);
   return c;
 }
@@ -5757,6 +5778,7 @@ function renderMapaTelas(){
     {n:'Sem OS aberta', v:c.ok, c:'var(--teal)'},
     {n:'OS nesta tela', v:c.nc, c:'var(--red)'},
     {n:'OS no local', v:c.local, c:'var(--amber)'},
+    {n:'Em vistoria', v:c.vistoria, c:'var(--blue)'},
     {n:'Nunca vistoriada', v:c.pend, c:'var(--muted)'},
   ], todas.length);
 
@@ -5765,6 +5787,7 @@ function renderMapaTelas(){
   document.getElementById('mtNums').innerHTML =
     '<div class="mt-num"><div class="r">Telas</div><div class="v">'+todas.length+'</div></div>' +
     '<div class="mt-num"><div class="r">Com OS</div><div class="v" style="color:var(--red)">'+(c.nc+c.local)+'</div></div>' +
+    '<div class="mt-num"><div class="r">Em vistoria</div><div class="v" style="color:var(--blue)">'+c.vistoria+'</div></div>' +
     '<div class="mt-num"><div class="r">Sem registro</div><div class="v" style="color:var(--muted)">'+c.pend+'</div></div>';
 
   /* grupos, problema primeiro */
