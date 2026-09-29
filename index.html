@@ -2480,7 +2480,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.33';
+const VERSAO_PAINEL = '4.34';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -5595,6 +5595,16 @@ function mtMesmoLocal(nomeLocal, localOS){
   return b.includes(a) || a.includes(b);
 }
 
+// Descobre a qual tela uma OS se refere quando ela não tem telaCodigo.
+// Procura "tela N" no tipo, no diagnóstico e no local — assim uma OS escrita
+// como "TELA 03 APAGADA" marca só a tela 3, não o local inteiro.
+function mtNumeroTelaNoTexto(os){
+  const txt = ((os.tipo||'') + ' ' + (os.diagnostico||'') + ' ' + (os.local||'')).toLowerCase();
+  // aceita "tela 3", "tela 03", "tela nº 3", "tela n 3"
+  const m = txt.match(/tela\s*n?º?\s*0*(\d{1,3})/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
 function mtMontar(){
   const abertas = mtOSAbertas();
   const grupos = (EMPRESA.telas || []);
@@ -5607,15 +5617,26 @@ function mtMontar(){
       const doLocal = abertas.filter(os => mtMesmoLocal(loc.nome, os.local));
       const jaTeveOS = items.some(os => mtMesmoLocal(loc.nome, os.local));
 
+      // OS sem telaCodigo, separadas entre "cita uma tela no texto" e "não cita"
+      const semCodigo = doLocal.filter(os => !os.telaCodigo);
+      // mapa: número da tela -> OS que a menciona no texto
+      const osPorNumero = {};
+      let osLocalGenerica = null;   // OS no local que não aponta tela nenhuma
+      semCodigo.forEach(os => {
+        const n = mtNumeroTelaNoTexto(os);
+        if(n){ if(!osPorNumero[n]) osPorNumero[n] = os; }
+        else if(!osLocalGenerica){ osLocalGenerica = os; }
+      });
+
       const telas = [];
       for(let i = 1; i <= (loc.qtd || 0); i++){
         const cod = mtCodigo(g.grupo, loc.nome, i);
         const osDaTela = doLocal.find(os => (os.telaCodigo || '') === cod);
-        const osSemTela = doLocal.find(os => !os.telaCodigo);
 
         let st, os = null;
         if(osDaTela){ st = 'nc'; os = osDaTela; }
-        else if(osSemTela){ st = 'local'; os = osSemTela; }
+        else if(osPorNumero[i]){ st = 'nc'; os = osPorNumero[i]; }  // "tela 3" no texto → só a 3
+        else if(osLocalGenerica){ st = 'local'; os = osLocalGenerica; }  // OS no local sem tela definida
         else if(jaTeveOS){ st = 'ok'; }
         else { st = 'pend'; }
 
