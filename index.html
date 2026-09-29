@@ -2535,7 +2535,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.51';
+const VERSAO_PAINEL = '4.55';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -4039,7 +4039,7 @@ function compartilharWhatsApp(osId){
     : (it.nomeMaterial ? [{nome: it.nomeMaterial, quantidade: it.quantidade||0}] : []);
 
   let msg = `${E.clip} *${it.code}* — ${(ACOES[it.acao]||ACOES.visita).nome}\n`;
-  msg += `${E.pin} Local: ${it.local}\n`;
+  msg += `${E.pin} Local: ${tituloCurtoOS(it)}\n`;
   if(it.tipo) msg += `${E.wrench} Tipo: ${it.tipo}\n`;
   msg += `${E.warn} Prioridade: ${prioLabel[it.prioridade]||it.prioridade}\n`;
   msg += `${E.tack} Status: ${statusTexto(it)}\n`;
@@ -4112,7 +4112,7 @@ function imprimirOS(){
     </div>
     <table class="rep-table" style="margin-bottom:18px;">
       <tbody>
-        <tr><td style="font-weight:600;width:180px;">Local / equipamento</td><td>${it.local}</td></tr>
+        <tr><td style="font-weight:600;width:180px;">Local / equipamento</td><td>${tituloCurtoOS(it)}</td></tr>
         <tr><td style="font-weight:600;">Tipo de problema</td><td>${it.tipo||'-'}</td></tr>
         ${it.acao === 'comprovacao' ? `<tr><td style="font-weight:600;">📷 Local da foto da propaganda</td><td>${it.localFoto||'-'}</td></tr>` : ''}
         <tr><td style="font-weight:600;">Prioridade</td><td>${prioLabel[it.prioridade]||'-'}</td></tr>
@@ -4335,9 +4335,9 @@ function render(){
       <div class="card prio-${it.prioridade}${it.parcial ? ' parcial' : ''}${estaAtrasada(it) ? ' atrasada' : ''}" onclick="openModal('${it.id}')">
         ${it.prioridade==='maxima' ? '<div class="tag-maxima">PRIORIDADE MÁXIMA!!!!</div>' : ''}
         <div class="code mono">${it.code}${(temFoto(it.fotoVerificacao)||temFoto(it.fotoConclusao)) ? ' 📷' : ''}${it.vistoria ? ' 📋' + contaConjuntos(it) + 'c' + (contaNC(it) ? '/' + contaNC(it) + 'NC' : '') : (it.requerRelatorio ? ' 📋?' : '')}</div>
-        <div class="loc">${it.local}</div>
+        <div class="loc">${escVist(tituloCurtoOS(it))}</div>
         ${(() => { if(it.acao !== 'comprovacao') return ''; const u = locaisDaComprovacao(it); return u.length ? '<div class="card-comp">' + agrupaLocaisComprovacao(u) + '</div>' : ''; })()}
-        <div class="meta" style="color:var(--amber);"><span>${(ACOES[it.acao||'visita']||ACOES.visita).icone} ${(ACOES[it.acao||'visita']||ACOES.visita).curto}</span><span>${aguardandoPeca(it) ? '<span class="tag-peca">requisição de material</span>' : ''}${estaAtrasada(it) ? ' <span class="tag-atrasada" title="Prazo de ' + PRAZO_DIAS + ' dias vencido">⏱ atrasada ' + Math.abs(diasRestantes(it)) + 'd</span>' : ''}${it.parcial ? ' <span class="tag-parcial" title="' + escVist(it.parcialObs||'') + '">◐ parcialmente atendida</span>' : ''}</span></div>
+        <div class="meta" style="color:var(--amber);"><span>${(ACOES[it.acao||'visita']||ACOES.visita).icone} ${it.acao==='comprovacao' ? (ACOES.comprovacao.curto) : ''}</span><span>${aguardandoPeca(it) ? '<span class="tag-peca">requisição de material</span>' : ''}${estaAtrasada(it) ? ' <span class="tag-atrasada" title="Prazo de ' + PRAZO_DIAS + ' dias vencido">⏱ atrasada ' + Math.abs(diasRestantes(it)) + 'd</span>' : ''}${it.parcial ? ' <span class="tag-parcial" title="' + escVist(it.parcialObs||'') + '">◐ parcialmente atendida</span>' : ''}</span></div>
         <div class="meta">
           <span>${it.tecnico||'sem técnico'}</span>
           <span class="mono" title="abertura">${fmtDate(it.dataAbertura)} ${fmtHora(it.dataAbertura)}</span>
@@ -4967,6 +4967,33 @@ function onTipoMidiaChange(){
 // e devolve HTML empilhado — um cliente por linha, os pontos embaixo.
 // Devolve a lista de locais de uma OS de comprovação, funcionando também
 // para OS antigas (que só têm o texto no diagnóstico ou no localFoto).
+// Título curto da OS. Para comprovação, resume os locais numa contagem,
+// funcionando também para OS antigas cujo "local" veio com tudo despejado.
+function tituloCurtoOS(it){
+  if(!it) return '';
+  if(it.acao === 'comprovacao'){
+    // se já está no formato novo e curto, mantém
+    if(/^Comprovação —/.test(String(it.local||''))) return it.local;
+    const u = locaisDaComprovacao(it);
+    if(u.length){
+      // descobre o tipo de mídia pelo texto, para o rótulo
+      const txt = (String(it.local||'') + ' ' + String(it.diagnostico||'')).toLowerCase();
+      let rot = 'Clínicas e supermercados';
+      if(/terminal|esta[çc][ãa]o/.test(txt) && !/cl[íi]nic|supermerc|coema|sensumed|rb |nova era|apa/.test(txt)) rot = 'Terminais / Estações';
+      else if(/\bplm\b/.test(txt)) rot = 'PLM';
+      return 'Comprovação — ' + rot + ' (' + u.length + ' ' + (u.length>1?'locais':'local') + ')';
+    }
+  }
+
+  // OS normais: título padronizado "Tipo — Problema — Local".
+  // Monta só com o que existe, sem deixar travessão solto.
+  const acao = ACOES[it.acao || 'visita'] || ACOES.visita;
+  const partes = [ acao.curto ];                          // Tipo (Corretiva, Preventiva, Visita…)
+  if(it.tipo && String(it.tipo).trim()) partes.push(String(it.tipo).trim());   // Problema
+  if(it.local && String(it.local).trim()) partes.push(String(it.local).trim()); // Local
+  return partes.join(' — ');
+}
+
 function locaisDaComprovacao(it){
   if(!it) return [];
   // OS novas: já têm a lista pronta
@@ -5153,7 +5180,7 @@ function enviarSolicitacaoTecnico(){
 
   const rotuloTipo = {terminais:'Terminais / Estações', totem:'Clínicas e supermercados', plm:'PLM'}[tipoMidia] || 'Comprovação';
   const local = ehComprovacao
-    ? 'Comprovação — ' + rotuloTipo + ' (' + unidades.length + ' local' + (unidades.length>1?'is':'') + ')'
+    ? 'Comprovação — ' + rotuloTipo + ' (' + unidades.length + ' ' + (unidades.length>1?'locais':'local') + ')'
     : document.getElementById('sLocal').value.trim();
 
   if(!ehComprovacao && !local){
