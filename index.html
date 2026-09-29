@@ -2535,7 +2535,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.49';
+const VERSAO_PAINEL = '4.51';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3549,8 +3549,9 @@ function openModal(id){
     document.getElementById('fLocalFoto').value = it.localFoto || '';
     const gEl = document.getElementById('fCompGrupos');
     if(gEl){
-      gEl.innerHTML = (it.compUnidades && it.compUnidades.length) ? agrupaLocaisComprovacao(it.compUnidades) : '';
-      gEl.style.display = (it.compUnidades && it.compUnidades.length) ? 'block' : 'none';
+      const compU = locaisDaComprovacao(it);
+      gEl.innerHTML = compU.length ? agrupaLocaisComprovacao(compU) : '';
+      gEl.style.display = compU.length ? 'block' : 'none';
     }
     document.getElementById('comprovacaoWrap').style.display = (it.acao === 'comprovacao') ? 'block' : 'none';
     document.getElementById('fTipo').value = it.tipo;
@@ -4335,7 +4336,7 @@ function render(){
         ${it.prioridade==='maxima' ? '<div class="tag-maxima">PRIORIDADE MÁXIMA!!!!</div>' : ''}
         <div class="code mono">${it.code}${(temFoto(it.fotoVerificacao)||temFoto(it.fotoConclusao)) ? ' 📷' : ''}${it.vistoria ? ' 📋' + contaConjuntos(it) + 'c' + (contaNC(it) ? '/' + contaNC(it) + 'NC' : '') : (it.requerRelatorio ? ' 📋?' : '')}</div>
         <div class="loc">${it.local}</div>
-        ${(it.acao === 'comprovacao' && it.compUnidades && it.compUnidades.length) ? '<div class="card-comp">' + agrupaLocaisComprovacao(it.compUnidades) + '</div>' : ''}
+        ${(() => { if(it.acao !== 'comprovacao') return ''; const u = locaisDaComprovacao(it); return u.length ? '<div class="card-comp">' + agrupaLocaisComprovacao(u) + '</div>' : ''; })()}
         <div class="meta" style="color:var(--amber);"><span>${(ACOES[it.acao||'visita']||ACOES.visita).icone} ${(ACOES[it.acao||'visita']||ACOES.visita).curto}</span><span>${aguardandoPeca(it) ? '<span class="tag-peca">requisição de material</span>' : ''}${estaAtrasada(it) ? ' <span class="tag-atrasada" title="Prazo de ' + PRAZO_DIAS + ' dias vencido">⏱ atrasada ' + Math.abs(diasRestantes(it)) + 'd</span>' : ''}${it.parcial ? ' <span class="tag-parcial" title="' + escVist(it.parcialObs||'') + '">◐ parcialmente atendida</span>' : ''}</span></div>
         <div class="meta">
           <span>${it.tecnico||'sem técnico'}</span>
@@ -4964,6 +4965,38 @@ function onTipoMidiaChange(){
 
 // Agrupa uma lista de locais de comprovação por cliente (Coema, RB, Terminais…)
 // e devolve HTML empilhado — um cliente por linha, os pontos embaixo.
+// Devolve a lista de locais de uma OS de comprovação, funcionando também
+// para OS antigas (que só têm o texto no diagnóstico ou no localFoto).
+function locaisDaComprovacao(it){
+  if(!it) return [];
+  // OS novas: já têm a lista pronta
+  if(it.compUnidades && it.compUnidades.length) return it.compUnidades;
+
+  // OS antigas: os locais são os bullets que vêm DEPOIS da linha do tipo
+  // ("Clínicas e supermercados (N):" ou "Terminais/Estações (N):" ou "PLM (N):").
+  // Antes dessa linha ficam as campanhas — que não são locais.
+  const diag = String(it.diagnostico || '');
+  const linhas = diag.split('\n').map(function(l){ return l.trim(); });
+  let idxTipo = -1;
+  for(let k=0;k<linhas.length;k++){
+    if(/^(clínicas|clinicas|terminais|esta[çc][õo]es|plm|totens?|terminais\/esta).*\(\d+\)\s*:?$/i.test(linhas[k])){
+      idxTipo = k; break;
+    }
+  }
+  const alvo = idxTipo >= 0 ? linhas.slice(idxTipo+1) : linhas;   // se achou o marcador, só o que vem depois
+  const bullets = alvo
+    .filter(function(l){ return l.indexOf('•') === 0; })
+    .map(function(l){ return l.replace(/^•\s*/, '').trim(); })
+    .filter(Boolean);
+  if(bullets.length) return bullets;
+
+  // último recurso: localFoto no formato antigo "Tipo: A · B · C"
+  const lf = String(it.localFoto || '');
+  const depois = lf.indexOf(':') >= 0 ? lf.slice(lf.indexOf(':')+1) : lf;
+  const partes = depois.split('·').map(function(s){ return s.trim(); }).filter(Boolean);
+  return partes.length > 1 ? partes : [];
+}
+
 function agrupaLocaisComprovacao(unidades){
   if(!unidades || !unidades.length) return '';
   const grupos = {};
