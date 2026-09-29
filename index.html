@@ -1559,6 +1559,8 @@
         <button class="btn" id="mtFtudo" onclick="mtFiltrar('tudo')">Todas</button>
         <button class="btn" id="mtFnc" onclick="mtFiltrar('nc')">Com problema</button>
         <button class="btn" id="mtFpend" onclick="mtFiltrar('pend')">Sem registro</button>
+        <button class="btn" id="mtFresolvidas" onclick="mtFiltrar('resolvidas')">✅ Resolvidas por mês</button>
+        <select id="mtMes" onchange="renderMapaTelas()" style="display:none;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--panel-alt);color:var(--text);font:inherit;font-size:12.5px;"></select>
         <button class="btn" id="btnMtEditar" onclick="mtAlternarEdicao()" style="display:none;">✏️ Nomear telas</button>
       </div>
     </div>
@@ -2521,7 +2523,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.37';
+const VERSAO_PAINEL = '4.42';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -5632,18 +5634,43 @@ function mtOSAbertas(){
 // casa o nome do local do cadastro com o campo "local" da OS
 function mtMesmoLocal(nomeLocal, localOS){
   if(!localOS) return false;
-  const a = nomeLocal.toLowerCase(), b = String(localOS).toLowerCase();
-  return b.includes(a) || a.includes(b);
+  // normaliza: minúsculas, sem acento, só letras/números separados por espaço
+  const norm = s => String(s).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,' ').trim();
+  const a = norm(nomeLocal), b = norm(localOS);
+  if(!a || !b) return false;
+  if(a === b) return true;
+  // O texto da OS deve COMEÇAR pelo nome do local (ou vice-versa), como prefixo
+  // de palavra inteira. Assim "Novo Aleixo" NÃO casa com o cadastro "Aleixo"
+  // (Aleixo não é prefixo de "novo aleixo"), mas "Terminal 3 - totem" casa com
+  // o cadastro "Terminal 3".
+  const prefixoPalavra = (texto, alvo) => texto === alvo || texto.startsWith(alvo + ' ');
+  return prefixoPalavra(b, a) || prefixoPalavra(a, b);
 }
 
 // Descobre a qual tela uma OS se refere quando ela não tem telaCodigo.
 // Procura "tela N" no tipo, no diagnóstico e no local — assim uma OS escrita
 // como "TELA 03 APAGADA" marca só a tela 3, não o local inteiro.
-function mtNumeroTelaNoTexto(os){
+function mtNumerosTelaNoTexto(os){
   const txt = ((os.tipo||'') + ' ' + (os.diagnostico||'') + ' ' + (os.local||'')).toLowerCase();
-  // aceita "tela 3", "tela 03", "tela nº 3", "tela n 3"
-  const m = txt.match(/tela\s*n?º?\s*0*(\d{1,3})/);
-  return m ? parseInt(m[1], 10) : null;
+  if(!/tela/.test(txt)) return [];   // só conta se a OS fala em "tela"
+  const nums = [];
+  // pega cada trecho iniciado por "tela(s)" e lê os números que vêm logo depois,
+  // ligados por vírgula, espaço ou "e". Cobre tanto "tela 6,7,8" quanto
+  // "tela 1, tela 2, tela 3".
+  const re = /telas?\s*n?º?\s*([0-9º°]+(?:\s*(?:,|e|\s)\s*[0-9º°]+)*)/g;
+  let m;
+  while((m = re.exec(txt)) !== null){
+    (m[1].match(/\d{1,3}/g) || []).forEach(n => nums.push(parseInt(n, 10)));
+  }
+  return [...new Set(nums)];   // sem repetidos, na ordem citada
+}
+
+// atalho: o primeiro número citado (quando só interessa um)
+function mtNumeroTelaNoTexto(os){
+  const ns = mtNumerosTelaNoTexto(os);
+  return ns.length ? ns[0] : null;
 }
 
 function mtMontar(){
@@ -5668,12 +5695,12 @@ function mtMontar(){
       let osLocalGenerica = null;   // problema no local, sem apontar tela
       let vistoriaGenerica = null;  // visita no local, sem apontar tela
       semCodigo.forEach(os => {
-        const n = mtNumeroTelaNoTexto(os);
+        const nums = mtNumerosTelaNoTexto(os);   // pode citar várias: "telas 6,7,8"
         if(ehVisita(os)){
-          if(n){ if(!vistoriaPorNumero[n]) vistoriaPorNumero[n] = os; }
+          if(nums.length){ nums.forEach(n => { if(!vistoriaPorNumero[n]) vistoriaPorNumero[n] = os; }); }
           else if(!vistoriaGenerica){ vistoriaGenerica = os; }
         } else {
-          if(n){ if(!osPorNumero[n]) osPorNumero[n] = os; }
+          if(nums.length){ nums.forEach(n => { if(!osPorNumero[n]) osPorNumero[n] = os; }); }
           else if(!osLocalGenerica){ osLocalGenerica = os; }
         }
       });
@@ -5778,18 +5805,78 @@ function mtEscada(mapa){
 }
 
 /* ---------- render ---------- */
-function renderMapaTelas(){
-  const mapa = mtMontar();
-  const todas = mapa.flatMap(g => g.locais.flatMap(l => l.telas));
-  const c = mtConta(todas);
+// Lista de meses que têm OS encerrada ligada a alguma tela (para o seletor).
+function mtMesesResolvidos(){
+  const set = {};
+  items.forEach(os => {
+    if(os.status === 'concluida' && os.dataConclusao){
+      const d = new Date(os.dataConclusao);
+      set[d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0')] = true;
+    }
+  });
+  return Object.keys(set).sort().reverse();   // mais recente primeiro
+}
 
+function mtRotuloMes(chave){
+  const MESES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const [ano, mes] = chave.split('-');
+  return MESES[parseInt(mes,10)-1] + '/' + ano;
+}
+
+// Telas com OS ENCERRADA no mês escolhido (resolvidas de fato).
+function mtResolvidasNoMes(chaveMes){
+  const grupos = (EMPRESA.telas || []);
+  // OS encerradas no mês
+  const encerradas = items.filter(os => {
+    if(os.status !== 'concluida' || !os.dataConclusao) return false;
+    const d = new Date(os.dataConclusao);
+    const ch = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    return ch === chaveMes;
+  });
+
+  return grupos.map(g => ({
+    grupo: g.grupo, tipo: g.tipo,
+    locais: (g.locais || []).map(loc => {
+      const doLocal = encerradas.filter(os => mtMesmoLocal(loc.nome, os.local));
+      // resolvidas por número de tela citado / telaCodigo; genéricas marcam o local
+      const porNumero = {}; let generica = null;
+      doLocal.forEach(os => {
+        let nums = [];
+        if(os.telaCodigo){ const m = os.telaCodigo.match(/(\d+)$/); if(m) nums = [parseInt(m[1],10)]; }
+        if(!nums.length) nums = mtNumerosTelaNoTexto(os);
+        if(nums.length){ nums.forEach(n => { if(!porNumero[n]) porNumero[n] = os; }); }
+        else if(!generica){ generica = os; }
+      });
+      const telas = [];
+      for(let i = 1; i <= (loc.qtd || 0); i++){
+        const cod = mtCodigo(g.grupo, loc.nome, i);
+        let os = porNumero[i] || generica || null;
+        telas.push({ num:i, codigo:cod, status: os ? 'resolvida' : 'nada',
+                     os:os, local:loc.nome, grupo:g.grupo });
+      }
+      return { ...loc, telas };
+    })
+  }));
+}
+
+function renderMapaTelas(){
   document.getElementById('mtData').textContent = 'atualizado em ' + new Date().toLocaleDateString('pt-BR');
 
-  // botão do filtro ativo
-  ['tudo','nc','pend'].forEach(f=>{
+  // marca o botão ativo (inclui o novo "resolvidas")
+  ['tudo','nc','pend','resolvidas'].forEach(f=>{
     const b = document.getElementById('mtF'+f);
     if(b) b.classList.toggle('primary', mtFiltro === f);
   });
+
+  // o seletor de mês só aparece no modo "resolvidas"
+  const selMes = document.getElementById('mtMes');
+  selMes.style.display = (mtFiltro === 'resolvidas') ? 'inline-block' : 'none';
+
+  if(mtFiltro === 'resolvidas'){ renderMapaResolvidas(); return; }
+
+  const mapa = mtMontar();
+  const todas = mapa.flatMap(g => g.locais.flatMap(l => l.telas));
+  const c = mtConta(todas);
 
   /* alerta: o que precisa de ação, já visível */
   const problemas = todas.filter(t => t.status === 'nc' || t.status === 'local')
@@ -5980,6 +6067,97 @@ function mtAbrirOS(id){
   if(!id) return;
   closeMapaTelas();
   openModal(id);
+}
+
+// Desenha o mapa no modo "resolvidas por mês": telas com OS encerrada no mês.
+function renderMapaResolvidas(){
+  const selMes = document.getElementById('mtMes');
+  const meses = mtMesesResolvidos();
+
+  // preenche o seletor (mantendo a escolha atual, se ainda existir)
+  const atual = selMes.value;
+  selMes.innerHTML = meses.length
+    ? meses.map(ch => '<option value="'+ch+'">'+mtRotuloMes(ch)+'</option>').join('')
+    : '<option value="">— sem encerramentos —</option>';
+  if(meses.includes(atual)) selMes.value = atual;
+  const mes = selMes.value;
+
+  const mapa = mes ? mtResolvidasNoMes(mes) : [];
+  const todas = mapa.flatMap(g => g.locais.flatMap(l => l.telas));
+  const resolvidas = todas.filter(t => t.status === 'resolvida');
+
+  // alerta vira um resumo do mês, em verde
+  const al = document.getElementById('mtAlerta');
+  al.className = 'mt-alerta ok';
+  al.innerHTML = mes
+    ? '<h2>✅ '+resolvidas.length+' tela(s) resolvida(s) em '+mtRotuloMes(mes)+'</h2>' +
+      '<div class="q">Telas com OS encerrada neste mês. Toque para ver a OS.</div>' +
+      (resolvidas.length ? '<div class="mt-lista">' + resolvidas.slice(0,18).map(t=>
+        '<div class="mt-item" onclick="mtAbrirOS(\''+(t.os?t.os.id:'')+'\')">' +
+          '<span class="cd" style="background:var(--teal-bg);color:var(--teal);border-color:var(--teal);">'+t.codigo+'</span>' +
+          '<span class="tx"><span class="on">'+escVist(t.local)+'</span>' +
+          '<span class="oc" style="color:var(--muted);">'+escVist((t.os && (t.os.tipo||t.os.code))||'')+'</span></span>' +
+          '<span class="dd">'+(t.os && t.os.dataConclusao ? new Date(t.os.dataConclusao).toLocaleDateString('pt-BR') : '')+'</span>' +
+        '</div>').join('') + '</div>' +
+        (resolvidas.length>18 ? '<div style="font-size:11px;color:var(--muted);margin-top:9px;">e mais '+(resolvidas.length-18)+'…</div>' : '')
+      : '<div class="q" style="margin:0;">Nenhuma OS encerrada neste mês.</div>')
+    : '<h2>Nenhum encerramento registrado ainda</h2><div class="q" style="margin:0;">Quando uma OS for encerrada, o mês aparece aqui.</div>';
+
+  // rosca: resolvidas x demais telas do parque
+  const totalParque = (EMPRESA.telas||[]).reduce((s,g)=>s+g.locais.reduce((a,l)=>a+(l.qtd||0),0),0);
+  document.getElementById('mtRosca').innerHTML = mtRosca([
+    {n:'Resolvidas no mês', v:resolvidas.length, c:'var(--teal)'},
+    {n:'Demais telas', v:Math.max(0, totalParque - resolvidas.length), c:'var(--panel-alt)'},
+  ], totalParque);
+
+  // escada: resolvidas por cliente, no mês
+  const linhas = mapa.map(g => ({
+    nome: g.grupo,
+    total: g.locais.reduce((s,l)=>s+l.telas.length,0),
+    resolvidas: g.locais.reduce((s,l)=>s+l.telas.filter(t=>t.status==='resolvida').length,0),
+  })).filter(x => x.resolvidas > 0).sort((a,b)=>b.resolvidas-a.resolvidas);
+  document.getElementById('mtEscada').innerHTML = linhas.length
+    ? '<div style="display:flex;flex-direction:column;gap:7px;">' + linhas.map(l=>{
+        const larg = Math.max(6, (l.resolvidas / (linhas[0].resolvidas||1)) * 100);
+        return '<div style="display:flex;align-items:center;gap:9px;">' +
+          '<span style="width:118px;font-size:11.5px;font-weight:600;">'+escVist(l.nome)+'</span>' +
+          '<span style="flex:1;background:var(--panel-alt);border-radius:99px;height:14px;overflow:hidden;">' +
+            '<span style="display:block;height:100%;width:'+larg+'%;background:var(--teal);border-radius:99px;"></span></span>' +
+          '<span style="font-size:11px;font-weight:700;color:var(--teal);">'+l.resolvidas+'</span></div>';
+      }).join('') + '</div>'
+    : '<div style="font-size:12px;color:var(--muted);padding:14px;">Nenhuma tela resolvida neste mês.</div>';
+
+  // números do topo
+  document.getElementById('mtNums').innerHTML =
+    '<div class="mt-num"><div class="r">Resolvidas no mês</div><div class="v" style="color:var(--teal)">'+resolvidas.length+'</div></div>' +
+    '<div class="mt-num"><div class="r">Clientes atendidos</div><div class="v">'+linhas.length+'</div></div>' +
+    '<div class="mt-num"><div class="r">Parque total</div><div class="v" style="color:var(--muted)">'+totalParque+'</div></div>';
+
+  // grupos: só quem teve resolvida no mês, com as telas verdes destacadas
+  const ord = mapa.filter(g => g.locais.some(l=>l.telas.some(t=>t.status==='resolvida')));
+  document.getElementById('mtGrupos').innerHTML = ord.length ? ord.map(g=>{
+    const locaisComResolvida = g.locais.filter(l=>l.telas.some(t=>t.status==='resolvida'));
+    const totalRes = g.locais.reduce((s,l)=>s+l.telas.filter(t=>t.status==='resolvida').length,0);
+    const chips = locaisComResolvida.map(l=>{
+      const telasRes = l.telas.filter(t=>t.status==='resolvida');
+      // pontos únicos (1 tela) viram chip; multi-tela mostra os quadradinhos verdes
+      if((l.qtd||0) <= 1){
+        return '<div class="mt-chip" onclick="mtAbrirOS(\''+(telasRes[0].os?telasRes[0].os.id:'')+'\')" style="background:var(--teal-bg);border-color:var(--teal);">' +
+          '<span class="pt" style="background:var(--teal)"></span><span class="nm">'+escVist(l.nome)+'</span></div>';
+      }
+      return '<div class="mt-unid"><div class="mt-uh"><span class="un">'+escVist(l.nome)+'</span>' +
+        '<span class="qt">'+telasRes.length+' de '+l.telas.length+' resolvida(s)</span></div>' +
+        '<div class="mt-telas">' + telasRes.map(t=>
+          '<div class="mt-tela s-ok" title="'+t.codigo+' — resolvida" onclick="mtAbrirOS(\''+(t.os?t.os.id:'')+'\')">'+t.num+'</div>').join('') +
+        '</div></div>';
+    }).join('');
+    return '<div class="mt-grupo">' +
+      '<div class="mt-gh"><span class="nome">'+escVist(g.grupo)+'</span>' +
+        '<span class="tg">'+escVist(g.tipo)+'</span>' +
+        '<span class="tg" style="background:var(--teal-bg);color:var(--teal);border-color:var(--teal);">'+totalRes+' resolvida(s)</span>' +
+        '<span class="esp"></span></div>' +
+      '<div class="mt-chips" style="margin-top:8px;">'+chips+'</div></div>';
+  }).join('') : '<div class="mt-grupo" style="text-align:center;color:var(--muted);font-size:13px;">Nenhuma tela resolvida em '+(mes?mtRotuloMes(mes):'—')+'.</div>';
 }
 
 function mtFiltrar(f){ mtFiltro = f; renderMapaTelas(); }
