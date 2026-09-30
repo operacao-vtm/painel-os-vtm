@@ -2082,8 +2082,10 @@
         <div style="font-size:9.5px;color:var(--muted);margin-top:3px;">Liste quantas precisar — uma em cada linha.</div>
       </div>
       <div class="field">
-        <label>Link do vídeo (YouTube, Drive ou Vimeo)</label>
+        <label>Link do vídeo 1 (YouTube, Drive ou Vimeo)</label>
         <input type="url" id="sLinkVideo" placeholder="Cole o link aqui — dá para assistir dentro da plataforma">
+        <label style="margin-top:8px;">Link do vídeo 2 (opcional)</label>
+        <input type="url" id="sLinkVideo2" placeholder="Segundo vídeo, se houver">
         <div style="font-size:9.5px;color:var(--muted);margin-top:3px;">Opcional. Se colar, o vídeo aparece no pedido, sem precisar baixar.</div>
       </div>
       <div class="field">
@@ -2556,6 +2558,9 @@ const EMPRESA = {
         {nome:'Estação 1', qtd:8}, {nome:'Estação 2', qtd:8},
         {nome:'Estação 3', qtd:8}, {nome:'Estação 4', qtd:8},
     ]},
+    { grupo:'Plataforma', tipo:'Plataforma', locais:[
+        {nome:'Plataforma Tocantins', qtd:2},
+    ]},
     { grupo:'Nova Era', tipo:'Supermercado', locais:[
         {nome:'Ponta Negra', qtd:1},
         {nome:'Alvorada (Dom Pedro)', qtd:1},
@@ -2629,7 +2634,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.62';
+const VERSAO_PAINEL = '4.65';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -5024,6 +5029,7 @@ function openSolicitarOS(){
     document.getElementById('sTipoMidia').value = 'terminais';
     document.getElementById('sVideo').value = '';
     document.getElementById('sLinkVideo').value = '';
+    document.getElementById('sLinkVideo2').value = '';
     onTipoMidiaChange();
   }
 
@@ -5297,10 +5303,12 @@ function enviarSolicitacaoTecnico(){
     : [];
 
   const linkVideo = ehComprovacao ? (document.getElementById('sLinkVideo').value || '').trim() : '';
+  const linkVideo2 = ehComprovacao ? (document.getElementById('sLinkVideo2').value || '').trim() : '';
   const descricao = ehComprovacao
     ? ('Comprovar ' + campanhas.length + ' campanha' + (campanhas.length>1?'s':'') + ':\n' +
        campanhas.map(nm=>'• ' + nm).join('\n') +
        (linkVideo ? '\nVídeo: ' + linkVideo : '') +
+       (linkVideo2 ? '\nVídeo 2: ' + linkVideo2 : '') +
        '\n' + rotuloTipo + ' (' + unidades.length + '):\n' +
        unidades.map(u=>'• ' + u).join('\n'))
     : (document.getElementById('sProblema').value.trim() || local);
@@ -5310,6 +5318,7 @@ function enviarSolicitacaoTecnico(){
     campanhas: campanhas,
     video: video,
     linkVideo: linkVideo,
+    linkVideo2: linkVideo2,
     unidades: unidades,
     responsavel: responsavel,
     id: 'sol' + Date.now(),
@@ -5463,6 +5472,7 @@ function renderListaSolicitacoes(){
         ${(s.materiais||[]).length ? '<div style="margin-top:6px;"><b class="solic-linha" style="display:block;">Material a comprar</b>'+materiaisHtml+'</div>' : ''}
         ${fotos.length ? '<div style="margin-top:6px;"><b class="solic-linha" style="display:block;">Imagens</b>'+fotosHtml+'</div>' : ''}
         ${s.linkVideo ? '<div style="margin-top:8px;"><b class="solic-linha" style="display:block;">Vídeo da campanha</b>'+embedVideo(s.linkVideo)+'</div>' : ''}
+        ${s.linkVideo2 ? '<div style="margin-top:8px;"><b class="solic-linha" style="display:block;">Vídeo 2</b>'+embedVideo(s.linkVideo2)+'</div>' : ''}
         ${tagStatus ? '<div style="margin-top:8px;">'+tagStatus+'</div>' : `
         <div class="solic-acoes">
           ${acoesBotoes}
@@ -5547,6 +5557,7 @@ function aprovarSolicitacao(id){
       // comprovação já vem com responsável definido pelo tipo de mídia
       tecnico: s.responsavel || (doTecnico ? s.solicitante : ''),
       linkVideo: s.linkVideo || '',   // vídeo da campanha, para assistir na OS
+      linkVideo2: s.linkVideo2 || '',
       criadoPor: currentUser ? currentUser.name : 'admin',
       acao: s.acao || 'corretiva',
       // comprovação já nasce com o local da foto, que é o dado central dela
@@ -5839,7 +5850,6 @@ function renderResumoMapa(){
       return '<div class="mtr-chip" onclick="mtAbrirOS(\'' + (t.os ? t.os.id : '') + '\')" ' +
         'title="' + escVist(t.local) + ' — ' + MT_ROT[t.status] + '">' +
         '<b>' + t.codigo + '</b>' +
-        '<span>' + escVist((t.os && t.os.tipo) ? String(t.os.tipo).slice(0,26) : '') + '</span>' +
         '<em>' + d + 'd</em></div>';
     }).join('') +
     (urgentes.length > 8 ? '<div class="mtr-chip" style="background:var(--panel-alt);border-color:var(--border);" onclick="openMapaTelas()"><span>+' + (urgentes.length-8) + ' no mapa</span></div>' : '') +
@@ -7003,22 +7013,23 @@ function renderTVRotas(){
   if(el.getAttribute('data-hash') === html){ return; }
   el.setAttribute('data-hash', html);
 
-  // monta a esteira. o conteúdo é DUPLICADO para o loop ser contínuo (sem "salto").
-  el.innerHTML = '<div class="tv-rotas-esteira" id="tvEsteira">' + html + html + '</div>';
+  // 1º) monta UMA cópia só, para medir se cabe no espaço disponível
+  el.innerHTML = '<div class="tv-rotas-esteira" id="tvEsteira">' + html + '</div>';
 
-  // só coloca em movimento se a rota não couber inteira no espaço.
-  // se couber, fica parada (não precisa rolar).
   requestAnimationFrame(function(){
     const esteira = document.getElementById('tvEsteira');
     if(!esteira) return;
-    const alturaMetade = esteira.scrollHeight / 2;   // altura de uma cópia
-    const cabe = alturaMetade <= el.clientHeight + 4;
+    const cabe = esteira.scrollHeight <= el.clientHeight + 4;
+
     if(cabe){
+      // cabe tudo: fica UMA cópia parada (sem duplicar → não aparece 2x)
       esteira.classList.remove('rolando');
       esteira.style.transform = 'none';
     } else {
-      // velocidade proporcional ao tamanho: ~4s a cada 100px de conteúdo
-      const dur = Math.max(18, Math.round(alturaMetade / 12));
+      // não cabe: aí sim DUPLICA o conteúdo e rola em loop contínuo
+      const uma = esteira.scrollHeight;
+      esteira.innerHTML = html + html;
+      const dur = Math.max(18, Math.round(uma / 12));
       esteira.style.setProperty('--dur', dur + 's');
       esteira.classList.add('rolando');
     }
