@@ -1771,9 +1771,15 @@
       <button class="vist-mini" onclick="closeModal()" title="fechar" style="margin-bottom:10px;">✕</button>
     </div>
     <div class="field">
-      <label>Local (terminal, estação ou plataforma)</label>
+      <label id="fLocalLabel">Local (terminal, estação ou plataforma)</label>
       <select id="fLocalSel" onchange="onLocalSelChange()"></select>
       <input type="text" id="fLocal" placeholder="Digite o local" style="margin-top:4px;display:none;">
+      <!-- múltipla escolha de locais, só na Visita técnica -->
+      <div id="fLocalMultiBox" style="display:none;margin-top:6px;">
+        <div id="fLocalMultiAtalhos" style="margin-bottom:7px;"></div>
+        <div id="fLocalMulti" class="locais-check"></div>
+        <div style="font-size:9px;color:var(--muted);margin-top:4px;">Marque todos os locais da vistoria. As telas deles ficam em azul (em vistoria) no Mapa de Telas.</div>
+      </div>
       <div id="fLocalInfo" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
     </div>
     <div class="field">
@@ -1787,12 +1793,6 @@
         <option value="totem">🗼 Instalação/Remoção de Totem</option>
       </select>
       <div id="fAcaoInfo" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
-    </div>
-    <div class="field" id="vistoriaWrap" style="display:none;">
-      <label>Locais desta vistoria (marque todos que vai visitar)</label>
-      <div id="fVistoriaAtalhos" style="margin-bottom:7px;"></div>
-      <div id="fVistoriaCheck" class="locais-check"></div>
-      <div style="font-size:9px;color:var(--muted);margin-top:4px;">As telas dos locais marcados ficam em azul (em vistoria) no Mapa de Telas.</div>
     </div>
     <div class="field" id="comprovacaoWrap" style="display:none;">
       <label>Locais desta comprovação</label>
@@ -2640,7 +2640,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.67';
+const VERSAO_PAINEL = '4.68';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3531,38 +3531,41 @@ function atualizaStatusDica(){
   else dica.innerHTML = 'Emitida e aguardando início. O técnico marca <b>Em andamento</b> quando começa o serviço.' + cond;
 }
 
-// Lista de TODOS os locais do sistema (os com tela + os de comprovação),
-// sem repetir, para a múltipla escolha da vistoria.
-function todosOsLocaisVistoria(){
-  const set = [];
-  const add = n => { if(n && !set.includes(n)) set.push(n); };
-  // grupos que já existem no mapa de telas (para não duplicar)
-  const gruposNoMapa = (EMPRESA.telas || []).map(g => g.grupo);
-  // 1) locais com tela (terminais, estações, plataforma, Nova Era, Coema…)
-  (EMPRESA.telas || []).forEach(g => (g.locais||[]).forEach(l => add(l.nome)));
-  // 2) locais de comprovação SÓ de clientes que NÃO estão no mapa
-  const lc = EMPRESA.locaisComprovacao || {};
-  Object.keys(lc).forEach(function(tipo){
-    (lc[tipo]||[]).forEach(function(nome){
-      const cliente = nome.split('—')[0].trim();
-      // se o cliente já tem grupo no mapa, o local de lá já cobre — não duplica
-      if(gruposNoMapa.indexOf(cliente) === -1) add(nome);
-    });
-  });
-  return set;
+// Na Visita técnica, o campo de Local vira MÚLTIPLA ESCOLHA (os mesmos
+// locais do cadastro). Nas outras ações, volta ao seletor simples.
+function aplicaLocalMultiplo(ligar){
+  const sel = document.getElementById('fLocalSel');
+  const inp = document.getElementById('fLocal');
+  const box = document.getElementById('fLocalMultiBox');
+  const label = document.getElementById('fLocalLabel');
+  if(!box) return;
+
+  if(ligar){
+    sel.style.display = 'none';
+    inp.style.display = 'none';
+    box.style.display = 'block';
+    label.textContent = 'Locais da vistoria (marque vários)';
+    montaLocalMulti();
+  } else {
+    sel.style.display = '';
+    box.style.display = 'none';
+    label.textContent = 'Local (terminal, estação ou plataforma)';
+  }
 }
 
-function montaVistoriaLocais(){
-  const wrap = document.getElementById('fVistoriaCheck');
-  const atalhos = document.getElementById('fVistoriaAtalhos');
+function montaLocalMulti(){
+  const wrap = document.getElementById('fLocalMulti');
+  const atalhos = document.getElementById('fLocalMultiAtalhos');
   if(!wrap) return;
   // preserva o que já estava marcado (ao reabrir a OS)
   const jaMarcados = [...wrap.querySelectorAll('.loc-cb:checked')].map(cb => cb.value);
   const it = editingId ? items.find(x=>x.id===editingId) : null;
-  const doItem = (it && it.vistoriaLocais) ? it.vistoriaLocais : [];
+  const doItem = (it && it.vistoriaLocais && it.vistoriaLocais.length) ? it.vistoriaLocais
+               : (it && it.local ? [it.local] : []);
   const marcados = jaMarcados.length ? jaMarcados : doItem;
 
-  const locais = todosOsLocaisVistoria();
+  // mesmos locais do cadastro (os que aparecem no select)
+  const locais = nomesCadastro('locais');
   atalhos.innerHTML = montaAtalhosLocais(locais);
   wrap.innerHTML = locais.map(function(loc){
     const chk = marcados.includes(loc) ? ' checked' : '';
@@ -3581,9 +3584,7 @@ function onAcaoChange(){
       ' preenchido nesta OS. Trocar a ação exige apagar o relatório atual, porque o roteiro é diferente.</span>'
     : 'Define qual relatório esta OS abre: ' + (ACOES[acao]||ACOES.visita).rel + '.';
   document.getElementById('comprovacaoWrap').style.display = (acao === 'comprovacao') ? 'block' : 'none';
-  const ehVisita = (acao === 'visita');
-  document.getElementById('vistoriaWrap').style.display = ehVisita ? 'block' : 'none';
-  if(ehVisita) montaVistoriaLocais();
+  aplicaLocalMultiplo(acao === 'visita');
   atualizaBotaoVistoria();
 }
 
@@ -3760,8 +3761,9 @@ function openModal(id){
       document.getElementById('fLocal').value = telaPreSelecionada.local;
       document.getElementById('fTipo').value = 'Tela ' + telaPreSelecionada.codigo + ' — ';
       document.getElementById('fAcao').value = 'corretiva';
-      onAcaoChange();
     }
+    // aplica o modo do campo de local conforme a ação (visita = múltipla escolha)
+    onAcaoChange();
   }
 }
 
@@ -4058,11 +4060,25 @@ async function saveOS(){
   if(souTecnicoEditando){
     return await salvarAndamentoTecnico();
   }
+  const acaoAgora = document.getElementById('fAcao').value;
+  const ehVisitaMulti = (acaoAgora === 'visita');
   const sel = document.getElementById('fLocalSel');
-  const local = (sel.value === '__novo__' ? document.getElementById('fLocal').value : sel.value).trim();
-  if(!local){
-    askConfirm('Selecione o local da OS. Uma OS é sempre de um único local, para os relatórios por local e por conjunto fecharem.', ()=>{});
-    return;
+  let local, vistoriaLocaisSel = [];
+  if(ehVisitaMulti){
+    vistoriaLocaisSel = [...document.querySelectorAll('#fLocalMulti .loc-cb:checked')].map(function(cb){ return cb.value; });
+    if(!vistoriaLocaisSel.length){
+      askConfirm('Marque ao menos um local para a vistoria.', ()=>{});
+      return;
+    }
+    // o "local" principal da OS é um resumo; os locais todos ficam em vistoriaLocais
+    local = vistoriaLocaisSel.length === 1 ? vistoriaLocaisSel[0]
+            : ('Vistoria — ' + vistoriaLocaisSel.length + ' locais');
+  } else {
+    local = (sel.value === '__novo__' ? document.getElementById('fLocal').value : sel.value).trim();
+    if(!local){
+      askConfirm('Selecione o local da OS.', ()=>{});
+      return;
+    }
   }
   if(photosUploading > 0){
     askConfirm('Ainda estamos enviando uma foto para o servidor. Aguarde alguns segundos e tente salvar novamente.', ()=>{});
@@ -4107,9 +4123,7 @@ async function saveOS(){
     requerRelatorio: requerRelatorio,
     acao: acaoEscolhida,
     localFoto: acaoEscolhida === 'comprovacao' ? document.getElementById('fLocalFoto').value.trim() : '',
-    vistoriaLocais: acaoEscolhida === 'visita'
-      ? [...document.querySelectorAll('#fVistoriaCheck .loc-cb:checked')].map(function(cb){ return cb.value; })
-      : [],
+    vistoriaLocais: ehVisitaMulti ? vistoriaLocaisSel : [],
     telaCodigo: telaPreSelecionada ? telaPreSelecionada.codigo :
                 (editingId ? ((items.find(x=>x.id===editingId)||{}).telaCodigo || '') : ''),
     materiais: materiais,
@@ -5209,8 +5223,8 @@ function agrupaLocaisComprovacao_END(){}
 
 // qual bloco de checkboxes está visível (comprovação ou vistoria)
 function blocoLocaisAtivo(){
-  const vist = document.getElementById('fVistoriaCheck');
-  if(vist && vist.offsetParent !== null) return vist;
+  const multi = document.getElementById('fLocalMulti');
+  if(multi && multi.offsetParent !== null) return multi;
   return document.getElementById('sLocaisCheck');
 }
 function marcarTodosLocais(v){
