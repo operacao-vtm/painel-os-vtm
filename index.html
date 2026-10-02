@@ -1788,6 +1788,12 @@
       </select>
       <div id="fAcaoInfo" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
     </div>
+    <div class="field" id="vistoriaWrap" style="display:none;">
+      <label>Locais desta vistoria (marque todos que vai visitar)</label>
+      <div id="fVistoriaAtalhos" style="margin-bottom:7px;"></div>
+      <div id="fVistoriaCheck" class="locais-check"></div>
+      <div style="font-size:9px;color:var(--muted);margin-top:4px;">As telas dos locais marcados ficam em azul (em vistoria) no Mapa de Telas.</div>
+    </div>
     <div class="field" id="comprovacaoWrap" style="display:none;">
       <label>Locais desta comprovação</label>
       <div id="fCompGrupos" style="margin-bottom:8px;"></div>
@@ -2634,7 +2640,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.65';
+const VERSAO_PAINEL = '4.67';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3525,6 +3531,46 @@ function atualizaStatusDica(){
   else dica.innerHTML = 'Emitida e aguardando início. O técnico marca <b>Em andamento</b> quando começa o serviço.' + cond;
 }
 
+// Lista de TODOS os locais do sistema (os com tela + os de comprovação),
+// sem repetir, para a múltipla escolha da vistoria.
+function todosOsLocaisVistoria(){
+  const set = [];
+  const add = n => { if(n && !set.includes(n)) set.push(n); };
+  // grupos que já existem no mapa de telas (para não duplicar)
+  const gruposNoMapa = (EMPRESA.telas || []).map(g => g.grupo);
+  // 1) locais com tela (terminais, estações, plataforma, Nova Era, Coema…)
+  (EMPRESA.telas || []).forEach(g => (g.locais||[]).forEach(l => add(l.nome)));
+  // 2) locais de comprovação SÓ de clientes que NÃO estão no mapa
+  const lc = EMPRESA.locaisComprovacao || {};
+  Object.keys(lc).forEach(function(tipo){
+    (lc[tipo]||[]).forEach(function(nome){
+      const cliente = nome.split('—')[0].trim();
+      // se o cliente já tem grupo no mapa, o local de lá já cobre — não duplica
+      if(gruposNoMapa.indexOf(cliente) === -1) add(nome);
+    });
+  });
+  return set;
+}
+
+function montaVistoriaLocais(){
+  const wrap = document.getElementById('fVistoriaCheck');
+  const atalhos = document.getElementById('fVistoriaAtalhos');
+  if(!wrap) return;
+  // preserva o que já estava marcado (ao reabrir a OS)
+  const jaMarcados = [...wrap.querySelectorAll('.loc-cb:checked')].map(cb => cb.value);
+  const it = editingId ? items.find(x=>x.id===editingId) : null;
+  const doItem = (it && it.vistoriaLocais) ? it.vistoriaLocais : [];
+  const marcados = jaMarcados.length ? jaMarcados : doItem;
+
+  const locais = todosOsLocaisVistoria();
+  atalhos.innerHTML = montaAtalhosLocais(locais);
+  wrap.innerHTML = locais.map(function(loc){
+    const chk = marcados.includes(loc) ? ' checked' : '';
+    return '<label class="loc-item"><input type="checkbox" class="loc-cb" value="' + escVist(loc) + '"' + chk + '> ' +
+           escVist(loc) + '</label>';
+  }).join('');
+}
+
 function onAcaoChange(){
   const acao = document.getElementById('fAcao').value;
   const it = editingId ? items.find(x=>x.id===editingId) : null;
@@ -3535,6 +3581,9 @@ function onAcaoChange(){
       ' preenchido nesta OS. Trocar a ação exige apagar o relatório atual, porque o roteiro é diferente.</span>'
     : 'Define qual relatório esta OS abre: ' + (ACOES[acao]||ACOES.visita).rel + '.';
   document.getElementById('comprovacaoWrap').style.display = (acao === 'comprovacao') ? 'block' : 'none';
+  const ehVisita = (acao === 'visita');
+  document.getElementById('vistoriaWrap').style.display = ehVisita ? 'block' : 'none';
+  if(ehVisita) montaVistoriaLocais();
   atualizaBotaoVistoria();
 }
 
@@ -4058,6 +4107,9 @@ async function saveOS(){
     requerRelatorio: requerRelatorio,
     acao: acaoEscolhida,
     localFoto: acaoEscolhida === 'comprovacao' ? document.getElementById('fLocalFoto').value.trim() : '',
+    vistoriaLocais: acaoEscolhida === 'visita'
+      ? [...document.querySelectorAll('#fVistoriaCheck .loc-cb:checked')].map(function(cb){ return cb.value; })
+      : [],
     telaCodigo: telaPreSelecionada ? telaPreSelecionada.codigo :
                 (editingId ? ((items.find(x=>x.id===editingId)||{}).telaCodigo || '') : ''),
     materiais: materiais,
@@ -5155,18 +5207,36 @@ function agrupaLocaisComprovacao(unidades){
 
 function agrupaLocaisComprovacao_END(){}
 
+// qual bloco de checkboxes está visível (comprovação ou vistoria)
+function blocoLocaisAtivo(){
+  const vist = document.getElementById('fVistoriaCheck');
+  if(vist && vist.offsetParent !== null) return vist;
+  return document.getElementById('sLocaisCheck');
+}
 function marcarTodosLocais(v){
-  document.querySelectorAll('#sLocaisCheck .loc-cb').forEach(function(cb){ cb.checked = v; });
+  const bloco = blocoLocaisAtivo();
+  if(bloco) bloco.querySelectorAll('.loc-cb').forEach(function(cb){ cb.checked = v; });
 }
 
 // nome do grupo de um local, para agrupar os atalhos
+// índice local -> grupo, montado a partir do cadastro (uma vez)
+let _idxGrupoLocal = null;
+function _montaIdxGrupoLocal(){
+  _idxGrupoLocal = {};
+  (EMPRESA.telas || []).forEach(function(g){
+    (g.locais||[]).forEach(function(l){ _idxGrupoLocal[l.nome] = g.grupo; });
+  });
+}
 function grupoDoLocal(nome){
   const n = String(nome);
+  // 1º) se o local está no cadastro de telas, usa o grupo de lá (Nova Era, Coema…)
+  if(!_idxGrupoLocal) _montaIdxGrupoLocal();
+  if(_idxGrupoLocal[n]) return _idxGrupoLocal[n];
+  // 2º) regras por texto
   if(/^terminal/i.test(n))  return 'Terminais';
   if(/^esta[çc][ãa]o/i.test(n)) return 'Estações';
-  // "Coema — Novo Aleixo" → grupo "Coema" (antes do travessão)
-  if(/—/.test(n)) return n.split('—')[0].trim();
-  // sem travessão (ex: "Sensumed Adrianópolis") → primeira palavra = grupo
+  if(/^plataforma/i.test(n)) return 'Plataforma';
+  if(/—/.test(n)) return n.split('—')[0].trim();   // "Coema — Novo Aleixo" → "Coema"
   return n.split(/\s+/)[0].trim() || n;
 }
 
@@ -5192,7 +5262,8 @@ function montaAtalhosLocais(locais){
 
 // marca (ou desmarca alternando) todas as caixas de um grupo
 function marcarGrupoLocais(grupo){
-  const cbs = [...document.querySelectorAll('#sLocaisCheck .loc-cb')]
+  const bloco = blocoLocaisAtivo();
+  const cbs = [...(bloco ? bloco.querySelectorAll('.loc-cb') : [])]
     .filter(function(cb){ return grupoDoLocal(cb.value) === grupo; });
   // se todas já estão marcadas, desmarca; senão marca todas (toggle prático)
   const todasMarcadas = cbs.length > 0 && cbs.every(function(cb){ return cb.checked; });
@@ -5952,9 +6023,11 @@ function mtMontar(){
     grupo: g.grupo,
     tipo: g.tipo,
     locais: (g.locais || []).map(loc => {
-      // OS abertas relacionadas a este local
-      const doLocal = abertas.filter(os => mtMesmoLocal(loc.nome, os.local));
-      const jaTeveOS = items.some(os => mtMesmoLocal(loc.nome, os.local));
+      // OS abertas relacionadas a este local — pelo campo "local" OU pela
+      // lista de locais de uma vistoria múltipla (vistoriaLocais)
+      const naVistoria = os => (os.vistoriaLocais || []).some(L => mtMesmoLocal(loc.nome, L));
+      const doLocal = abertas.filter(os => mtMesmoLocal(loc.nome, os.local) || naVistoria(os));
+      const jaTeveOS = items.some(os => mtMesmoLocal(loc.nome, os.local) || naVistoria(os));
 
       // visita técnica é rotina, não defeito: entra como "em vistoria" (azul)
       const ehVisita = os => (os.acao === 'visita');
