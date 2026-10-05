@@ -622,6 +622,13 @@
       border-radius:0;
       padding:14px 14px 18px;
     }
+    /* a caixa de confirmação é pequena: fica centralizada, não vira tela cheia */
+    #confirmOverlay{ align-items:center; padding:20px; }
+    #confirmOverlay .modal{
+      width:100%; max-width:420px; min-height:0;
+      border-radius:16px; padding:20px 18px;
+      align-self:center;
+    }
     .row2{ grid-template-columns:1fr; gap:0; }
     .modal-actions{
       flex-wrap:wrap;
@@ -1907,6 +1914,11 @@
         <input type="file" accept="image/*" capture="environment" id="fFotoVerifCamera" style="display:none" onchange="handlePhotoUpload(event,&#39;verificacao&#39;)">
         <input type="file" accept="image/*" multiple id="fFotoVerifFile" style="display:none" onchange="handlePhotoUpload(event,&#39;verificacao&#39;)">
         <div id="previewVerif" style="margin-top:4px;"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+          <button type="button" class="btn" style="font-size:11px;padding:5px 8px;white-space:nowrap;" onclick="abrirDriveUpload()">📤 Enviar ao Drive</button>
+          <input type="url" id="fVideoVerif" placeholder="🎥 Cole o link do vídeo aqui" style="flex:1;font-size:11px;">
+        </div>
+        <div id="previewVideoVerif" style="margin-top:4px;"></div>
       </div>
       <div class="field">
         <label>Foto de conclusão</label>
@@ -1917,6 +1929,11 @@
         <input type="file" accept="image/*" capture="environment" id="fFotoConclusaoCamera" style="display:none" onchange="handlePhotoUpload(event,&#39;conclusao&#39;)">
         <input type="file" accept="image/*" multiple id="fFotoConclusaoFile" style="display:none" onchange="handlePhotoUpload(event,&#39;conclusao&#39;)">
         <div id="previewConclusao" style="margin-top:4px;"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+          <button type="button" class="btn" style="font-size:11px;padding:5px 8px;white-space:nowrap;" onclick="abrirDriveUpload()">📤 Enviar ao Drive</button>
+          <input type="url" id="fVideoConclusao" placeholder="🎥 Cole o link do vídeo aqui" style="flex:1;font-size:11px;">
+        </div>
+        <div id="previewVideoConclusao" style="margin-top:4px;"></div>
       </div>
     </div>
     <div id="avisoSyncFotos" class="aviso-sync" style="display:none;"></div>
@@ -2640,7 +2657,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.68';
+const VERSAO_PAINEL = '4.71';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3722,6 +3739,10 @@ function openModal(id){
       : (it.nomeMaterial ? [{nome: it.nomeMaterial, quantidade: it.quantidade||0}] : []);
     materiaisExistentes.forEach(m=>adicionarLinhaMaterial(m.nome, m.quantidade, m.unidade));
     toggleCompraFields();
+    document.getElementById('fVideoVerif').value = it.videoVerif || '';
+    document.getElementById('fVideoConclusao').value = it.videoConclusao || '';
+    atualizaPreviewVideo('verif', it.videoVerif || '');
+    atualizaPreviewVideo('conclusao', it.videoConclusao || '');
     pendingFotosVerificacao = normalizaFotos(it.fotoVerificacao);
     pendingFotosConclusao = normalizaFotos(it.fotoConclusao);
     renderPhotoPreview('previewVerif', pendingFotosVerificacao, 'verificacao', photosEditable);
@@ -3749,6 +3770,10 @@ function openModal(id){
     toggleCompraFields();
     pendingFotosVerificacao = [];
     pendingFotosConclusao = [];
+    document.getElementById('fVideoVerif').value = '';
+    document.getElementById('fVideoConclusao').value = '';
+    atualizaPreviewVideo('verif', '');
+    atualizaPreviewVideo('conclusao', '');
     renderPhotoPreview('previewVerif', [], 'verificacao', true);
     renderPhotoPreview('previewConclusao', [], 'conclusao', true);
     atualizaAvisoSync();
@@ -4118,6 +4143,8 @@ async function saveOS(){
       ? document.getElementById('fDiagnostico').value.trim() : '',
     fotoVerificacao: pendingFotosVerificacao,
     fotoConclusao: pendingFotosConclusao,
+    videoVerif: (document.getElementById('fVideoVerif').value || '').trim(),
+    videoConclusao: (document.getElementById('fVideoConclusao').value || '').trim(),
     compraMaterial: ehCompra && materiais.length > 0,
     materialEntregue: materialEntregue,
     requerRelatorio: requerRelatorio,
@@ -8160,6 +8187,28 @@ function salvarRelatorio(){
   el.textContent = 'arquivo salvo: ' + nome;
   setTimeout(()=>{ el.textContent = antigo; }, 6000);
 }
+
+// mostra o player embutido do vídeo de verificação/conclusão
+// Atalho: abre o Google Drive direto na tela de enviar arquivo.
+// Para o técnico na correria: sobe o vídeo, copia o link e cola aqui.
+function abrirDriveUpload(){
+  // abre o Drive em nova aba (no celular, abre o app do Drive se instalado)
+  window.open('https://drive.google.com/drive/my-drive', '_blank');
+  // lembrete curto do passo a passo
+  askConfirm('Abri o Google Drive numa nova aba.\n\n1) Toque em "+ Novo" → "Upload de arquivo" e escolha o vídeo\n2) Quando terminar, toque no vídeo → "Compartilhar" → "Copiar link"\n3) Volte aqui e cole o link no campo ao lado', ()=>{});
+}
+
+function atualizaPreviewVideo(qual, url){
+  const el = document.getElementById(qual === 'verif' ? 'previewVideoVerif' : 'previewVideoConclusao');
+  if(!el) return;
+  el.innerHTML = (url && url.trim()) ? embedVideo(url.trim()) : '';
+}
+(function(){
+  const v = document.getElementById('fVideoVerif');
+  const c2 = document.getElementById('fVideoConclusao');
+  if(v) v.addEventListener('input', function(){ atualizaPreviewVideo('verif', v.value); });
+  if(c2) c2.addEventListener('input', function(){ atualizaPreviewVideo('conclusao', c2.value); });
+})();
 
 function askConfirm(msg, cb){
   document.getElementById('confirmMsg').textContent = msg;
