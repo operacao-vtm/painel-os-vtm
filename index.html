@@ -2666,6 +2666,7 @@
     <input type="date" id="fDataAte" onchange="render()" style="padding:7px 6px;font-size:11px;">
     <button type="button" class="btn" style="padding:6px 8px;font-size:10px;" onclick="document.getElementById('fDataDe').value='';document.getElementById('fDataAte').value='';render();" title="Limpar filtro de data">✕</button>
   </div>
+  <button type="button" class="btn" style="border-color:var(--brand-1);color:var(--brand-1);font-weight:600;" onclick="limparTodosFiltros()" title="Voltar ao normal: mostra as OS atuais">🧹 Limpar filtros</button>
 </div>
 
 <div class="board" id="board"></div>
@@ -3560,7 +3561,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.79';
+const VERSAO_PAINEL = '4.80';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -8221,7 +8222,18 @@ function tvSvgRosca(fatias, total){
 
 // Clicar num número do dashboard: fecha o dashboard e volta ao quadro
 // já filtrado por aquele status.
+// Volta o quadro ao normal: zera todos os filtros e mostra as OS atuais.
+function limparTodosFiltros(){
+  const ids = ['fBusca','fPrioridade','fTecnico','fStatusFiltro','fAcaoFiltro','fTipoFiltro','fDataDe','fDataAte'];
+  ids.forEach(function(id){ const el = document.getElementById(id); if(el) el.value = ''; });
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
 function irParaQuadroFiltrado(status){
+  // pega o mês escolhido no dashboard ANTES de fechar (ex: "2026-09")
+  const mesSel = (document.getElementById('dashFiltroMes')||{}).value || '';
+
   closeDashboard();
   // limpa outros filtros para não confundir o resultado
   const busca = document.getElementById('fBusca'); if(busca) busca.value='';
@@ -8229,12 +8241,23 @@ function irParaQuadroFiltrado(status){
   const tec = document.getElementById('fTecnico'); if(tec) tec.value='';
 
   if(status === '__atrasada__'){
-    // atrasadas não é um status de coluna; usa o filtro próprio se existir,
-    // senão mostra tudo e o quadro já destaca as atrasadas em vermelho
     const fs = document.getElementById('fStatusFiltro'); if(fs) fs.value='';
   } else {
     const fs = document.getElementById('fStatusFiltro'); if(fs) fs.value = status;
   }
+
+  // leva o mês junto: preenche De/Até com o 1º e o último dia do mês escolhido
+  const de = document.getElementById('fDataDe');
+  const ate = document.getElementById('fDataAte');
+  if(mesSel && de && ate){
+    const [ano, mes] = mesSel.split('-').map(Number);
+    const ultimoDia = new Date(ano, mes, 0).getDate();   // dia 0 do mês seguinte = último dia deste
+    de.value  = mesSel + '-01';
+    ate.value = mesSel + '-' + String(ultimoDia).padStart(2,'0');
+  } else if(de && ate){
+    de.value = ''; ate.value = '';   // "todos os meses" → sem recorte de data
+  }
+
   render();
   window.scrollTo({top:0, behavior:'smooth'});
 }
