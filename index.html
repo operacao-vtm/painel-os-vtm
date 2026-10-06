@@ -3561,7 +3561,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.80';
+const VERSAO_PAINEL = '4.81';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -8029,6 +8029,7 @@ function aplicaLicenca(){
 /* ================= MODO TV ================= */
 let _tvTimer = null;
 
+let _tvAutoAberto = false;
 function abrirModoTV(){
   document.getElementById('modoTVPage').style.display = 'block';
   renderModoTV();
@@ -9914,6 +9915,12 @@ currentUser = loadSession();
 loadData();
 updateModeUI();
 startPolling();
+
+/* modo quiosque/telão: abrir a URL terminando em #tv entra direto no Modo TV.
+   Espera os dados chegarem (3s) antes de abrir, para já mostrar tudo preenchido. */
+if(location.hash === '#tv' || location.hash === '#modotv'){
+  setTimeout(function(){ if(!_tvAutoAberto){ _tvAutoAberto = true; abrirModoTV(); } }, 3000);
+}
 
 // primeira visita (sem sessão e sem escolha anterior): pergunta quem está usando
 if(!currentUser && !jaEscolheuPerfil()){
