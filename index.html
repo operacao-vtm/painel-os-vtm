@@ -1122,6 +1122,9 @@
   .solic-acoes .btn{ flex:1; padding:8px; font-size:12.5px; }
   .solic-status-tag{ font-size:10.5px; font-weight:700; }
 
+  .dash-card.clicavel{ cursor:pointer; transition:border-color .12s ease, transform .12s ease; }
+  .dash-card.clicavel:hover{ border-color:var(--brand-1); transform:translateY(-2px); }
+
   .dash-card{
     background:var(--panel); border:1px solid var(--border); border-radius:10px;
     padding:16px 18px; text-align:center;
@@ -2681,7 +2684,11 @@
       <div id="fLocalMultiBox" style="display:none;margin-top:6px;">
         <div id="fLocalMultiAtalhos" style="margin-bottom:7px;"></div>
         <div id="fLocalMulti" class="locais-check"></div>
-        <div style="font-size:9px;color:var(--muted);margin-top:4px;">Marque todos os locais da vistoria. As telas deles ficam em azul (em vistoria) no Mapa de Telas.</div>
+        <div style="display:flex;gap:6px;margin-top:7px;">
+          <input type="text" id="fNovoLocal" placeholder="+ Adicionar um local que não está na lista" style="flex:1;font-size:12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarNovoLocalVistoria();}">
+          <button type="button" class="btn" style="font-size:12px;padding:6px 12px;white-space:nowrap;" onclick="adicionarNovoLocalVistoria()">Adicionar</button>
+        </div>
+        <div style="font-size:9px;color:var(--muted);margin-top:4px;">Marque todos os locais da vistoria. O novo local entra no cadastro geral. As telas marcadas ficam em azul no Mapa de Telas.</div>
       </div>
       <div id="fLocalInfo" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
     </div>
@@ -3553,7 +3560,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.77';
+const VERSAO_PAINEL = '4.79';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -4464,6 +4471,31 @@ function aplicaLocalMultiplo(ligar){
     box.style.display = 'none';
     label.textContent = 'Local (terminal, estação ou plataforma)';
   }
+}
+
+// Adiciona um local novo ao cadastro GERAL (fica disponível em todo o sistema)
+// e já o marca na lista da vistoria.
+function adicionarNovoLocalVistoria(){
+  const inp = document.getElementById('fNovoLocal');
+  const nome = (inp.value || '').trim();
+  if(!nome) return;
+  // já existe no cadastro? só marca
+  const existentes = nomesCadastro('locais');
+  const jaExiste = existentes.some(function(n){ return n.toLowerCase() === nome.toLowerCase(); });
+  if(!jaExiste){
+    if(!cadastro.locais) cadastro.locais = [];
+    cadastro.locais.push({ nome: nome });
+    persistComAviso('Não foi possível salvar o novo local no servidor. Repita com boa conexão.');
+  }
+  inp.value = '';
+  // remonta a lista preservando os que já estavam marcados + marca o novo
+  const marcados = [...document.querySelectorAll('#fLocalMulti .loc-cb:checked')].map(function(cb){ return cb.value; });
+  if(!marcados.includes(nome)) marcados.push(nome);
+  montaLocalMulti();
+  // reaplica as marcações (montaLocalMulti recria as caixas)
+  document.querySelectorAll('#fLocalMulti .loc-cb').forEach(function(cb){
+    if(marcados.includes(cb.value)) cb.checked = true;
+  });
 }
 
 function montaLocalMulti(){
@@ -8187,6 +8219,26 @@ function tvSvgRosca(fatias, total){
     '<text x="80" y="98" text-anchor="middle" font-size="13" fill="#9A93A6">total de OS</text></svg>';
 }
 
+// Clicar num número do dashboard: fecha o dashboard e volta ao quadro
+// já filtrado por aquele status.
+function irParaQuadroFiltrado(status){
+  closeDashboard();
+  // limpa outros filtros para não confundir o resultado
+  const busca = document.getElementById('fBusca'); if(busca) busca.value='';
+  const prio = document.getElementById('fPrioridade'); if(prio) prio.value='';
+  const tec = document.getElementById('fTecnico'); if(tec) tec.value='';
+
+  if(status === '__atrasada__'){
+    // atrasadas não é um status de coluna; usa o filtro próprio se existir,
+    // senão mostra tudo e o quadro já destaca as atrasadas em vermelho
+    const fs = document.getElementById('fStatusFiltro'); if(fs) fs.value='';
+  } else {
+    const fs = document.getElementById('fStatusFiltro'); if(fs) fs.value = status;
+  }
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
 function renderDashboard(){
   const MESES_LABEL = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const mesDe = ts => { const d = new Date(ts); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); };
@@ -8218,11 +8270,11 @@ function renderDashboard(){
 
   const rotuloCartoes = mesFiltro ? ' (abertas em ' + MESES_LABEL[parseInt(mesFiltro.split('-')[1],10)-1] + '/' + mesFiltro.split('-')[0] + ')' : '';
   document.getElementById('dashCards').innerHTML = `
-    <div class="dash-card"><div class="num" style="color:var(--muted);">${counts.aberta}</div><div class="lbl">Abertas${rotuloCartoes}</div></div>
-    <div class="dash-card"><div class="num" style="color:var(--amber);">${counts.andamento}</div><div class="lbl">Em andamento${rotuloCartoes}</div></div>
-    <div class="dash-card"><div class="num" style="color:var(--blue);">${counts.peca}</div><div class="lbl">Aguardando material${rotuloCartoes}</div></div>
-    <div class="dash-card"><div class="num" style="color:var(--teal);">${counts.concluida}</div><div class="lbl">Encerradas${rotuloCartoes}</div></div>
-    <div class="dash-card"><div class="num" style="color:var(--red);">${resumo.atrasadas}</div><div class="lbl">Atrasadas (+${PRAZO_DIAS}d)${rotuloCartoes}</div></div>
+    <div class="dash-card clicavel" onclick="irParaQuadroFiltrado('aberta')"><div class="num" style="color:var(--muted);">${counts.aberta}</div><div class="lbl">Abertas${rotuloCartoes}</div></div>
+    <div class="dash-card clicavel" onclick="irParaQuadroFiltrado('andamento')"><div class="num" style="color:var(--amber);">${counts.andamento}</div><div class="lbl">Em andamento${rotuloCartoes}</div></div>
+    <div class="dash-card clicavel" onclick="irParaQuadroFiltrado('peca')"><div class="num" style="color:var(--blue);">${counts.peca}</div><div class="lbl">Aguardando material${rotuloCartoes}</div></div>
+    <div class="dash-card clicavel" onclick="irParaQuadroFiltrado('concluida')"><div class="num" style="color:var(--teal);">${counts.concluida}</div><div class="lbl">Encerradas${rotuloCartoes}</div></div>
+    <div class="dash-card clicavel" onclick="irParaQuadroFiltrado('__atrasada__')"><div class="num" style="color:var(--red);">${resumo.atrasadas}</div><div class="lbl">Atrasadas (+${PRAZO_DIAS}d)${rotuloCartoes}</div></div>
   `;
   document.getElementById('dashCards').style.gridTemplateColumns = 'repeat(5,1fr)';
 
