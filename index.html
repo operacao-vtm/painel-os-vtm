@@ -947,6 +947,7 @@
     --shadow-lg:0 8px 28px rgba(36,31,44,.14);
   }
   *{box-sizing:border-box;}
+  html{ overflow-x:hidden; }
   body{
     margin:0;
     background:var(--bg);
@@ -955,6 +956,8 @@
     padding:28px 32px 60px;
     -webkit-font-smoothing:antialiased;
     transition:background .25s ease,color .25s ease;
+    overflow-x:hidden;        /* nunca rola de lado: evita o "comido" na borda direita */
+    max-width:100%;
   }
   .mono{font-family:'Open Sans',system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.01em;}
   header{
@@ -1061,6 +1064,23 @@
 
   @media (prefers-reduced-motion: reduce){
     *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+  }
+
+  @media (max-width:640px){
+    /* rota no celular: mostra tudo de uma vez, empilhado, sem deslizar */
+    #faixaRota, #faixaRotaFixa{
+      white-space:normal !important;
+      overflow:visible !important;
+    }
+    #faixaRotaTexto, #faixaRotaFixaTexto{
+      display:block !important;
+      white-space:normal !important;
+      line-height:1.5;
+      animation:none !important;   /* não desliza no celular */
+      padding-left:0 !important;
+    }
+    /* cada parada (separada por →) ganha respiro para ler melhor */
+    #faixaRotaTexto, #faixaRotaFixaTexto{ word-break:break-word; }
   }
 
   @keyframes faixaRotaScroll{
@@ -1171,6 +1191,17 @@
     padding:12px;
     min-height:120px;
   }
+  /* arrastar cards (Trello) */
+  .col.col-alvo{ outline:2px dashed var(--brand-1); outline-offset:-4px; background:var(--panel-alt); }
+  .card{ position:relative; }
+  .card-alca{
+    position:absolute; top:6px; right:8px; z-index:2;
+    cursor:grab; color:var(--muted); font-size:16px; line-height:1;
+    padding:2px 5px; border-radius:5px; user-select:none;
+  }
+  .card-alca:hover{ background:var(--panel-alt); color:var(--brand-1); }
+  .card-alca:active{ cursor:grabbing; }
+
   .col-head{
     display:flex;
     align-items:center;
@@ -1239,7 +1270,7 @@
     display:none;
     position:fixed;
     inset:0;
-    min-height:100vh;
+    min-height:100dvh;
     background:rgba(0,0,0,0.55);
     align-items:flex-start;
     justify-content:center;
@@ -1451,11 +1482,23 @@
     .toolbar{ gap:8px; margin-bottom:14px; }
     .toolbar > *{ flex:1 1 100% !important; min-width:0 !important; }
 
+    /* kanban no celular: colunas lado a lado, arrasta pro lado */
     .board{
-      grid-template-columns:1fr;
+      display:flex;
+      grid-template-columns:none;
       gap:12px;
+      overflow-x:auto;
+      scroll-snap-type:x mandatory;     /* "encaixa" numa coluna por vez ao arrastar */
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:8px;               /* espaço pra barra de rolagem não cobrir card */
     }
-    .col{ padding:10px; min-height:unset; }
+    .col{
+      flex:0 0 82%;                     /* cada coluna ocupa 82% da tela — mostra que tem mais ao lado */
+      scroll-snap-align:start;
+      padding:10px; min-height:unset;
+    }
+    /* colunas vazias somem no celular */
+    .col.col-vazia{ display:none; }
     .card{ padding:10px; }
 
     input[type=text],input[type=number],select,textarea{
@@ -1471,7 +1514,7 @@
     .modal{
       width:100%;
       max-width:100%;
-      min-height:100vh;
+      min-height:100dvh;
       border-radius:0;
       padding:14px 14px 18px;
     }
@@ -3510,7 +3553,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.72';
+const VERSAO_PAINEL = '4.77';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -5312,6 +5355,120 @@ function populateTipoFilter(){
   sel.value = current;
 }
 
+/* ================= ARRASTAR CARDS (estilo Trello) =================
+   Admin: move livre entre as colunas.
+   Técnico: só pode arrastar para "Encerrada" → vira solicitação de
+   encerramento (não encerra sozinho; cai para o admin aprovar).
+   ================================================================ */
+let _arrastandoId = null;
+
+function podeArrastar(){
+  // admin e técnico arrastam; os demais perfis não
+  return !!(currentUser && (currentUser.role === 'admin' || currentUser.role === 'tecnico'));
+}
+
+function onCardDragStart(ev, id){
+  if(!podeArrastar()){ ev.preventDefault(); return; }
+  _arrastandoId = id;
+  ev.dataTransfer.effectAllowed = 'move';
+  try{ ev.dataTransfer.setData('text/plain', id); }catch(e){}
+}
+
+function onCardDragEnd(ev){
+  _arrastandoId = null;
+  document.querySelectorAll('.col-alvo').forEach(function(c){ c.classList.remove('col-alvo'); });
+}
+
+function onColDragOver(ev){
+  if(!_arrastandoId) return;
+  ev.preventDefault();                 // permite soltar aqui
+  ev.currentTarget.classList.add('col-alvo');
+}
+function onColDragLeave(ev){
+  ev.currentTarget.classList.remove('col-alvo');
+}
+
+function onColDrop(ev, colKey){
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('col-alvo');
+  const id = _arrastandoId || (ev.dataTransfer && ev.dataTransfer.getData('text/plain'));
+  _arrastandoId = null;
+  if(!id) return;
+  const it = items.find(x=>x.id===id);
+  if(!it) return;
+
+  const ehAdmin = currentUser && currentUser.role === 'admin';
+  const ehTecnico = currentUser && currentUser.role === 'tecnico';
+
+  // soltou na mesma coluna onde já está? não faz nada
+  if(colunasDe(it).includes(colKey)) return;
+
+  // ---- TÉCNICO ----
+  if(ehTecnico){
+    // técnico só pode arrastar para Encerrada → solicita encerramento
+    if(colKey !== 'concluida'){
+      askConfirm('Como técnico, você só pode arrastar um card para "Encerrada" (para solicitar o encerramento). As outras mudanças são feitas abrindo a OS.', ()=>{});
+      return;
+    }
+    // já tem solicitação de encerramento pendente?
+    if(solicitacoes.some(s=>s.tipo==='encerramento' && s.osId===it.id && s.status==='pendente')){
+      askConfirm('Já existe uma solicitação de encerramento aguardando aprovação para esta OS.', ()=>{});
+      return;
+    }
+    askConfirm('Solicitar o encerramento da ' + (it.code||'OS') + '?\n\nO card continua onde está e a solicitação vai para o administrador aprovar.', function(){
+      solicitarEncerramentoArrasto(it);
+    });
+    return;
+  }
+
+  // ---- ADMIN ---- move livre
+  if(ehAdmin){
+    aplicaStatusArrasto(it, colKey);
+    persistComAviso('Não foi possível confirmar a mudança no servidor. Repita com boa conexão.');
+    render();
+  }
+}
+
+// aplica o novo status ao mover (admin)
+function aplicaStatusArrasto(it, colKey){
+  if(colKey === 'concluida'){
+    it.status = 'concluida';
+    if(!it.dataConclusao) it.dataConclusao = Date.now();
+    it.encerradoPor = currentUser ? currentUser.name : (it.encerradoPor||'');
+  } else {
+    // saindo de encerrada: limpa a conclusão
+    if(it.status === 'concluida'){ it.dataConclusao = 0; }
+    it.status = colKey;                       // aberta | peca | andamento
+    if(colKey === 'andamento' && !it.dataInicio){
+      it.dataInicio = Date.now();
+      it.iniciadoPor = currentUser ? currentUser.name : (it.iniciadoPor||'');
+    }
+  }
+}
+
+// solicitação de encerramento feita pelo arrasto do técnico
+function solicitarEncerramentoArrasto(it){
+  solicitacoes.push({
+    id: 'sol' + Date.now(),
+    protocolo: 'ENC-' + (it.code || '') + '-' + String(Date.now()).slice(-4),
+    origem: 'tecnico',
+    tipo: 'encerramento',
+    osId: it.id,
+    osCode: it.code,
+    dataHora: Date.now(),
+    solicitante: currentUser ? currentUser.name : '',
+    urgencia: 'Normal',
+    local: it.local,
+    servicos: [it.diagnostico || 'Encerramento solicitado pelo quadro (arrastar)'],
+    materiais: [],
+    fotos: normalizaFotos(it.fotoConclusao).concat(normalizaFotos(it.fotoVerificacao)),
+    status: 'pendente', decididoPor:'', decididoEm:0, motivoRejeicao:''
+  });
+  persistComAviso('Não foi possível confirmar o envio ao servidor. Repita com boa conexão.');
+  render();
+  askConfirm('Solicitação de encerramento enviada ao administrador. ✓', ()=>{});
+}
+
 function render(){
   aplicaLicenca();
   populateTecnicoFilter();
@@ -5377,7 +5534,8 @@ function render(){
       return b.dataAbertura - a.dataAbertura;
     });
     const cards = colItems.length ? colItems.map(it=>`
-      <div class="card prio-${it.prioridade}${it.parcial ? ' parcial' : ''}${estaAtrasada(it) ? ' atrasada' : ''}" onclick="openModal('${it.id}')">
+      <div class="card prio-${it.prioridade}${it.parcial ? ' parcial' : ''}${estaAtrasada(it) ? ' atrasada' : ''}" data-osid="${it.id}" onclick="openModal('${it.id}')">
+        ${podeArrastar() ? `<div class="card-alca" draggable="true" title="Arraste para mover" ondragstart="onCardDragStart(event,'${it.id}')" ondragend="onCardDragEnd(event)" onclick="event.stopPropagation()">⠿</div>` : ''}
         ${it.prioridade==='maxima' ? '<div class="tag-maxima">PRIORIDADE MÁXIMA!!!!</div>' : ''}
         <div class="code mono">${it.code}${(temFoto(it.fotoVerificacao)||temFoto(it.fotoConclusao)) ? ' 📷' : ''}${it.vistoria ? ' 📋' + contaConjuntos(it) + 'c' + (contaNC(it) ? '/' + contaNC(it) + 'NC' : '') : (it.requerRelatorio ? ' 📋?' : '')}</div>
         <div class="loc">${escVist(tituloCurtoOS(it))}</div>
@@ -5392,7 +5550,7 @@ function render(){
     `).join('') : '<div class="empty">Sem OS aqui</div>';
 
     return `
-      <div class="col">
+      <div class="col${colItems.length === 0 ? ' col-vazia' : ''}" data-colkey="${col.key}" ondragover="onColDragOver(event)" ondragleave="onColDragLeave(event)" ondrop="onColDrop(event,'${col.key}')">
         <div class="col-head">
           <div class="dot ${col.dot}"></div>
           <div class="col-title">${col.title}</div>
@@ -5902,7 +6060,9 @@ function atualizaFaixaGenerica(idFaixa, idTexto, mostrar, conteudo){
   // só anima (rola) se o texto for mais largo que a faixa; senão fica parado e legível
   texto.classList.remove('rolando');
   requestAnimationFrame(()=>{
-    if(texto.scrollWidth > faixa.clientWidth){
+    // no celular a rota quebra em linhas (não rola); no computador, rola se não couber
+    const ehCelular = window.matchMedia('(max-width:640px)').matches;
+    if(!ehCelular && texto.scrollWidth > faixa.clientWidth){
       texto.classList.add('rolando');
     }
   });
