@@ -1170,6 +1170,14 @@
   .video-link-cru{ font-size:11.5px; word-break:break-all; }
 
   /* ---------------- menu de 3 pontos (somente leitura) */
+  .tv-rosca-par{ display:flex; flex-direction:column; gap:2.5vh; width:100%; }
+  .tv-rosca-um{ display:flex; align-items:center; justify-content:center; gap:1.5vw; flex-wrap:nowrap; }
+  .tv-rosca-tit{ width:100%; text-align:center; font-size:1.6vh; font-weight:700; color:#9A93A6; margin-bottom:.4vh; }
+  /* as DUAS roscas com o MESMO tamanho fixo */
+  .tv-rosca-um svg.tv-donut{ width:17vh; height:17vh; max-width:17vh; max-height:17vh; flex-shrink:0; }
+  .tv-rosca-par .tv-leg{ min-width:11vw; }
+  .tv-rosca-par .tv-leg-item{ font-size:1.7vh; }
+
   /* ================= MODO TV (telão) =================
      Tudo em vh/vw para escalar em qualquer tamanho de tela. */
   #modoTVPage{ color:#F2EEF5; font-family:'Open Sans',system-ui,sans-serif; }
@@ -2590,6 +2598,10 @@ const EMPRESA = {
   tecnicosDeRota: ['pacheco', 'robert'],
   senhaTecnicosDeRota: 'PachecoVTM2026!',   // senha própria desses nomes
 
+  // técnicos da equipe de manutenção que ENCERRAM A OS DIRETO (sem solicitar,
+  // igual ao administrador). Ex.: Robert entrou na equipe.
+  tecnicosQueEncerram: ['robert'],
+
   // 5) LOCAIS DA ROTA FIXA ---------------------------------------
   // Rota recorrente que aparece na faixa do painel nos dias marcados.
   // Dias: domingo, segunda, terca, quarta, quinta, sexta, sabado
@@ -2708,7 +2720,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.82';
+const VERSAO_PAINEL = '4.88';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3552,6 +3564,10 @@ function statusAutomatico(){
   const sel = document.getElementById('fStatus');
   const it = editingId ? items.find(x=>x.id===editingId) : null;
   if(it && it.status === 'concluida') return 'concluida';
+  // quem pode encerrar (admin ou técnico da equipe, ex. Robert) pode escolher "Encerrada"
+  const nome = (currentUser && currentUser.name || '').trim().toLowerCase();
+  const podeEncerrar = ehAdmin() || (EMPRESA.tecnicosQueEncerram || []).includes(nome);
+  if(podeEncerrar && sel.selectedIndex >= 0 && sel.value === 'concluida') return 'concluida';
   if(sel.selectedIndex >= 0 && sel.value === 'andamento') return 'andamento';
   return 'aberta';
 }
@@ -3722,15 +3738,23 @@ function aplicaModoEdicao(){
   // técnico numa OS existente: registra o serviço (fotos + diagnóstico) e pede o
   // encerramento; quem fecha de fato é o administrador.
   const tecnicoNaOS = it && currentUser && currentUser.role === 'tecnico';
+  // técnico da equipe de manutenção que encerra direto (ex.: Robert)
+  const nomeAtual = (currentUser && currentUser.name || '').trim().toLowerCase();
+  const encerraDireto = (EMPRESA.tecnicosQueEncerram || []).includes(nomeAtual);
   const btnSave = document.getElementById('btnSave');
   const btnEnc = document.getElementById('btnSolicitarEnc');
 
-  if(tecnicoNaOS){
-    // o técnico marca o andamento, escreve o diagnóstico e anexa fotos.
-    // O encerramento continua passando pelo administrador.
+  if(tecnicoNaOS && !encerraDireto){
+    // técnico comum: marca andamento, diagnóstico e fotos; o encerramento
+    // passa pelo administrador (botão "Solicitar encerramento").
     document.getElementById('fStatus').disabled = false;
     btnSave.style.display = 'inline-flex';
     btnEnc.style.display = 'inline-flex';
+  } else if(tecnicoNaOS && encerraDireto){
+    // técnico da equipe (Robert): encerra direto, igual admin — sem solicitar.
+    document.getElementById('fStatus').disabled = false;
+    btnSave.style.display = 'inline-flex';
+    btnEnc.style.display = 'none';
   } else {
     btnSave.style.display = soLeitura ? 'none' : 'inline-flex';
     btnEnc.style.display = 'none';
@@ -4153,8 +4177,11 @@ async function salvarAndamentoTecnico(){
 async function saveOS(){
   // Técnico atualiza apenas o que é do trabalho dele: andamento, diagnóstico
   // e fotos. Os dados cadastrais e o encerramento seguem com o administrador.
-  const souTecnicoEditando = editingId && !ehAdmin() && currentUser && currentUser.role === 'tecnico';
-  if(editingId && !ehAdmin() && !souTecnicoEditando){
+  const nomeAtualSave = (currentUser && currentUser.name || '').trim().toLowerCase();
+  const encerraDiretoSave = (EMPRESA.tecnicosQueEncerram || []).includes(nomeAtualSave);
+  // Robert (equipe de manutenção) salva como um editor normal, podendo encerrar.
+  const souTecnicoEditando = editingId && !ehAdmin() && currentUser && currentUser.role === 'tecnico' && !encerraDiretoSave;
+  if(editingId && !ehAdmin() && !souTecnicoEditando && !encerraDiretoSave){
     askConfirm('Só o administrador altera uma OS já aberta.', ()=>{});
     return;
   }
@@ -4241,7 +4268,12 @@ async function saveOS(){
       it.dataInicio = Date.now();
       it.iniciadoPor = currentUser ? currentUser.name : null;
     }
-    // encerramento é ato explícito: salvar não conclui nem reabre
+    // encerramento ao salvar: passou para concluída agora → grava data e quem encerrou
+    if(statusAnterior !== 'concluida' && data.status === 'concluida'){
+      it.dataConclusao = Date.now();
+      it.encerradoPor = currentUser ? currentUser.name : (it.encerradoPor || '');
+    }
+    // reabrir: saiu de concluída → limpa a conclusão
     if(statusAnterior === 'concluida' && data.status !== 'concluida'){
       it.dataConclusao = null;
       it.encerradoPor = null;
@@ -6920,9 +6952,24 @@ function desenhaEscada(lista){
     '</svg>';
 }
 
-function desenhaPizzas(r){
+function desenhaPizzas(r, base){
   const wrap = document.getElementById('dashPizzas');
   if(!wrap) return;
+  base = base || items;
+
+  // VTM × EPX: conta as OS ENCERRADAS por quem encerrou.
+  // Pacheco = EPX; qualquer outro = VTM.
+  const encerradas = base.filter(function(x){ return x.status === 'concluida' && x.encerradoPor; });
+  let nEpx = 0, nVtm = 0;
+  encerradas.forEach(function(x){
+    if(String(x.encerradoPor).trim().toLowerCase().indexOf('pacheco') >= 0) nEpx++;
+    else nVtm++;
+  });
+  const totalEnc = nEpx + nVtm;
+  const vtmEpx = [
+    {nome:'VTM', valor:nVtm, cor:'#2FBFA0'},
+    {nome:'EPX', valor:nEpx, cor:'#F58220'},
+  ];
 
   const porSituacao = [
     {nome:'Realizadas',        valor:r.realizadas, cor:'#2FBFA0'},
@@ -6939,7 +6986,8 @@ function desenhaPizzas(r){
 
   wrap.innerHTML =
     svgRosca(porSituacao, r.emitidas, 'Emitidas por situação') +
-    svgRosca(cumprimento, r.emitidas, 'Realizadas x pendentes');
+    svgRosca(cumprimento, r.emitidas, 'Realizadas x pendentes') +
+    svgRosca(vtmEpx, totalEnc, 'Atendimentos VTM × EPX');
 }
 
 
@@ -7240,12 +7288,35 @@ function renderModoTV(){
     {n:'Abertas',      v:r.abertas,    c:'#E5397F'},
   ];
   const total = r.emitidas || 0;
+
+  // VTM × EPX: OS encerradas no mês por quem encerrou (Pacheco = EPX, resto = VTM)
+  let nEpx = 0, nVtm = 0;
+  doMes.filter(function(x){ return x.status==='concluida' && x.encerradoPor; }).forEach(function(x){
+    if(String(x.encerradoPor).toLowerCase().indexOf('pacheco') >= 0) nEpx++; else nVtm++;
+  });
+  const totalEnc = nEpx + nVtm;
+  const fatiasVE = [
+    {n:'VTM', v:nVtm, c:'#2FBF8F'},
+    {n:'EPX', v:nEpx, c:'#F7962C'},
+  ];
+
   document.getElementById('tvRosca').innerHTML =
-    tvSvgRosca(fatias, total) +
-    '<div class="tv-leg">' + fatias.map(function(f){
-      return '<div class="tv-leg-item"><b style="background:'+f.c+'"></b>' +
-             '<span>'+f.n+'</span><span class="n">'+f.v+'</span></div>';
-    }).join('') + '</div>';
+    '<div class="tv-rosca-par">' +
+      '<div class="tv-rosca-um">' + tvSvgRosca(fatias, total) +
+        '<div class="tv-leg">' + fatias.map(function(f){
+          return '<div class="tv-leg-item"><b style="background:'+f.c+'"></b>' +
+                 '<span>'+f.n+'</span><span class="n">'+f.v+'</span></div>';
+        }).join('') + '</div>' +
+      '</div>' +
+      '<div class="tv-rosca-um"><div class="tv-rosca-tit">Atendimentos VTM × EPX</div>' +
+        tvSvgRosca(fatiasVE, totalEnc) +
+        '<div class="tv-leg">' + fatiasVE.map(function(f){
+          const pct = totalEnc ? Math.round(f.v/totalEnc*100) : 0;
+          return '<div class="tv-leg-item"><b style="background:'+f.c+'"></b>' +
+                 '<span>'+f.n+'</span><span class="n">'+f.v+' ('+pct+'%)</span></div>';
+        }).join('') + '</div>' +
+      '</div>' +
+    '</div>';
 
   // ---- telas com problema (do mapa) ----
   const mapa = mtMontar();
@@ -7348,7 +7419,7 @@ function renderTVRotas(){
 function tvSvgRosca(fatias, total){
   const R=70, r=44, cx=80, cy=80;
   if(!total){
-    return '<svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="'+R+'" fill="none" stroke="#2A2433" stroke-width="'+(R-r)+'"/>' +
+    return '<svg class="tv-donut" viewBox="0 0 160 160"><circle cx="80" cy="80" r="'+R+'" fill="none" stroke="#2A2433" stroke-width="'+(R-r)+'"/>' +
       '<text x="80" y="86" text-anchor="middle" font-size="20" fill="#9A93A6">sem OS</text></svg>';
   }
   let a = -Math.PI/2;
@@ -7363,7 +7434,7 @@ function tvSvgRosca(fatias, total){
     return '<path d="'+d+'" fill="'+f.c+'" fill-rule="evenodd"/>';
   }).join('');
   const pct = Math.round((fatias[0].v/total)*100);
-  return '<svg viewBox="0 0 160 160">' + setores +
+  return '<svg class="tv-donut" viewBox="0 0 160 160">' + setores +
     '<text x="80" y="76" text-anchor="middle" font-size="30" font-weight="800" fill="#F2EEF5">'+total+'</text>' +
     '<text x="80" y="98" text-anchor="middle" font-size="13" fill="#9A93A6">total de OS</text></svg>';
 }
@@ -7436,7 +7507,7 @@ function renderDashboard(){
 
   // resumo rápido: emitidas, realizadas, em andamento e atrasadas
   const resumo = resumoOS(base);
-  desenhaPizzas(resumo);
+  desenhaPizzas(resumo, base);
   desenhaEscada(base);
 
   const rotuloCartoes = mesFiltro ? ' (abertas em ' + MESES_LABEL[parseInt(mesFiltro.split('-')[1],10)-1] + '/' + mesFiltro.split('-')[0] + ')' : '';
