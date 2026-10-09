@@ -2387,10 +2387,10 @@
 <div class="overlay" id="confirmOverlay">
   <div class="modal" style="width:360px;">
     <h2>Confirmar ação</h2>
-    <p id="confirmMsg" style="font-size:13px;color:var(--muted);margin:0 0 16px;"></p>
+    <p id="confirmMsg" style="font-size:13px;color:var(--muted);margin:0 0 16px;white-space:pre-line;"></p>
     <div class="modal-actions">
-      <button class="btn" onclick="closeConfirm()">Cancelar</button>
-      <button class="btn primary" onclick="runConfirm()">Confirmar</button>
+      <button class="btn" id="confirmNao" onclick="cancelConfirm()">Cancelar</button>
+      <button class="btn primary" id="confirmSim" onclick="runConfirm()">Confirmar</button>
     </div>
   </div>
 </div>
@@ -2723,7 +2723,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.89';
+const VERSAO_PAINEL = '4.90';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -2783,6 +2783,54 @@ let userSlots = {admins:[], tecnicos:[], diretores:[]};
 // CADASTROS FIXOS: locais, placas de mídia e equipamentos — só o nome, nunca resultado de vistoria.
 let cadastro = { locais: [], placas: [], equipamentos: [] };
 let rotaPacheco = { data: '', itens: [], atualizadoPor: '', atualizadoEm: 0 };
+// rotas dos dias anteriores ficam gravadas aqui (cada dia com o que foi feito)
+let historicoRotas = [];
+// momento em que a pessoa respondeu "Sim, vou agora" nesta OS aberta no formulário
+let andamentoConfirmadoEm = 0;
+
+function garanteRotaDeHoje(){
+  const hoje = hojeISO();
+  if(rotaPacheco && rotaPacheco.data === hoje) return;
+  // a rota de um dia anterior vai para o histórico, com a situação final de cada OS
+  if(rotaPacheco && rotaPacheco.data && (rotaPacheco.itens || []).length){
+    const fechada = JSON.parse(JSON.stringify(rotaPacheco));
+    fechada.itens.forEach(function(i){
+      const os = items.find(function(x){ return x.id === i.osId; });
+      if(os){ i.status = os.status; i.dataConclusao = os.dataConclusao || null; i.encerradoPor = os.encerradoPor || ''; }
+    });
+    historicoRotas = (historicoRotas || []).filter(function(r){ return r.data !== fechada.data; });
+    historicoRotas.push(fechada);
+    historicoRotas.sort(function(a, b){ return a.data.localeCompare(b.data); });
+    if(historicoRotas.length > 120) historicoRotas = historicoRotas.slice(-120);
+  }
+  rotaPacheco = { data: hoje, itens: [], atualizadoPor: '', atualizadoEm: 0 };
+}
+
+// Toda OS que vai para Em andamento entra na rota do dia, no horário em que começou
+function colocaNaRotaDoDia(it, quando){
+  if(!it) return;
+  garanteRotaDeHoje();
+  if(rotaPacheco.itens.some(function(x){ return x.osId === it.id; })) return;
+  const d = new Date(quando || Date.now());
+  const horario = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  rotaPacheco.itens.push({ osId: it.id, codigo: it.code, local: it.local, tipo: it.tipo || '', acao: it.acao || '',
+    tecnico: it.tecnico || (currentUser ? currentUser.name : ''), horario: horario, entrouEm: d.getTime(), automatico: true });
+  rotaPacheco.itens.sort(function(a, b){ return (a.horario || '99:99').localeCompare(b.horario || '99:99'); });
+  rotaPacheco.atualizadoPor = currentUser ? currentUser.name : '';
+  rotaPacheco.atualizadoEm = Date.now();
+}
+
+function perguntaAndamento(onSim, onNao){
+  perguntaSimNao('Você vai realizar o serviço agora?\n\nToda OS em andamento entra na rota do dia, com o horário deste momento. Se não for agora, ela continua Aberta.',
+    'Sim, vou agora', 'Não, depois',
+    function(){ andamentoConfirmadoEm = Date.now(); if(onSim) onSim(); },
+    function(){ andamentoConfirmadoEm = 0; if(onNao) onNao(); });
+}
+function voltaStatusSelect(it){
+  const sel = document.getElementById('fStatus');
+  if(it && it.status === 'andamento') sel.value = 'andamento'; else sel.selectedIndex = -1;
+  atualizaStatusDica();
+}
 let solicitacoes = [];
 
 // quem recebe os avisos automáticos (12h e 17h). Gerenciado na aba de administradores.
@@ -2869,6 +2917,7 @@ async function loadData(){
       userSlots = normalizeUserSlots(d.userSlots);
       cadastro = normalizaCadastro(d.cadastro);
       rotaPacheco = d.rotaPacheco || rotaPacheco;
+      historicoRotas = d.historicoRotas || historicoRotas;
       solicitacoes = d.solicitacoes || solicitacoes;
       destinatarios = normalizaDestinatarios(d.destinatarios);
       telasInfo = (d.telasInfo && typeof d.telasInfo === 'object') ? d.telasInfo : telasInfo;
@@ -2896,6 +2945,7 @@ async function loadData(){
     userSlots = normalizeUserSlots(json && json.userSlots);
     cadastro = normalizaCadastro(json && json.cadastro);
     rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
+    historicoRotas = (json && json.historicoRotas) || historicoRotas;
     solicitacoes = (json && json.solicitacoes) || solicitacoes;
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
     telasInfo = (json && json.telasInfo && typeof json.telasInfo === 'object') ? json.telasInfo : telasInfo;
@@ -2944,7 +2994,7 @@ async function diagnosticoConexao(){
     return;
   }
 
-  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios, telasInfo });
+  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo });
   const tamanho = JSON.stringify(limpo).length;
   const blocos = Math.ceil(tamanho / 45000);
   const pendentes = (solicitacoes||[]).filter(s=>s.status==='pendente').length;
@@ -3038,7 +3088,7 @@ async function pushState(tentativa){
   try{
     // fotos que não subiram ficam como base64 gigante e estouram o limite da
     // planilha; só vai para o servidor o que tem endereço de verdade
-    const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios, telasInfo });
+    const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo });
 
     // nunca sobrescreva o servidor sem ter lido dele antes
     if(!leituDoServidorOk){
@@ -3208,6 +3258,7 @@ async function refreshFromServer(){
     userSlots = normalizeUserSlots(json && json.userSlots);
     cadastro = normalizaCadastro(json && json.cadastro);
     rotaPacheco = (json && json.rotaPacheco) || rotaPacheco;
+    historicoRotas = (json && json.historicoRotas) || historicoRotas;
     solicitacoes = (json && json.solicitacoes) || solicitacoes;
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
     telasInfo = (json && json.telasInfo && typeof json.telasInfo === 'object') ? json.telasInfo : telasInfo;
@@ -3588,6 +3639,16 @@ function onStatusChange(){
     reabrirOS();
     return;
   }
+  if(sel.value === 'andamento' && !editingId){
+    sel.selectedIndex = -1;
+    askConfirm('Toda OS nova nasce Aberta. Depois de salvar, coloque Em andamento quando for realizar o serviço.', ()=>{});
+    atualizaStatusDica();
+    return;
+  }
+  if(sel.value === 'andamento' && atual && atual.status !== 'andamento' && !andamentoConfirmadoEm){
+    perguntaAndamento(function(){ atualizaStatusDica(); }, function(){ voltaStatusSelect(atual); });
+    return;
+  }
   if(sel.value === 'concluida'){
     if(!editingId){
       sel.selectedIndex = -1;
@@ -3787,6 +3848,7 @@ function aplicaModoEdicao(){
 function openModal(id){
   if(!id && !currentUser) return;
   relatorioAvisado = false;
+  andamentoConfirmadoEm = 0;
 
   encerramentoAvisado = false;
   editingId = id || null;
@@ -4158,12 +4220,18 @@ async function salvarAndamentoTecnico(){
     return;
   }
 
+  if(statusEscolhido === 'andamento' && it.status !== 'andamento' && !andamentoConfirmadoEm){
+    perguntaAndamento(function(){ salvarAndamentoTecnico(); }, function(){ voltaStatusSelect(it); });
+    return;
+  }
+  const statusAntesTec = it.status;
   // marca o início dos trabalhos na primeira vez que vai para "em andamento"
   if(statusEscolhido === 'andamento' && it.status !== 'andamento' && !it.dataInicio){
     it.dataInicio = Date.now();
     it.iniciadoPor = currentUser ? currentUser.name : null;
   }
   if(statusEscolhido) it.status = statusEscolhido;
+  if(statusAntesTec !== 'andamento' && it.status === 'andamento') colocaNaRotaDoDia(it, andamentoConfirmadoEm || Date.now());
 
   it.requerDiagnostico = document.getElementById('fRequerDiagnostico').checked;
   it.diagnostico = document.getElementById('fDiagnostico').value.trim();
@@ -4229,6 +4297,13 @@ async function saveOS(){
   const materialEntregue = document.getElementById('fMaterialEntregue').checked;
   const requerRelatorio = document.getElementById('fRequerRelatorio').checked;
   const statusEscolhido = statusAutomatico();
+  if(editingId){
+    const antesSalvar = items.find(x=>x.id===editingId);
+    if(antesSalvar && antesSalvar.status !== 'andamento' && statusEscolhido === 'andamento' && !andamentoConfirmadoEm){
+      perguntaAndamento(function(){ saveOS(); }, function(){ voltaStatusSelect(antesSalvar); });
+      return;
+    }
+  }
   const jaTemRelatorio = !!(editingId && (items.find(x=>x.id===editingId)||{}).vistoria);
   if(requerRelatorio && !jaTemRelatorio && statusEscolhido === 'concluida' && !relatorioAvisado){
     relatorioAvisado = true;
@@ -4262,6 +4337,7 @@ async function saveOS(){
                 (editingId ? ((items.find(x=>x.id===editingId)||{}).telaCodigo || '') : ''),
     materiais: materiais,
   };
+  if(!editingId) data.status = 'aberta';   // toda OS nasce Aberta
   if(editingId){
     const it = items.find(x=>x.id===editingId);
     const statusAnterior = it.status;
@@ -4271,6 +4347,10 @@ async function saveOS(){
     if(data.status === 'andamento' && !it.dataInicio){
       it.dataInicio = Date.now();
       it.iniciadoPor = currentUser ? currentUser.name : null;
+    }
+    // passou para Em andamento agora: entra na rota do dia
+    if(statusAnterior !== 'andamento' && it.status === 'andamento'){
+      colocaNaRotaDoDia(it, andamentoConfirmadoEm || Date.now());
     }
     // encerramento ao salvar: passou para concluída agora → grava data e quem encerrou
     if(statusAnterior !== 'concluida' && data.status === 'concluida'){
@@ -4639,9 +4719,15 @@ function onColDrop(ev, colKey){
 
   // ---- ADMIN ---- move livre
   if(ehAdmin){
-    aplicaStatusArrasto(it, colKey);
-    persistComAviso('Não foi possível confirmar a mudança no servidor. Repita com boa conexão.');
-    render();
+    const fazer = function(){
+      const antes = it.status;
+      aplicaStatusArrasto(it, colKey);
+      if(antes !== 'andamento' && it.status === 'andamento') colocaNaRotaDoDia(it, Date.now());
+      persistComAviso('Não foi possível confirmar a mudança no servidor. Repita com boa conexão.');
+      render();
+    };
+    if(colKey === 'andamento' && it.status !== 'andamento') perguntaAndamento(fazer, function(){});
+    else fazer();
   }
 }
 
@@ -5217,6 +5303,10 @@ function closeRotaPacheco(){
 }
 
 function salvarRotaPacheco(){
+  garanteRotaDeHoje();
+  // OS do dia que não aparecem no editor (as já encerradas) continuam gravadas na rota
+  const listados = new Set(Array.from(document.querySelectorAll('#rotaListaOS .rota-check')).map(c=>c.getAttribute('data-os')));
+  const preservados = (rotaPacheco.itens || []).filter(i => !listados.has(i.osId));
   const itens = [];
   document.querySelectorAll('#rotaListaOS .rota-os-row').forEach(row=>{
     const chk = row.querySelector('.rota-check');
@@ -5227,6 +5317,7 @@ function salvarRotaPacheco(){
     const horario = row.querySelector('.rota-hora').value || '';
     itens.push({ osId, codigo: it.code, local: it.local, tipo: it.tipo||'', acao: it.acao||'', tecnico: it.tecnico||'', horario });
   });
+  preservados.forEach(p => itens.push(p));
   itens.sort((a,b)=> (a.horario||'99:99').localeCompare(b.horario||'99:99'));
 
   rotaPacheco = {
@@ -5258,7 +5349,8 @@ function textoDaRota(){
     const titulo = os ? tituloCurtoOS(os) : tituloCurtoOS({acao:i.acao, tipo:i.tipo, local:i.local});
     return (i.horario ? i.horario+'h ' : '') + titulo +
            ' (' + i.codigo + ')' +
-           (i.tecnico ? ' 👷 '+i.tecnico : '');
+           (i.tecnico ? ' 👷 '+i.tecnico : '') +
+           (os && os.status === 'concluida' ? ' ✓ encerrada' : '');
   }).join('  →  ');
 }
 
@@ -7370,7 +7462,7 @@ function renderTVRotas(){
       const titulo = os ? tituloCurtoOS(os) : tituloCurtoOS({acao:i.acao, tipo:i.tipo, local:i.local});
       return '<div class="tv-rota-item">' +
         (i.horario ? '<span class="h">'+i.horario+'h</span>' : '') +
-        escVist(titulo) + (i.tecnico ? ' · 👷 '+escVist(i.tecnico) : '') + '</div>';
+        escVist(titulo) + (i.tecnico ? ' · 👷 '+escVist(i.tecnico) : '') + (os && os.status === 'concluida' ? ' · ✓ encerrada' : '') + '</div>';
     }).join('');
   } else {
     html += '<div class="tv-rota-vazio">Sem rota marcada para hoje.</div>';
@@ -7853,6 +7945,7 @@ function reabrirOS(){
     it.dataConclusao = null;
     it.reabertoPor = currentUser ? currentUser.name : null;   // o marco de início original é preservado
     it.dataReabertura = Date.now();
+    colocaNaRotaDoDia(it, Date.now());
     persistComAviso('Não foi possível confirmar a reabertura desta OS no servidor. Repita a ação com boa conexão.');
     render();
     closeModal();
@@ -8526,13 +8619,30 @@ function askConfirm(msg, cb){
   confirmCallback = cb;
   document.getElementById('confirmOverlay').classList.add('show');
 }
+let confirmNaoCallback = null;
 function closeConfirm(){
   document.getElementById('confirmOverlay').classList.remove('show');
-  confirmCallback = null;
+  confirmCallback = null; confirmNaoCallback = null;
+  document.getElementById('confirmSim').textContent = 'Confirmar';
+  document.getElementById('confirmNao').textContent = 'Cancelar';
+}
+function cancelConfirm(){
+  const nao = confirmNaoCallback;
+  closeConfirm();
+  if(nao) nao();
 }
 function runConfirm(){
-  if(confirmCallback) confirmCallback();
+  // fecha antes de executar: assim uma nova pergunta aberta pela ação não some na hora
+  const cb = confirmCallback;
   closeConfirm();
+  if(cb) cb();
+}
+// pergunta com dois caminhos (Sim / Não), cada um com sua ação
+function perguntaSimNao(msg, simTxt, naoTxt, onSim, onNao){
+  askConfirm(msg, onSim);
+  confirmNaoCallback = onNao || null;
+  document.getElementById('confirmSim').textContent = simTxt;
+  document.getElementById('confirmNao').textContent = naoTxt;
 }
 
 function parseDatePt(s){
