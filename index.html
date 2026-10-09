@@ -1547,6 +1547,7 @@
     <button class="btn" id="btnReportVist" onclick="openReportFilter('vist')" style="display: inline-flex;">Relatório de vistoria</button>
     <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleImportFile(event)">
     <button class="btn" id="btnRotaPacheco" onclick="openRotaPacheco()" style="display: none;">🔧 Rota do dia</button>
+    <button class="btn" id="btnLocaisEquipe" onclick="openCadastro('locais')" style="display: none;">📍 Locais</button>
     <button class="btn" id="btnSolicitacoes" onclick="openSolicitacoes()" style="display: none;position:relative;">📥 Solicitações<span id="badgeSolicitacoes" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;"></span></button>
     <button class="btn" id="btnRotaFixa" onclick="openRotaFixa()" style="display: none;">🚌 Rota fixa</button>
     <button class="btn" id="btnMapaTelas" onclick="openMapaTelas()">🖥️ Mapa de Telas</button>
@@ -2377,7 +2378,7 @@
     </div>
     <div style="display:flex;gap:6px;margin-bottom:8px;">
       <button class="btn primary" style="flex:1;justify-content:center;" onclick="addRegistroCadastro()">Criar</button>
-      <button class="btn danger" style="flex:1;justify-content:center;" onclick="excluirRegistroSelecionado()">Excluir</button>
+      <button class="btn danger" id="btnExcluirCadastro" style="flex:1;justify-content:center;" onclick="excluirRegistroSelecionado()">Excluir</button>
     </div>
     <div id="cadastroLista" style="max-height:260px;overflow:auto;"></div>
     <div id="cadastroDica" style="font-size:9px;color:var(--muted);margin-top:5px;"></div>
@@ -2723,7 +2724,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.90';
+const VERSAO_PAINEL = '4.91';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3467,7 +3468,7 @@ function updateModeUI(){
   // Pacheco e Robert cuidam da rota do dia e também atuam como técnicos
   const soRota = isTecnico && (EMPRESA.tecnicosDeRota||[]).includes((currentUser.name||'').trim().toLowerCase());
   const btnNova = document.getElementById('btnNovaOS');
-  const abreDireto = isTecnico && (EMPRESA.tecnicosQueAbremOS || []).includes((currentUser.name || '').trim().toLowerCase());
+  const abreDireto = isTecnico && estaNaLista(EMPRESA.tecnicosQueAbremOS, currentUser.name);
   const tecnicoSolicita = isTecnico && !abreDireto;
 
   btnNova.style.display = canCreate ? 'inline-flex' : 'none';
@@ -3488,6 +3489,7 @@ function updateModeUI(){
   }
   document.getElementById('btnRotaPacheco').style.display = (isAdmin || soRota) ? 'inline-flex' : 'none';
   document.getElementById('btnSolicitacoes').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('btnLocaisEquipe').style.display = abreDireto ? 'inline-flex' : 'none';
   document.getElementById('btnRotaFixa').style.display = isAdmin ? 'inline-flex' : 'none';
   atualizaBadgeSolicitacoes();
 }
@@ -3621,7 +3623,7 @@ function statusAutomatico(){
   if(it && it.status === 'concluida') return 'concluida';
   // quem pode encerrar (admin ou técnico da equipe, ex. Robert) pode escolher "Encerrada"
   const nome = (currentUser && currentUser.name || '').trim().toLowerCase();
-  const podeEncerrar = ehAdmin() || (EMPRESA.tecnicosQueEncerram || []).includes(nome);
+  const podeEncerrar = ehAdmin() || estaNaLista(EMPRESA.tecnicosQueEncerram, nome);
   if(podeEncerrar && sel.selectedIndex >= 0 && sel.value === 'concluida') return 'concluida';
   if(sel.selectedIndex >= 0 && sel.value === 'andamento') return 'andamento';
   return 'aberta';
@@ -3805,7 +3807,7 @@ function aplicaModoEdicao(){
   const tecnicoNaOS = it && currentUser && currentUser.role === 'tecnico';
   // técnico da equipe de manutenção que encerra direto (ex.: Robert)
   const nomeAtual = (currentUser && currentUser.name || '').trim().toLowerCase();
-  const encerraDireto = (EMPRESA.tecnicosQueEncerram || []).includes(nomeAtual);
+  const encerraDireto = estaNaLista(EMPRESA.tecnicosQueEncerram, nomeAtual);
   const btnSave = document.getElementById('btnSave');
   const btnEnc = document.getElementById('btnSolicitarEnc');
 
@@ -4250,7 +4252,7 @@ async function saveOS(){
   // Técnico atualiza apenas o que é do trabalho dele: andamento, diagnóstico
   // e fotos. Os dados cadastrais e o encerramento seguem com o administrador.
   const nomeAtualSave = (currentUser && currentUser.name || '').trim().toLowerCase();
-  const encerraDiretoSave = (EMPRESA.tecnicosQueEncerram || []).includes(nomeAtualSave);
+  const encerraDiretoSave = estaNaLista(EMPRESA.tecnicosQueEncerram, nomeAtualSave);
   // Robert (equipe de manutenção) salva como um editor normal, podendo encerrar.
   const souTecnicoEditando = editingId && !ehAdmin() && currentUser && currentUser.role === 'tecnico' && !encerraDiretoSave;
   if(editingId && !ehAdmin() && !souTecnicoEditando && !encerraDiretoSave){
@@ -5238,8 +5240,10 @@ function nomesCadastro(tipo){
 }
 
 function openCadastro(tipo){
-  if(currentUser?.role !== 'admin') return;
-  cadastroAba = CADASTROS[tipo] ? tipo : 'locais';
+  const admin = currentUser?.role === 'admin';
+  if(!admin && !ehTecnicoDaEquipe()) return;
+  cadastroAba = admin && CADASTROS[tipo] ? tipo : 'locais';
+  document.getElementById('btnExcluirCadastro').style.display = admin ? '' : 'none';
   cadastroSelecionado = -1;
   document.getElementById('cadastroNovo').value = '';
   renderCadastro();
@@ -7660,6 +7664,7 @@ function renderDashboard(){
 }
 
 function trocaAbaCadastro(tipo){
+  if(currentUser?.role !== 'admin') tipo = 'locais';
   cadastroAba = tipo;
   cadastroSelecionado = -1;
   document.getElementById('cadastroNovo').value = '';
@@ -7708,7 +7713,8 @@ function editaRegistroCadastro(idx, valor){
 
 function renderCadastro(){
   const meta = CADASTROS[cadastroAba];
-  document.getElementById('cadastroAbas').innerHTML = Object.keys(CADASTROS).map(tipo=>{
+  const abasVisiveis = currentUser?.role === 'admin' ? Object.keys(CADASTROS) : ['locais'];
+  document.getElementById('cadastroAbas').innerHTML = abasVisiveis.map(tipo=>{
     const m = CADASTROS[tipo];
     const n = listaCadastro(tipo).length;
     return '<button class="cad-aba' + (tipo === cadastroAba ? ' on' : '') + '" onclick="trocaAbaCadastro(\'' + tipo + '\')">' +
@@ -7747,6 +7753,7 @@ function atualizaDicaCadastro(){
 }
 
 function excluirRegistroSelecionado(){
+  if(currentUser?.role !== 'admin'){ askConfirm('Só o administrador exclui cadastros.', ()=>{}); return; }
   const lista = listaCadastro(cadastroAba);
   const meta = CADASTROS[cadastroAba];
   if(!lista.length){
@@ -8620,6 +8627,17 @@ function askConfirm(msg, cb){
   document.getElementById('confirmOverlay').classList.add('show');
 }
 let confirmNaoCallback = null;
+function nomeNormal(s){ return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase(); }
+// a pessoa está na lista se o nome inteiro ou o primeiro nome bater (sem acento e sem diferença de maiúscula)
+function estaNaLista(lista, nome){
+  const n = nomeNormal(nome); if(!n) return false;
+  const primeiro = n.split(/\s+/)[0];
+  return (lista || []).some(function(x){ const y = nomeNormal(x); return y === n || y === primeiro; });
+}
+// técnico da equipe de manutenção (ex.: Robert): abre OS, encerra e cadastra locais
+function ehTecnicoDaEquipe(){
+  return !!(currentUser && currentUser.role === 'tecnico' && estaNaLista(EMPRESA.tecnicosQueAbremOS, currentUser.name));
+}
 function closeConfirm(){
   document.getElementById('confirmOverlay').classList.remove('show');
   confirmCallback = null; confirmNaoCallback = null;
