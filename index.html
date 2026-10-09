@@ -2387,7 +2387,7 @@
 
 <div class="overlay" id="confirmOverlay">
   <div class="modal" style="width:360px;">
-    <h2>Confirmar ação</h2>
+    <h2 id="confirmTitulo">Confirmar ação</h2>
     <p id="confirmMsg" style="font-size:13px;color:var(--muted);margin:0 0 16px;white-space:pre-line;"></p>
     <div class="modal-actions">
       <button class="btn" id="confirmNao" onclick="cancelConfirm()">Cancelar</button>
@@ -2724,7 +2724,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.91';
+const VERSAO_PAINEL = '4.92';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3439,7 +3439,7 @@ function confirmCode(){
 }
 
 function updateModeUI(){
-  let label = 'nível 4 - observador (só visualização)';
+  let label = 'nível 4 - observador (visualiza e solicita)';
   if(currentUser?.role === 'admin') label = 'nível 1 - administrador';
   else if(currentUser?.role === 'diretoria') label = 'nível 3 - diretoria (' + currentUser.name + ')';
   else if(currentUser?.role === 'tecnico') label = 'nível 2 - técnico (' + currentUser.name + ')';
@@ -3451,7 +3451,8 @@ function updateModeUI(){
   const isTecnico = currentUser?.role === 'tecnico';
   const isComprovacao = currentUser?.role === 'comprovacao';
   const licOk = (typeof licencaOk === 'function') ? licencaOk() : true;
-  const canCreate = (isAdmin || isTecnico || isComprovacao) && licOk;
+  const isObservador = !currentUser;   // entra sem senha: acompanha e pode pedir OS
+  const canCreate = (isAdmin || isTecnico || isComprovacao || isObservador) && licOk;
 
   // planilha em Excel: liberada para todos, inclusive quem só observa
   document.getElementById('btnSheetExport').style.display = 'inline-flex';
@@ -3476,6 +3477,11 @@ function updateModeUI(){
     // este perfil só pede comprovação de veiculação
     btnNova.textContent = '📷 Solicitar comprovação';
     btnNova.setAttribute('onclick', 'openSolicitarOS()');
+    btnNova.classList.add('destaque-solicitar');
+  } else if(isObservador){
+    // observador (ex.: comercial): pede, e o administrador aprova
+    btnNova.textContent = '📨 Solicitar OS';
+    btnNova.setAttribute('onclick', 'pedidoObservador()');
     btnNova.classList.add('destaque-solicitar');
   } else if(tecnicoSolicita){
     // o técnico não abre OS direto: ele solicita, e o administrador aprova
@@ -5451,7 +5457,38 @@ function openSolicitarOS(){
     onTipoMidiaChange();
   }
 
+  ajustaSolicitarObservador();
   document.getElementById('solicitarOSOverlay').classList.add('show');
+}
+
+// ---------- pedido do observador (comercial e demais) ----------
+let tipoPedidoObs = '';
+function pedidoObservador(){
+  perguntaSimNao('É um problema ou instalação de totem em algum local?\n\nProblema: tela apagada, sem sinal, defeito.\nTotem: instalar um totem novo num local.',
+    '🛠️ É um problema', '🗼 Instalação de totem',
+    function(){ tipoPedidoObs = 'problema'; openSolicitarOS(); },
+    function(){ tipoPedidoObs = 'totem'; openSolicitarOS(); });
+  document.getElementById('confirmTitulo').textContent = 'Novo pedido';
+}
+function ajustaSolicitarObservador(){
+  const ehObs = !currentUser;
+  const nome = document.getElementById('sNome');
+  nome.readOnly = !ehObs;
+  nome.style.background = ehObs ? '' : 'var(--panel-alt)';
+  nome.style.cursor = ehObs ? '' : 'not-allowed';
+  nome.placeholder = ehObs ? 'Seu nome (ex.: Ana, do comercial)' : '';
+  if(!ehObs) return;
+  try{ nome.value = localStorage.getItem('vtmNomeSolicitante') || ''; }catch(e){ nome.value = ''; }
+  const totem = tipoPedidoObs === 'totem';
+  document.getElementById('sAcao').value = totem ? 'totem' : 'corretiva';
+  document.getElementById('campoAcao').style.display = 'none';        // já respondeu na pergunta
+  document.getElementById('campoMaterial').style.display = 'none';    // material fica com a equipe
+  document.getElementById('tituloSolicitar').textContent = totem ? '🗼 Pedir instalação de totem' : '🛠️ Pedir conserto de um problema';
+  document.getElementById('labelLocalSolic').textContent = totem ? 'Local da instalação' : 'Local do problema';
+  document.getElementById('sLocal').placeholder = totem ? 'Ex: Supermercado Nova Era — Centro, entrada principal' : 'Ex: Terminal 3 — totem da entrada';
+  document.getElementById('labelProblemaSolic').textContent = totem ? 'Detalhes da instalação' : 'Qual é o problema';
+  document.getElementById('sProblema').placeholder = totem ? 'Ex: instalar 1 totem na entrada; cliente pediu para a próxima semana' : 'Descreva o que está acontecendo';
+  document.getElementById('labelFotosSolic').textContent = totem ? 'Fotos do local (opcional)' : 'Imagens do problema';
 }
 
 // Ajusta o formulário conforme o tipo de mídia: monta os locais e mostra quem atende.
@@ -5700,6 +5737,13 @@ async function avisarSolicitacaoPorEmail(dados, tipo){
 
 function enviarSolicitacaoTecnico(){
   const ehComprovacao = currentUser && currentUser.role === 'comprovacao';
+  const ehObs = !currentUser;
+  const nomeObs = ehObs ? (document.getElementById('sNome').value || '').trim() : '';
+  if(ehObs && !nomeObs){
+    askConfirm('Escreva o seu nome antes de enviar, para o administrador saber quem pediu.', ()=>{});
+    return;
+  }
+  if(ehObs){ try{ localStorage.setItem('vtmNomeSolicitante', nomeObs); }catch(e){} }
 
   // ---- comprovação: tipo de mídia, vídeo e as unidades ----
   let tipoMidia = '', campanhas = [], video = '', unidades = [], responsavel = '';
@@ -5727,7 +5771,7 @@ function enviarSolicitacaoTecnico(){
     : document.getElementById('sLocal').value.trim();
 
   if(!ehComprovacao && !local){
-    askConfirm('Informe o local do problema antes de enviar.', ()=>{});
+    askConfirm(document.getElementById('sAcao').value === 'totem' ? 'Informe o local da instalação antes de enviar.' : 'Informe o local do problema antes de enviar.', ()=>{});
     return;
   }
   if(photosUploading > 0){
@@ -5763,12 +5807,12 @@ function enviarSolicitacaoTecnico(){
     origem: 'tecnico',
     tipo: 'abertura',
     dataHora: Date.now(),
-    solicitante: currentUser ? currentUser.name : '',
+    solicitante: currentUser ? currentUser.name : nomeObs,
     empresa: '',
     urgencia: {normal:'Normal', urgente:'Urgente', maxima:'Emergência', preventiva:'Normal'}[document.getElementById('sPrioridade').value] || 'Normal',
     prioridade: document.getElementById('sPrioridade').value,
     acao: document.getElementById('sAcao').value,
-    origemPerfil: currentUser ? currentUser.role : '',
+    origemPerfil: currentUser ? currentUser.role : 'observador',
     servicos: [descricao],
     materiais: materiais,
     local: local,
@@ -8643,6 +8687,7 @@ function closeConfirm(){
   confirmCallback = null; confirmNaoCallback = null;
   document.getElementById('confirmSim').textContent = 'Confirmar';
   document.getElementById('confirmNao').textContent = 'Cancelar';
+  document.getElementById('confirmTitulo').textContent = 'Confirmar ação';
 }
 function cancelConfirm(){
   const nao = confirmNaoCallback;
