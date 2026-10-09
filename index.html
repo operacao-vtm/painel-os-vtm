@@ -2601,6 +2601,9 @@ const EMPRESA = {
   // técnicos da equipe de manutenção que ENCERRAM A OS DIRETO (sem solicitar,
   // igual ao administrador). Ex.: Robert entrou na equipe.
   tecnicosQueEncerram: ['robert'],
+  // técnicos da equipe que ABREM OS DIRETO pelo "+ Nova OS" (sem passar por
+  // solicitação). Os demais técnicos continuam com "Solicitar OS".
+  tecnicosQueAbremOS: ['robert'],
 
   // 5) LOCAIS DA ROTA FIXA ---------------------------------------
   // Rota recorrente que aparece na faixa do painel nos dias marcados.
@@ -2720,7 +2723,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.88';
+const VERSAO_PAINEL = '4.89';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3413,7 +3416,8 @@ function updateModeUI(){
   // Pacheco e Robert cuidam da rota do dia e também atuam como técnicos
   const soRota = isTecnico && (EMPRESA.tecnicosDeRota||[]).includes((currentUser.name||'').trim().toLowerCase());
   const btnNova = document.getElementById('btnNovaOS');
-  const tecnicoSolicita = isTecnico;
+  const abreDireto = isTecnico && (EMPRESA.tecnicosQueAbremOS || []).includes((currentUser.name || '').trim().toLowerCase());
+  const tecnicoSolicita = isTecnico && !abreDireto;
 
   btnNova.style.display = canCreate ? 'inline-flex' : 'none';
   if(isComprovacao){
