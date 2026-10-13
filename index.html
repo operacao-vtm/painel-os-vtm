@@ -2249,15 +2249,15 @@
       <span class="perfil-icone">👀</span>
       <span class="perfil-texto">
         <strong>Observador</strong>
-        <small>Acompanhar o quadro e exportar a planilha. Sem código de acesso.</small>
+        <small>Acompanhar o quadro e solicitar OS. Sem código de acesso.</small>
       </span>
     </button>
 
     <button type="button" class="perfil-opcao" onclick="escolherPerfil('tecnico')">
       <span class="perfil-icone">🔧</span>
       <span class="perfil-texto">
-        <strong>Técnico</strong>
-        <small>Abrir e atualizar ordens de serviço em campo.</small>
+        <strong>Técnico terceirizado (EPX)</strong>
+        <small>Solicitar OS e encerramento, atualizar o serviço em campo.</small>
       </span>
     </button>
 
@@ -2273,15 +2273,23 @@
       <span class="perfil-icone">📈</span>
       <span class="perfil-texto">
         <strong>Diretoria</strong>
-        <small>Consultar indicadores e emitir relatórios.</small>
+        <small>Visualizar o painel e gerar relatórios.</small>
+      </span>
+    </button>
+
+    <button type="button" class="perfil-opcao" onclick="escolherPerfil('manutencao')">
+      <span class="perfil-icone">🛡️</span>
+      <span class="perfil-texto">
+        <strong>Administrador</strong>
+        <small>Técnico de manutenção: abrir e fechar OS, locais, relatórios e rotas.</small>
       </span>
     </button>
 
     <button type="button" class="perfil-opcao" onclick="escolherPerfil('admin')">
-      <span class="perfil-icone">🛡️</span>
+      <span class="perfil-icone">🧑‍💻</span>
       <span class="perfil-texto">
-        <strong>Administrador</strong>
-        <small>Acesso completo, incluindo cadastros e configurações.</small>
+        <strong>Programador</strong>
+        <small>Criador do sistema: acesso total e registro de atividades.</small>
       </span>
     </button>
   </div>
@@ -2293,10 +2301,11 @@
     <div class="field">
       <label>Perfil</label>
       <select id="loginRole" onchange="updateLoginFieldsVisibility()">
-        <option value="tecnico">Técnico (nível 2)</option>
+        <option value="tecnico">Técnico terceirizado (EPX)</option>
         <option value="comprovacao">Comprovação de propaganda</option>
-        <option value="diretoria">Diretoria (nível 3)</option>
-        <option value="admin">Administrador (nível 1)</option>
+        <option value="diretoria">Diretoria</option>
+        <option value="manutencao">Administrador (técnico de manutenção)</option>
+        <option value="admin">Programador (acesso total)</option>
       </select>
     </div>
     <div class="field" id="loginNameField" style="display: block;">
@@ -2524,9 +2533,10 @@ const EMPRESA = {
   urlPainel: 'https://operacao-vtm.github.io/painel-os-vtm/',
 
   // 3) SENHAS DE ACESSO ------------------------------------------
-  senhaAdmin:     'OpecVTM2026!',
-  senhaTecnico:   'tecvtm2026',
-  senhaDiretoria: 'DiretoriaVTM2026',
+  senhaAdmin:      'ProgVTM2026#',      // Programador (criador do sistema): acesso total
+  senhaManutencao: 'AdmVTM2026!',       // Administrador (técnico de manutenção)
+  senhaTecnico:    'EpxVTM2026!',       // Técnico terceirizado (EPX)
+  senhaDiretoria:  'DiretoriaVTM2026',
   // perfil que só solicita comprovação de propaganda (ex.: Daniele, do comercial)
   senhaComprovacao: 'CompVTM2026!',
 
@@ -2597,7 +2607,7 @@ const EMPRESA = {
   // Quem, além de atuar como técnico, também edita a rota do dia.
   // Escreva em minúsculas. Deixe [] se não houver ninguém.
   tecnicosDeRota: ['pacheco', 'robert'],
-  senhaTecnicosDeRota: 'PachecoVTM2026!',   // senha própria desses nomes
+  senhaTecnicosDeRota: 'EpxVTM2026!',   // mesma do técnico terceirizado: uma senha por perfil
 
   // técnicos da equipe de manutenção que ENCERRAM A OS DIRETO (sem solicitar,
   // igual ao administrador). Ex.: Robert entrou na equipe.
@@ -2724,7 +2734,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.92';
+const VERSAO_PAINEL = '4.93';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -2775,6 +2785,9 @@ function testeReset(){
 const ADMIN_CODE = EMPRESA.senhaAdmin; // nível 1 - administrador (acesso total)
 const TECH_CODE = EMPRESA.senhaTecnico; // nível 2 - técnico
 const DIRETORIA_CODE = EMPRESA.senhaDiretoria; // nível 3 - diretoria (só relatórios)
+const MANUT_CODE = EMPRESA.senhaManutencao; // administrador (técnico de manutenção)
+const MANUT_SLOTS = 5;
+const PERFIL_VERSAO = 2;   // sessões de 'admin' anteriores à divisão de perfis são encerradas
 const COMPROVACAO_CODE = EMPRESA.senhaComprovacao; // perfil de comprovação
 const PACHECO_CODE = EMPRESA.senhaTecnicosDeRota; // senha própria dos técnicos de rota
 const ADMIN_SLOTS = 5;
@@ -3350,12 +3363,14 @@ function updateLoginFieldsVisibility(){
   document.getElementById('loginNameField').style.display = 'block';
   const info = document.getElementById('slotsInfo');
   if(role === 'admin'){
-    info.textContent = 'Vagas de administrador: ' + userSlots.admins.length + '/' + ADMIN_SLOTS + ' preenchidas';
+    info.textContent = 'Vagas de programador: ' + userSlots.admins.length + '/' + ADMIN_SLOTS + ' preenchidas';
+  } else if(role === 'manutencao'){
+    const v = (userSlots.manutencao || []).length;
+    info.textContent = 'Vagas de administrador: ' + v + '/' + MANUT_SLOTS + ' preenchidas';
   } else if(role === 'diretoria'){
     info.textContent = 'Vagas de diretoria: ' + userSlots.diretores.length + '/' + DIRETORIA_SLOTS + ' preenchidas';
   } else {
     info.textContent = 'Vagas de técnico: ' + userSlots.tecnicos.length + '/' + TECH_SLOTS + ' preenchidas';
-    info.textContent += ' · Perfis "Pacheco" e "Robert" usam senha própria (fale com o administrador).';
   }
 }
 
@@ -3396,13 +3411,25 @@ function confirmCode(){
     if(code !== ADMIN_CODE){ showLoginError('Código incorreto.'); return; }
     if(!userSlots.admins.includes(name)){
       if(userSlots.admins.length >= ADMIN_SLOTS){
-        showLoginError('Vagas de administrador esgotadas (' + ADMIN_SLOTS + '/' + ADMIN_SLOTS + ').');
+        showLoginError('Vagas de programador esgotadas (' + ADMIN_SLOTS + '/' + ADMIN_SLOTS + ').');
         return;
       }
       userSlots.admins.push(name);
       persistUserSlots();
     }
-    currentUser = {role:'admin', name};
+    currentUser = {role:'admin', name, perfilV: PERFIL_VERSAO};
+  } else if(role === 'manutencao'){
+    if(code !== MANUT_CODE){ showLoginError('Código incorreto.'); return; }
+    if(!userSlots.manutencao) userSlots.manutencao = [];
+    if(!userSlots.manutencao.includes(name)){
+      if(userSlots.manutencao.length >= MANUT_SLOTS){
+        showLoginError('Vagas de administrador esgotadas (' + MANUT_SLOTS + '/' + MANUT_SLOTS + ').');
+        return;
+      }
+      userSlots.manutencao.push(name);
+      persistUserSlots();
+    }
+    currentUser = {role:'manutencao', name};
   } else if(role === 'diretoria'){
     if(code !== DIRETORIA_CODE){ showLoginError('Código incorreto.'); return; }
     if(!userSlots.diretores.includes(name)){
@@ -3440,9 +3467,10 @@ function confirmCode(){
 
 function updateModeUI(){
   let label = 'nível 4 - observador (visualiza e solicita)';
-  if(currentUser?.role === 'admin') label = 'nível 1 - administrador';
+  if(currentUser?.role === 'admin') label = 'programador (acesso total)';
+  else if(currentUser?.role === 'manutencao') label = 'administrador (' + currentUser.name + ')';
   else if(currentUser?.role === 'diretoria') label = 'nível 3 - diretoria (' + currentUser.name + ')';
-  else if(currentUser?.role === 'tecnico') label = 'nível 2 - técnico (' + currentUser.name + ')';
+  else if(currentUser?.role === 'tecnico') label = 'técnico terceirizado (' + currentUser.name + ')';
   document.getElementById('modeLabel').textContent = 'modo: ' + label;
   document.getElementById('btnLock').textContent = currentUser ? 'Sair' : 'Entrar';
 
@@ -3450,9 +3478,11 @@ function updateModeUI(){
   const isDiretoria = currentUser?.role === 'diretoria';
   const isTecnico = currentUser?.role === 'tecnico';
   const isComprovacao = currentUser?.role === 'comprovacao';
+  const isManut = currentUser?.role === 'manutencao';   // Administrador (técnico de manutenção)
+  const isOperador = isAdmin || isManut;
   const licOk = (typeof licencaOk === 'function') ? licencaOk() : true;
   const isObservador = !currentUser;   // entra sem senha: acompanha e pode pedir OS
-  const canCreate = (isAdmin || isTecnico || isComprovacao || isObservador) && licOk;
+  const canCreate = (isOperador || isTecnico || isComprovacao || isObservador) && licOk;
 
   // planilha em Excel: liberada para todos, inclusive quem só observa
   document.getElementById('btnSheetExport').style.display = 'inline-flex';
@@ -3460,7 +3490,7 @@ function updateModeUI(){
   // ferramentas de arquivo ficam recolhidas numa caixa à parte, só do administrador
 
   // relatórios: quem trabalha na OS ou acompanha resultados
-  const podeRelatorio = isAdmin || isDiretoria || isTecnico;   // comprovação não emite relatório
+  const podeRelatorio = isOperador || isDiretoria || isTecnico;   // comprovação não emite relatório
   document.getElementById('menuMais').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('btnReport').style.display = podeRelatorio ? 'inline-flex' : 'none';
   document.getElementById('btnReportVist').style.display = podeRelatorio ? 'inline-flex' : 'none';
@@ -3493,25 +3523,27 @@ function updateModeUI(){
     btnNova.setAttribute('onclick', 'openModal()');
     btnNova.classList.remove('destaque-solicitar');
   }
-  document.getElementById('btnRotaPacheco').style.display = (isAdmin || soRota) ? 'inline-flex' : 'none';
-  document.getElementById('btnSolicitacoes').style.display = isAdmin ? 'inline-flex' : 'none';
-  document.getElementById('btnLocaisEquipe').style.display = abreDireto ? 'inline-flex' : 'none';
-  document.getElementById('btnRotaFixa').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('btnRotaPacheco').style.display = (isOperador || soRota) ? 'inline-flex' : 'none';
+  document.getElementById('btnSolicitacoes').style.display = isOperador ? 'inline-flex' : 'none';
+  document.getElementById('btnLocaisEquipe').style.display = (abreDireto || isManut) ? 'inline-flex' : 'none';
+  document.getElementById('btnRotaFixa').style.display = isOperador ? 'inline-flex' : 'none';
   atualizaBadgeSolicitacoes();
 }
 
 // Só o administrador fecha, reabre, exclui ou altera uma OS.
 // Técnico registra o serviço e SOLICITA — a decisão é sempre do administrador.
-function ehAdmin(){ return currentUser && currentUser.role === 'admin'; }
-function bloqueiaSeNaoAdmin(acao){
-  if(ehAdmin()) return false;
+function ehAdmin(){ return currentUser && currentUser.role === 'admin'; }   // Programador
+// Programador ou Administrador (técnico de manutenção): operam as OS
+function ehOperador(){ return !!currentUser && (currentUser.role === 'admin' || currentUser.role === 'manutencao'); }
+function bloqueiaSeNaoAdmin(acao, tambemAdministrador){
+  if(ehAdmin() || (tambemAdministrador && ehOperador())) return false;
   askConfirm('Só o administrador pode ' + acao + '. Use "Solicitar encerramento" para enviar o pedido.', ()=>{});
   return true;
 }
 
 function getEditPermission(item){
   if(!currentUser) return 'none';
-  if(currentUser.role === 'admin') return 'full';
+  if(currentUser.role === 'admin' || currentUser.role === 'manutencao') return 'full';
   if(currentUser.role === 'tecnico'){
     if(!item) return 'full';
     if(item.criadoPor === currentUser.name) return 'limited';
@@ -3629,7 +3661,7 @@ function statusAutomatico(){
   if(it && it.status === 'concluida') return 'concluida';
   // quem pode encerrar (admin ou técnico da equipe, ex. Robert) pode escolher "Encerrada"
   const nome = (currentUser && currentUser.name || '').trim().toLowerCase();
-  const podeEncerrar = ehAdmin() || estaNaLista(EMPRESA.tecnicosQueEncerram, nome);
+  const podeEncerrar = ehOperador() || estaNaLista(EMPRESA.tecnicosQueEncerram, nome);
   if(podeEncerrar && sel.selectedIndex >= 0 && sel.value === 'concluida') return 'concluida';
   if(sel.selectedIndex >= 0 && sel.value === 'andamento') return 'andamento';
   return 'aberta';
@@ -3640,7 +3672,7 @@ function onStatusChange(){
   const atual = editingId ? items.find(x=>x.id===editingId) : null;
   if(sel.value === 'andamento' && atual && atual.status === 'concluida'){
     sel.value = 'concluida';
-    if(currentUser?.role !== 'admin'){
+    if(!ehOperador()){
       askConfirm('Esta OS está encerrada. Só o administrador pode reabri-la.', ()=>{});
       return;
     }
@@ -4260,8 +4292,8 @@ async function saveOS(){
   const nomeAtualSave = (currentUser && currentUser.name || '').trim().toLowerCase();
   const encerraDiretoSave = estaNaLista(EMPRESA.tecnicosQueEncerram, nomeAtualSave);
   // Robert (equipe de manutenção) salva como um editor normal, podendo encerrar.
-  const souTecnicoEditando = editingId && !ehAdmin() && currentUser && currentUser.role === 'tecnico' && !encerraDiretoSave;
-  if(editingId && !ehAdmin() && !souTecnicoEditando && !encerraDiretoSave){
+  const souTecnicoEditando = editingId && !ehOperador() && currentUser && currentUser.role === 'tecnico' && !encerraDiretoSave;
+  if(editingId && !ehOperador() && !souTecnicoEditando && !encerraDiretoSave){
     askConfirm('Só o administrador altera uma OS já aberta.', ()=>{});
     return;
   }
@@ -4668,7 +4700,7 @@ let _arrastandoId = null;
 
 function podeArrastar(){
   // admin e técnico arrastam; os demais perfis não
-  return !!(currentUser && (currentUser.role === 'admin' || currentUser.role === 'tecnico'));
+  return !!(currentUser && (currentUser.role === 'admin' || currentUser.role === 'manutencao' || currentUser.role === 'tecnico'));
 }
 
 function onCardDragStart(ev, id){
@@ -4701,7 +4733,7 @@ function onColDrop(ev, colKey){
   const it = items.find(x=>x.id===id);
   if(!it) return;
 
-  const ehAdmin = currentUser && currentUser.role === 'admin';
+  const ehAdmin = ehOperador();   // Programador e Administrador movem livre
   const ehTecnico = currentUser && currentUser.role === 'tecnico';
 
   // soltou na mesma coluna onde já está? não faz nada
@@ -5247,7 +5279,7 @@ function nomesCadastro(tipo){
 
 function openCadastro(tipo){
   const admin = currentUser?.role === 'admin';
-  if(!admin && !ehTecnicoDaEquipe()) return;
+  if(!admin && !ehTecnicoDaEquipe() && currentUser?.role !== 'manutencao') return;
   cadastroAba = admin && CADASTROS[tipo] ? tipo : 'locais';
   document.getElementById('btnExcluirCadastro').style.display = admin ? '' : 'none';
   cadastroSelecionado = -1;
@@ -6749,7 +6781,7 @@ function mtClique(codigo){
 
   if(t.os){ mtAbrirOS(t.os.id); return; }
 
-  if(!currentUser || !(ehAdmin() || currentUser.role === 'tecnico')){
+  if(!currentUser || !(ehOperador() || currentUser.role === 'tecnico')){
     askConfirm('Tela ' + codigo + ' — ' + t.local + '\n' + MT_ROT[t.status] +
                '\n\nEntre como técnico ou administrador para abrir uma OS aqui.', ()=>{});
     return;
@@ -7946,7 +7978,7 @@ function atualizaAvisoSync(){
 }
 
 function encerrarOS(){
-  if(bloqueiaSeNaoAdmin('encerrar uma OS')) return;
+  if(bloqueiaSeNaoAdmin('encerrar uma OS', true)) return;
   if(!fotosProntasParaEncerrar()) return;
   const it = items.find(x=>x.id===editingId);
   if(!it) return;
@@ -7988,7 +8020,7 @@ function gravaEncerramento(it){
 }
 
 function reabrirOS(){
-  if(bloqueiaSeNaoAdmin('reabrir uma OS')) return;
+  if(bloqueiaSeNaoAdmin('reabrir uma OS', true)) return;
   const it = items.find(x=>x.id===editingId);
   if(!it) return;
   askConfirm('Reabrir a ' + it.code + '? A data de encerramento anterior será apagada e a OS volta para "Em andamento".', ()=>{
@@ -9307,6 +9339,7 @@ mostraVersao();
 setTimeout(fecharAbertura, 6000);
 statusSincronizando();
 currentUser = loadSession();
+if(currentUser && currentUser.role === 'admin' && currentUser.perfilV !== PERFIL_VERSAO){ currentUser = null; clearSession(); }
 loadData();
 updateModeUI();
 startPolling();
