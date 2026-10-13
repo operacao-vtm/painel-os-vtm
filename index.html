@@ -2734,7 +2734,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.93';
+const VERSAO_PAINEL = '4.94';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -2920,6 +2920,7 @@ function normalizeUserSlots(slots){
   if(!s.admins) s.admins = [];
   if(!s.tecnicos) s.tecnicos = [];
   if(!s.diretores) s.diretores = [];
+  if(!s.manutencao) s.manutencao = [];
   return s;
 }
 
@@ -2968,6 +2969,7 @@ async function loadData(){
     migraStatusPeca();
     leituDoServidorOk = true;
     arquivaMesesAnteriores();   // deixa o quadro só com o mês corrente
+    tiraRetrato();
   }catch(e){
     console.error('Erro ao carregar dados do Apps Script', e);
     if(!items) items = [];
@@ -3095,15 +3097,69 @@ function semFotosLocais(dados){
   return copia;
 }
 
+/* ============================================================
+   JUNTAR ANTES DE GRAVAR
+   O servidor guarda o pacote inteiro. Um aparelho com cópia antiga (janela
+   aberta, celular em segundo plano) apagava o que os outros fizeram. Agora,
+   antes de gravar, o painel busca a versão mais nova e só substitui o que
+   ESTE aparelho alterou desde a última leitura.
+   ============================================================ */
+let snapServidor = null;   // retrato dos dados na última leitura/gravação
+function estadoLocal(){ return { items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo }; }
+const CHAVES_SIMPLES = ['cadastro','rotaPacheco','historicoRotas','rotaFixa','destinatarios','telasInfo'];
+// fonte = o que foi lido ou ENVIADO ao servidor (não o que está na tela agora:
+// uma alteração feita durante o envio ainda não foi gravada e precisa seguir "alterada")
+function tiraRetrato(fonte){
+  const f = fonte || estadoLocal();
+  const porId = function(arr){ const m = {}; (arr || []).forEach(function(x){ if(x && x.id) m[x.id] = JSON.stringify(x); }); return m; };
+  const outros = {};
+  CHAVES_SIMPLES.forEach(function(k){ const v = f[k]; outros[k] = JSON.stringify(v === undefined ? null : v); });
+  snapServidor = { items: porId(f.items), solicitacoes: porId(f.solicitacoes), outros: outros };
+}
+function mesclaLista(local, servidor, snap){
+  const resultado = new Map();
+  (servidor || []).forEach(function(x){ if(x && x.id) resultado.set(x.id, x); });
+  const idsLocais = new Set();
+  (local || []).forEach(function(x){
+    if(!x || !x.id) return;
+    idsLocais.add(x.id);
+    const antes = snap[x.id];
+    if(antes === undefined || antes !== JSON.stringify(x)) resultado.set(x.id, x);   // criado ou alterado aqui
+  });
+  Object.keys(snap).forEach(function(id){ if(!idsLocais.has(id)) resultado.delete(id); });   // excluído aqui
+  return Array.from(resultado.values());
+}
+async function mesclaComServidor(){
+  if(!snapServidor) return true;
+  let json;
+  try{ const resp = await fetch(GAS_URL, { method:'GET' }); json = await resp.json(); }
+  catch(e){ return false; }
+  if(!json || !Array.isArray(json.items)) return false;
+  // servidor respondendo vazio quando antes tinha OS = leitura incompleta: não grava por cima
+  if(json.items.length === 0 && Object.keys(snapServidor.items).length > 0) return false;
+  items = mesclaLista(items, json.items, snapServidor.items);
+  solicitacoes = mesclaLista(solicitacoes, json.solicitacoes || [], snapServidor.solicitacoes);
+  const loc = estadoLocal();
+  const pega = function(k){ const v = loc[k]; return JSON.stringify(v === undefined ? null : v) !== snapServidor.outros[k] ? v : json[k]; };
+  cadastro = normalizaCadastro(pega('cadastro'));
+  rotaPacheco = pega('rotaPacheco') || rotaPacheco;
+  historicoRotas = pega('historicoRotas') || historicoRotas;
+  rotaFixa = pega('rotaFixa') || rotaFixa;
+  destinatarios = normalizaDestinatarios(pega('destinatarios'));
+  const ti = pega('telasInfo'); telasInfo = (ti && typeof ti === 'object') ? ti : telasInfo;
+  // vagas de login: junta as dos dois lados, ninguém perde a vaga
+  const sv = normalizeUserSlots(json.userSlots), lc = normalizeUserSlots(userSlots);
+  Object.keys(lc).forEach(function(k){ if(Array.isArray(lc[k])) sv[k] = Array.from(new Set((sv[k] || []).concat(lc[k]))); });
+  userSlots = sv;
+  migraStatusPeca();
+  return true;
+}
+
 async function pushState(tentativa){
   tentativa = tentativa || 1;
   if(MODO_TESTE){ testeSave(); return true; }
   if(!gasConfigured()) return false;
   try{
-    // fotos que não subiram ficam como base64 gigante e estouram o limite da
-    // planilha; só vai para o servidor o que tem endereço de verdade
-    const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo });
-
     // nunca sobrescreva o servidor sem ter lido dele antes
     if(!leituDoServidorOk){
       console.error('Gravação bloqueada: os dados do servidor ainda não foram lidos.');
@@ -3112,6 +3168,20 @@ async function pushState(tentativa){
       return false;
     }
     if(tentativa === 1) statusSincronizando();
+    // junta com o que está no servidor agora (não apaga o trabalho dos outros)
+    if(!(await mesclaComServidor())){
+      if(tentativa < 3){
+        await new Promise(r=>setTimeout(r, 1200));
+        return await pushState(tentativa + 1);
+      }
+      ultimoErroServidor = 'não foi possível ler o servidor antes de gravar';
+      statusDesatualizado(ultimoErroServidor);
+      return false;
+    }
+    // fotos que não subiram ficam como base64 gigante e estouram o limite da
+    // planilha; só vai para o servidor o que tem endereço de verdade
+    const enviado = JSON.parse(JSON.stringify(estadoLocal()));   // cópia exata do que vai ao servidor
+    const limpo = semFotosLocais(estadoLocal());
     const resp = await fetch(GAS_URL, {
       method:'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita preflight CORS no Apps Script
@@ -3131,7 +3201,9 @@ async function pushState(tentativa){
     }
     ultimoErroServidor = null;
     ultimoSalvamentoLocal = Date.now();
+    tiraRetrato(enviado);   // o que foi gravado vira a nova referência
     statusAtualizado();
+    if(!anyModalOpen()) render();   // mostra também o que os outros fizeram
     return true;
   }catch(e){
     console.error('Erro ao salvar no Apps Script (tentativa ' + tentativa + ')', e);
@@ -3280,6 +3352,7 @@ async function refreshFromServer(){
     migraStatusPeca();
     leituDoServidorOk = true;
     arquivaMesesAnteriores();
+    tiraRetrato();
     markSynced();
     render();
   }catch(e){
@@ -3779,7 +3852,9 @@ function montaLocalMulti(){
   const marcados = jaMarcados.length ? jaMarcados : doItem;
 
   // mesmos locais do cadastro (os que aparecem no select)
-  const locais = nomesCadastro('locais');
+  const locais = nomesCadastro('locais').slice();
+  // local que a OS já tem e não está no cadastro (OS antiga): entra na lista, já marcado
+  marcados.forEach(function(m){ if(m && !locais.includes(m)) locais.unshift(m); });
   atalhos.innerHTML = montaAtalhosLocais(locais);
   wrap.innerHTML = locais.map(function(loc){
     const chk = marcados.includes(loc) ? ' checked' : '';
@@ -3918,6 +3993,7 @@ function openModal(id){
     document.getElementById('fLocal').value = it.local;
   preencheSelectLocais(it.local);
   document.getElementById('fAcao').value = it.acao || 'visita';
+  aplicaLocalMultiplo((it.acao || 'visita') === 'visita');   // visita existente abre com os locais dela marcados
     document.getElementById('fLocalFoto').value = it.localFoto || '';
     const gEl = document.getElementById('fCompGrupos');
     if(gEl){
@@ -4306,6 +4382,13 @@ async function saveOS(){
   let local, vistoriaLocaisSel = [];
   if(ehVisitaMulti){
     vistoriaLocaisSel = [...document.querySelectorAll('#fLocalMulti .loc-cb:checked')].map(function(cb){ return cb.value; });
+    if(!vistoriaLocaisSel.length && editingId){
+      // OS antiga: aproveita o local que ela já tem em vez de travar o salvar
+      const antiga = items.find(x=>x.id===editingId);
+      const localAntigo = (sel.value && sel.value !== '__novo__') ? sel.value : (antiga && antiga.local) || '';
+      if(antiga && antiga.vistoriaLocais && antiga.vistoriaLocais.length) vistoriaLocaisSel = antiga.vistoriaLocais.slice();
+      else if(localAntigo) vistoriaLocaisSel = [localAntigo];
+    }
     if(!vistoriaLocaisSel.length){
       askConfirm('Marque ao menos um local para a vistoria.', ()=>{});
       return;
