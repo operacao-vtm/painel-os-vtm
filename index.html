@@ -1870,6 +1870,14 @@
         <input type="text" id="fTotemCliente" placeholder="Ex: Supermercado Nova Era">
       </div>
       <div class="field">
+        <label>Endereço de entrega</label>
+        <input type="text" id="fTotemEndereco" placeholder="Ex: Av. Djalma Batista, 1200 — Chapada, Manaus" oninput="atualizaBotoesMapa()">
+        <div id="totemMapaBotoes" style="display:none;gap:6px;margin-top:6px;">
+          <button type="button" class="btn" style="flex:1;justify-content:center;color:#2F6FD6;border-color:#2F6FD6;" onclick="abrirMapaTotem('waze')">🚗 Abrir no Waze</button>
+          <button type="button" class="btn" style="flex:1;justify-content:center;color:#1E8E5A;border-color:#1E8E5A;" onclick="abrirMapaTotem('google')">🗺️ Abrir no Google Maps</button>
+        </div>
+      </div>
+      <div class="field">
         <label>Data e horário da entrega</label>
         <input type="datetime-local" id="fTotemEntrega">
       </div>
@@ -2772,7 +2780,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.97';
+const VERSAO_PAINEL = '4.98';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3913,6 +3921,8 @@ function preencheTotem(it){
   const p = function(id, v){ const e = document.getElementById(id); if(e.type === 'checkbox') e.checked = !!v; else e.value = v || ''; };
   p('fTotemCliente', it && it.totemCliente); p('fTotemEntrega', it && it.totemEntrega); p('fTotemRetirada', it && it.totemRetirada);
   p('fTotemRespNome', it && it.totemRespNome); p('fTotemRespContato', it && it.totemRespContato); p('fTotemEntregue', it && it.totemEntregue);
+  p('fTotemEndereco', it && it.totemEndereco);
+  atualizaBotoesMapa();
 }
 function dataHoraBR(v){
   const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})T?(\d{2}):(\d{2})/);
@@ -3935,6 +3945,19 @@ function whatsTotemResp(){
   const msg = 'Olá' + (nome ? ', ' + nome : '') + '! Aqui é da VTM Mídia, sobre a entrega do totem' +
               (local ? ' em ' + local : '') + (quando ? ' (' + quando + ')' : '') + '.';
   window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+// Endereço reconhecido (preenchido) = mostra os botões de navegação
+function atualizaBotoesMapa(){
+  const end = (document.getElementById('fTotemEndereco').value || '').trim();
+  document.getElementById('totemMapaBotoes').style.display = end.length >= 5 ? 'flex' : 'none';
+}
+function abrirMapaTotem(app){
+  const end = (document.getElementById('fTotemEndereco').value || '').trim();
+  if(end.length < 5){ askConfirm('Digite o endereço de entrega primeiro.', ()=>{}); return; }
+  const q = encodeURIComponent(end);
+  const url = app === 'waze' ? 'https://waze.com/ul?q=' + q + '&navigate=yes'
+                             : 'https://www.google.com/maps/search/?api=1&query=' + q;
+  window.open(url, '_blank');
 }
 function fotoParaTermo(lista){
   const f = normalizaFotos(lista)[0];
@@ -4609,7 +4632,7 @@ async function saveOS(){
   if(acaoEscolhida === 'totem'){
     const tg = id => (document.getElementById(id).value || '').trim();
     Object.assign(data, {
-      totemCliente: tg('fTotemCliente'), totemEntrega: tg('fTotemEntrega'), totemRetirada: tg('fTotemRetirada'),
+      totemCliente: tg('fTotemCliente'), totemEndereco: tg('fTotemEndereco'), totemEntrega: tg('fTotemEntrega'), totemRetirada: tg('fTotemRetirada'),
       totemRespNome: tg('fTotemRespNome'), totemRespContato: tg('fTotemRespContato'),
       totemEntregue: document.getElementById('fTotemEntregue').checked
     });
