@@ -2780,7 +2780,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.98';
+const VERSAO_PAINEL = '5.00';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -4723,30 +4723,119 @@ function compartilharWhatsApp(osId){
   const materiaisArr = it.materiais && it.materiais.length ? it.materiais
     : (it.nomeMaterial ? [{nome: it.nomeMaterial, quantidade: it.quantidade||0}] : []);
 
-  let msg = `${E.clip} *${it.code}* — ${(ACOES[it.acao]||ACOES.visita).nome}\n`;
-  msg += `${E.pin} Local: ${tituloCurtoOS(it)}\n`;
-  if(it.tipo) msg += `${E.wrench} Tipo: ${it.tipo}\n`;
-  msg += `${E.warn} Prioridade: ${prioLabel[it.prioridade]||it.prioridade}\n`;
-  msg += `${E.tack} Status: ${statusTexto(it)}\n`;
-  if(it.solicitante) msg += `${E.speak} Solicitante: ${it.solicitante}\n`;
-  if(it.tecnico) msg += `${E.person} Técnico: ${it.tecnico}\n`;
-  msg += `${E.clock} Aberta em: ${fmtDateHora(it.dataAbertura)}\n`;
-  if(it.dataConclusao) msg += `${E.check} Encerrada em: ${fmtDateHora(it.dataConclusao)}\n`;
-  if(it.acao === 'comprovacao' && it.localFoto) msg += `${E.camera} Local da foto: ${it.localFoto}\n`;
-  if(it.diagnostico) msg += `${E.memo} Diagnóstico: ${it.diagnostico}\n`;
-  if(it.compraMaterial && materiaisArr.length){
-    msg += `${E.cart} Materiais: ` + materiaisArr.map(m=>`${m.nome} (${m.quantidade}${m.unidade?' '+m.unidade:''})`).join(', ') + `\n`;
-  }
-
-  // fotos: o WhatsApp não aceita anexo por link direto, então vai o endereço da imagem.
-  // Só entram as que estão hospedadas (http), porque prévia local não tem endereço público.
+  const E2 = {
+    predio: '\u{1F3E2}', mapa: '\u{1F5FA}\u{FE0F}', caminhao: '\u{1F69A}', volta: '\u{21A9}\u{FE0F}',
+    espera: '\u{23F3}', tv: '\u{1F4FA}', mega: '\u{1F4E3}', filme: '\u{1F3AC}', cal: '\u{1F4C5}', meia: '\u{25D0}',
+  };
   const fotosVerif = normalizaFotos(it.fotoVerificacao).filter(u=>/^https?:\/\//i.test(u));
   const fotosConcl = normalizaFotos(it.fotoConclusao).filter(u=>/^https?:\/\//i.test(u));
-  if(fotosVerif.length){
-    msg += `\n${E.camera} Foto${fotosVerif.length>1?'s':''} de verificação:\n` + fotosVerif.join('\n') + `\n`;
-  }
-  if(fotosConcl.length){
-    msg += `\n${E.camera} Foto${fotosConcl.length>1?'s':''} de conclusão:\n` + fotosConcl.join('\n') + `\n`;
+  const blocoFotos = function(lista, rotulo){
+    return lista.length ? `\n${E.camera} ${rotulo}:\n` + lista.join('\n') + `\n` : '';
+  };
+
+  let msg = `${E.clip} *${it.code}* — ${(ACOES[it.acao]||ACOES.visita).nome}\n`;
+
+  if(it.acao === 'totem'){
+    // ---------- entrega / retirada de totem ----------
+    if(it.totemCliente) msg += `${E2.predio} Cliente: ${it.totemCliente}\n`;
+    msg += `${E.pin} Local de entrega: ${it.local || '—'}\n`;
+    if(it.totemEndereco){
+      const q = encodeURIComponent(it.totemEndereco);
+      msg += `${E2.mapa} Endereço: ${it.totemEndereco}\n`;
+      msg += `   Waze: https://waze.com/ul?q=${q}&navigate=yes\n`;
+      msg += `   Google Maps: https://www.google.com/maps/search/?api=1&query=${q}\n`;
+    }
+    msg += `${E2.caminhao} Entrega: ${it.totemEntrega ? dataHoraBR(it.totemEntrega) : 'a definir'}\n`;
+    if(it.totemRespNome || it.totemRespContato){
+      msg += `${E.person} Responsável pelo recebimento: ${it.totemRespNome || ''}${it.totemRespContato ? ' — ' + it.totemRespContato : ''}\n`;
+    }
+    msg += it.totemEntregue ? `${E.check} Totem entregue\n` : `${E2.espera} Totem ainda não entregue\n`;
+    msg += `${E2.volta} Retirada prevista: ${it.totemRetirada ? dataHoraBR(it.totemRetirada) : 'a definir'}\n`;
+    msg += `${E.tack} Status: ${statusTexto(it)}\n`;
+    if(it.dataConclusao) msg += `${E.check} Encerrada em: ${fmtDateHora(it.dataConclusao)}\n`;
+    msg += blocoFotos(fotosVerif, 'Foto da entrega');
+    msg += blocoFotos(fotosConcl, 'Foto da retirada');
+
+  } else if(it.acao === 'comprovacao'){
+    // ---------- comprovação de propaganda ----------
+    const MIDIA = { terminais: 'Terminais / Estações', totem: 'Clínicas e supermercados', plm: 'PLM' };
+    const campanhas = (it.compCampanhas || []).filter(Boolean);
+    const locais = locaisDaComprovacao(it);
+    if(it.compTipo) msg += `${E2.tv} Mídia: ${MIDIA[it.compTipo] || it.compTipo}\n`;
+    if(campanhas.length) msg += `${E2.mega} Campanha${campanhas.length > 1 ? 's' : ''}: ${campanhas.join(', ')}\n`;
+    else if(it.tipo) msg += `${E.wrench} Tipo: ${it.tipo}\n`;   // comprovações antigas, sem lista de campanhas
+    if(locais.length){
+      msg += `${E.pin} Locais (${locais.length}):\n` + locais.map(l => `   • ${l}`).join('\n') + `\n`;
+    } else if(it.localFoto || it.local){
+      msg += `${E.pin} Local: ${it.localFoto || it.local}\n`;
+    }
+    if(it.linkVideo) msg += `${E2.filme} Vídeo 1: ${it.linkVideo}\n`;
+    if(it.linkVideo2) msg += `${E2.filme} Vídeo 2: ${it.linkVideo2}\n`;
+    if(it.dataPrevista) msg += `${E2.cal} Data prevista: ${String(it.dataPrevista).split('-').reverse().join('/')}\n`;
+    msg += `${E.warn} Prioridade: ${prioLabel[it.prioridade]||it.prioridade}\n`;
+    if(it.solicitante) msg += `${E.speak} Solicitante: ${it.solicitante}\n`;
+    if(it.tecnico) msg += `${E.person} Responsável: ${it.tecnico}\n`;
+    msg += `${E.tack} Status: ${statusTexto(it)}\n`;
+    if(it.parcial) msg += `${E2.meia} Parcialmente atendida${it.parcialObs ? ': ' + it.parcialObs : ''}\n`;
+    msg += `${E.clock} Aberta em: ${fmtDateHora(it.dataAbertura)}\n`;
+    if(it.dataConclusao) msg += `${E.check} Encerrada em: ${fmtDateHora(it.dataConclusao)}\n`;
+    msg += blocoFotos(fotosVerif, 'Fotos da comprovação');
+    msg += blocoFotos(fotosConcl, 'Fotos de conclusão');
+
+  } else if((it.acao || 'visita') === 'visita'){
+    // ---------- vistoria (visita técnica) ----------
+    const locaisV = (it.vistoriaLocais && it.vistoriaLocais.length) ? it.vistoriaLocais : (it.local ? [it.local] : []);
+    if(locaisV.length > 1) msg += `${E.pin} Locais da vistoria (${locaisV.length}):\n` + locaisV.map(l => `   • ${l}`).join('\n') + `\n`;
+    else msg += `${E.pin} Local: ${locaisV[0] || '—'}\n`;
+    if(it.tipo) msg += `${E.wrench} Tipo: ${it.tipo}\n`;
+    msg += `${E.warn} Prioridade: ${prioLabel[it.prioridade]||it.prioridade}\n`;
+    if(it.solicitante) msg += `${E.speak} Solicitante: ${it.solicitante}\n`;
+    if(it.tecnico) msg += `${E.person} Técnico: ${it.tecnico}\n`;
+    msg += `${E.tack} Status: ${statusTexto(it)}\n`;
+    if(it.parcial && it.parcialObs) msg += `${E2.meia} Parcialmente atendida: ${it.parcialObs}\n`;
+    const v = it.vistoria;
+    if(v && Array.isArray(v.conjuntos) && v.conjuntos.length){
+      const todos = [];
+      v.conjuntos.forEach(cj => (cj.itens || []).forEach(x => todos.push(Object.assign({ conj: cj.codigo }, x))));
+      const conta = est => todos.filter(x => (x.estado || '') === est).length;
+      const nC = conta('C'), nNC = conta('NC'), nNA = conta('NA'), nSem = conta('');
+      msg += `${E.memo} Relatório de vistoria` + (v.vistoriador ? ` — ${v.vistoriador}` : '') +
+             (v.data ? ` (${new Date(v.data).toLocaleDateString('pt-BR')})` : '') + `:\n`;
+      msg += `   ${v.conjuntos.length} conjunto${v.conjuntos.length > 1 ? 's' : ''} · ${nC} conforme${nC === 1 ? '' : 's'} · ${nNC} não conforme${nNC === 1 ? '' : 's'}` +
+             (nNA ? ` · ${nNA} não se aplica` : '') + (nSem ? ` · ${nSem} sem avaliação` : '') + `\n`;
+      const ncs = todos.filter(x => x.estado === 'NC');
+      if(ncs.length){
+        msg += `${E.warn} Não conformidades:\n` + ncs.map(x => `   • [${x.conj}] ${x.nome}` + (x.obs ? ` — ${x.obs}` : '') + (x.solucao ? ` (solução: ${x.solucao})` : '')).join('\n') + `\n`;
+      }
+      if(v.obsGerais) msg += `   Observações gerais: ${v.obsGerais}\n`;
+    } else if(it.requerRelatorio){
+      msg += `${E.memo} Relatório de vistoria: ainda não preenchido\n`;
+    }
+    msg += `${E.clock} Aberta em: ${fmtDateHora(it.dataAbertura)}\n`;
+    if(it.dataConclusao) msg += `${E.check} Encerrada em: ${fmtDateHora(it.dataConclusao)}\n`;
+    if(it.diagnostico) msg += `${E.memo} Diagnóstico: ${it.diagnostico}\n`;
+    if(it.compraMaterial && materiaisArr.length){
+      msg += `${E.cart} Materiais: ` + materiaisArr.map(m=>`${m.nome} (${m.quantidade}${m.unidade?' '+m.unidade:''})`).join(', ') + `\n`;
+    }
+    msg += blocoFotos(fotosVerif, `Foto${fotosVerif.length>1?'s':''} de verificação`);
+    msg += blocoFotos(fotosConcl, `Foto${fotosConcl.length>1?'s':''} de conclusão`);
+
+  } else {
+    // ---------- demais OS: como antes ----------
+    msg += `${E.pin} Local: ${tituloCurtoOS(it)}\n`;
+    if(it.tipo) msg += `${E.wrench} Tipo: ${it.tipo}\n`;
+    msg += `${E.warn} Prioridade: ${prioLabel[it.prioridade]||it.prioridade}\n`;
+    msg += `${E.tack} Status: ${statusTexto(it)}\n`;
+    if(it.solicitante) msg += `${E.speak} Solicitante: ${it.solicitante}\n`;
+    if(it.tecnico) msg += `${E.person} Técnico: ${it.tecnico}\n`;
+    msg += `${E.clock} Aberta em: ${fmtDateHora(it.dataAbertura)}\n`;
+    if(it.dataConclusao) msg += `${E.check} Encerrada em: ${fmtDateHora(it.dataConclusao)}\n`;
+    if(it.diagnostico) msg += `${E.memo} Diagnóstico: ${it.diagnostico}\n`;
+    if(it.compraMaterial && materiaisArr.length){
+      msg += `${E.cart} Materiais: ` + materiaisArr.map(m=>`${m.nome} (${m.quantidade}${m.unidade?' '+m.unidade:''})`).join(', ') + `\n`;
+    }
+    msg += blocoFotos(fotosVerif, `Foto${fotosVerif.length>1?'s':''} de verificação`);
+    msg += blocoFotos(fotosConcl, `Foto${fotosConcl.length>1?'s':''} de conclusão`);
   }
 
   msg += `\n_Painel de Manutenção — ${EMPRESA.nome}_`;
