@@ -1238,6 +1238,9 @@
   .tv-telas-ok{ display:flex; align-items:center; justify-content:center; height:100%;
     font-size:3vh; font-weight:800; color:#2FBF8F; }
 
+  /* OS de totem: o formulário mostra só os campos da entrega/retirada */
+  .modal.modo-totem .esconde-totem{ display:none !important; }
+
   #faixaLicenca{
     position:fixed; top:0; left:0; right:0; z-index:95;
     display:none; align-items:center; gap:10px;
@@ -1861,6 +1864,33 @@
       </select>
       <div id="fAcaoInfo" style="font-size:9px;color:var(--muted);margin-top:3px;"></div>
     </div>
+    <div id="totemWrap" style="display:none;">
+      <div class="field">
+        <label>Cliente</label>
+        <input type="text" id="fTotemCliente" placeholder="Ex: Supermercado Nova Era">
+      </div>
+      <div class="field">
+        <label>Data e horário da entrega</label>
+        <input type="datetime-local" id="fTotemEntrega">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Responsável pelo recebimento — nome</label>
+          <input type="text" id="fTotemRespNome" placeholder="Quem recebe o totem no local">
+        </div>
+        <div class="field">
+          <label>Contato do responsável</label>
+          <input type="tel" id="fTotemRespContato" placeholder="(92) 99999-0000">
+          <button type="button" class="btn" style="margin-top:6px;width:100%;justify-content:center;color:#1E8E5A;border-color:#1E8E5A;" onclick="whatsTotemResp()" title="Abrir conversa no WhatsApp com o responsável">💬 Chamar no WhatsApp</button>
+        </div>
+      </div>
+      <div class="field checkbox-field">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="fTotemEntregue">
+          Totem entregue
+        </label>
+      </div>
+    </div>
     <div class="field" id="comprovacaoWrap" style="display:none;">
       <label>Locais desta comprovação</label>
       <div id="fCompGrupos" style="margin-bottom:8px;"></div>
@@ -1868,7 +1898,7 @@
       <input type="text" id="fLocalFoto" placeholder="Ex: Painel de entrada do shopping, virado para a Av. Principal">
       <div style="font-size:9px;color:var(--muted);margin-top:3px;">Anexe a foto nos campos "Foto de verificação/conclusão" abaixo.</div>
     </div>
-    <div class="row2">
+    <div class="row2 esconde-totem">
       <div class="field">
         <label>Tipo de problema</label>
         <input type="text" id="fTipo" placeholder="Ex: falha de conectividade">
@@ -1883,7 +1913,7 @@
         </select>
       </div>
     </div>
-    <div class="field checkbox-field">
+    <div class="field checkbox-field esconde-totem">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="fEhCompra" onchange="toggleCompraFields()" style="">
         Esta OS requer compra de material
@@ -1892,7 +1922,7 @@
         ⚠ Marcando isso, esta OS vai para a coluna <b>"Requisição de material"</b> no quadro — independente do que estiver selecionado em Status abaixo.
       </div>
     </div>
-    <div id="compraFieldsWrap" style="display:none;">
+    <div id="compraFieldsWrap" class="esconde-totem" style="display:none;">
       <div class="bloco-materiais" style="margin-bottom:8px;">
         <div style="display:grid;grid-template-columns:1fr 46px 66px;gap:5px;font-size:9px;color:var(--muted);margin-bottom:3px;">
           <span>MATERIAIS NECESSÁRIOS</span><span style="text-align:center;">QTD</span><span style="text-align:center;">UNID.</span>
@@ -1914,17 +1944,17 @@
         </div>
       </div>
     </div>
-    <div class="field checkbox-field">
+    <div class="field checkbox-field esconde-totem">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="fRequerRelatorio" onchange="toggleRelatorioFields()" style="">
         Esta OS requer relatório técnico
       </label>
     </div>
-    <div id="relatorioFieldsWrap" style="display:none;margin-bottom:8px;">
+    <div id="relatorioFieldsWrap" class="esconde-totem" style="display:none;margin-bottom:8px;">
       <div id="relatorioStatus" style="font-size:11px;border:1px solid var(--border);border-left:3px solid var(--amber);background:var(--panel-alt);border-radius:4px;padding:7px 9px;margin-bottom:6px;"></div>
       <button class="btn" id="btnVistoria" style="display:none;" onclick="openVistoria()">📋 Abrir relatório</button>
     </div>
-    <div class="row2">
+    <div class="row2 esconde-totem">
       <div class="field">
         <label>Solicitante</label>
         <input type="text" id="fSolicitante">
@@ -1942,7 +1972,7 @@
       </select>
       <div style="font-size:9px;color:var(--muted);margin-top:3px;" id="statusDica"></div>
     </div>
-    <div class="field checkbox-field">
+    <div class="field checkbox-field esconde-totem">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="fParcial" onchange="onParcialChange()" style="">
         Parcialmente atendida
@@ -1951,22 +1981,22 @@
         Marque quando parte do serviço foi feita, mas ainda falta concluir algo. A OS continua na coluna atual, com uma marca no cartão.
       </div>
     </div>
-    <div class="field" id="parcialObsWrap" style="display:none;">
+    <div class="field esconde-totem" id="parcialObsWrap" style="display:none;">
       <label>O que ainda falta</label>
       <textarea id="fParcialObs" rows="2" placeholder="Ex: trocado o cabo, mas falta ajustar o suporte — aguardando escada alta"></textarea>
     </div>
-    <div class="field checkbox-field">
+    <div class="field checkbox-field esconde-totem">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="fRequerDiagnostico" onchange="toggleDiagnosticoFields()" style="">
         Diagnóstico / Solução Aplicada
       </label>
     </div>
-    <div class="field" id="diagnosticoFieldsWrap" style="display:none;">
+    <div class="field esconde-totem" id="diagnosticoFieldsWrap" style="display:none;">
       <textarea id="fDiagnostico"></textarea>
     </div>
     <div class="row2">
       <div class="field">
-        <label>Foto de verificação</label>
+        <label id="lblFotoVerif">Foto de verificação</label>
         <div id="fFotoVerif" style="display:flex;gap:6px;">
           <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById(&#39;fFotoVerifCamera&#39;).click()">📷 Tirar foto</button>
           <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById(&#39;fFotoVerifFile&#39;).click()">🖼️ Escolher arquivo</button>
@@ -1974,14 +2004,18 @@
         <input type="file" accept="image/*" capture="environment" id="fFotoVerifCamera" style="display:none" onchange="handlePhotoUpload(event,&#39;verificacao&#39;)">
         <input type="file" accept="image/*" multiple id="fFotoVerifFile" style="display:none" onchange="handlePhotoUpload(event,&#39;verificacao&#39;)">
         <div id="previewVerif" style="margin-top:4px;"></div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+        <div class="esconde-totem" style="display:flex;align-items:center;gap:6px;margin-top:5px;">
           <button type="button" class="btn" style="font-size:11px;padding:5px 8px;white-space:nowrap;" onclick="abrirDriveUpload()">📤 Enviar ao Drive</button>
           <input type="url" id="fVideoVerif" placeholder="🎥 Cole o link do vídeo aqui" style="flex:1;font-size:11px;">
         </div>
-        <div id="previewVideoVerif" style="margin-top:4px;"></div>
+        <div id="previewVideoVerif" class="esconde-totem" style="margin-top:4px;"></div>
       </div>
       <div class="field">
-        <label>Foto de conclusão</label>
+        <div id="totemRetiradaWrap" style="display:none;margin-bottom:8px;">
+          <label>Data e horário da retirada</label>
+          <input type="datetime-local" id="fTotemRetirada">
+        </div>
+        <label id="lblFotoConclusao">Foto de conclusão</label>
         <div id="fFotoConclusao" style="display:flex;gap:6px;">
           <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById(&#39;fFotoConclusaoCamera&#39;).click()">📷 Tirar foto</button>
           <button type="button" class="btn" style="font-size:11px;padding:5px 8px;" onclick="document.getElementById(&#39;fFotoConclusaoFile&#39;).click()">🖼️ Escolher arquivo</button>
@@ -1989,12 +2023,16 @@
         <input type="file" accept="image/*" capture="environment" id="fFotoConclusaoCamera" style="display:none" onchange="handlePhotoUpload(event,&#39;conclusao&#39;)">
         <input type="file" accept="image/*" multiple id="fFotoConclusaoFile" style="display:none" onchange="handlePhotoUpload(event,&#39;conclusao&#39;)">
         <div id="previewConclusao" style="margin-top:4px;"></div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+        <div class="esconde-totem" style="display:flex;align-items:center;gap:6px;margin-top:5px;">
           <button type="button" class="btn" style="font-size:11px;padding:5px 8px;white-space:nowrap;" onclick="abrirDriveUpload()">📤 Enviar ao Drive</button>
           <input type="url" id="fVideoConclusao" placeholder="🎥 Cole o link do vídeo aqui" style="flex:1;font-size:11px;">
         </div>
-        <div id="previewVideoConclusao" style="margin-top:4px;"></div>
+        <div id="previewVideoConclusao" class="esconde-totem" style="margin-top:4px;"></div>
       </div>
+    </div>
+    <div class="field" id="totemTermoWrap" style="display:none;">
+      <button type="button" class="btn primary" onclick="gerarTermoTotem()">📄 Termo de responsabilidade (PDF)</button>
+      <div style="font-size:9px;color:var(--muted);margin-top:4px;">Abre o termo com os dados preenchidos. Na janela de impressão, escolha "Salvar como PDF".</div>
     </div>
     <div id="avisoSyncFotos" class="aviso-sync" style="display:none;"></div>
     <div class="modal-actions os-acoes">
@@ -2734,7 +2772,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '4.94';
+const VERSAO_PAINEL = '4.97';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3863,6 +3901,110 @@ function montaLocalMulti(){
   }).join('');
 }
 
+// ---------- OS de entrega/remoção de totem ----------
+function aplicaModoTotem(on){
+  document.querySelector('#overlay .modal').classList.toggle('modo-totem', !!on);
+  ['totemWrap','totemRetiradaWrap','totemTermoWrap'].forEach(function(id){ document.getElementById(id).style.display = on ? 'block' : 'none'; });
+  document.getElementById('lblFotoVerif').textContent = on ? 'Foto de verificação da entrega' : 'Foto de verificação';
+  document.getElementById('lblFotoConclusao').textContent = on ? 'Foto de verificação da retirada' : 'Foto de conclusão';
+  if(on) document.getElementById('fLocalLabel').textContent = 'Local de entrega';
+}
+function preencheTotem(it){
+  const p = function(id, v){ const e = document.getElementById(id); if(e.type === 'checkbox') e.checked = !!v; else e.value = v || ''; };
+  p('fTotemCliente', it && it.totemCliente); p('fTotemEntrega', it && it.totemEntrega); p('fTotemRetirada', it && it.totemRetirada);
+  p('fTotemRespNome', it && it.totemRespNome); p('fTotemRespContato', it && it.totemRespContato); p('fTotemEntregue', it && it.totemEntregue);
+}
+function dataHoraBR(v){
+  const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})T?(\d{2}):(\d{2})/);
+  return m ? (m[3] + '/' + m[2] + '/' + m[1] + ' às ' + m[4] + ':' + m[5]) : String(v || '');
+}
+function dataHoraCurta(v){   // "21/10 às 18:00"
+  const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})T?(\d{2}):(\d{2})/);
+  return m ? (m[3] + '/' + m[2] + ' às ' + m[4] + ':' + m[5]) : String(v || '');
+}
+function localTotemDoForm(){
+  const sel = document.getElementById('fLocalSel');
+  return (sel.value && sel.value !== '__novo__') ? sel.value : (document.getElementById('fLocal').value || '').trim();
+}
+function whatsTotemResp(){
+  const nome = (document.getElementById('fTotemRespNome').value || '').trim();
+  let num = (document.getElementById('fTotemRespContato').value || '').replace(/\D/g, '');
+  if(num.length === 10 || num.length === 11) num = '55' + num;
+  if(num.length < 12){ askConfirm('Digite o contato do responsável com DDD, por exemplo (92) 99999-0000.', ()=>{}); return; }
+  const local = localTotemDoForm(), quando = dataHoraBR(document.getElementById('fTotemEntrega').value);
+  const msg = 'Olá' + (nome ? ', ' + nome : '') + '! Aqui é da VTM Mídia, sobre a entrega do totem' +
+              (local ? ' em ' + local : '') + (quando ? ' (' + quando + ')' : '') + '.';
+  window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank');
+}
+function fotoParaTermo(lista){
+  const f = normalizaFotos(lista)[0];
+  return typeof f === 'string' ? f : (f && (f.url || f.src)) || '';
+}
+function htmlTermoTotem(d){
+  const e = escVist;
+  const logo = (document.querySelector('.logo-img') || {}).src || '';
+  const hoje = new Date();
+  const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const dataLonga = hoje.getDate() + ' de ' + MESES[hoje.getMonth()] + ' de ' + hoje.getFullYear();
+  const gerado = hoje.toLocaleDateString('pt-BR') + ' às ' + hoje.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  const foto = function(src, rot){ return '<figure>' + (src ? '<img src="' + e(src) + '" referrerpolicy="no-referrer" alt="">' : '<div class="semfoto">Sem foto</div>') + '<figcaption>' + rot + '</figcaption></figure>'; };
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Termo de Responsabilidade — ' + e(d.os) + '</title><style>' +
+    '@page{size:A4;margin:16mm 16mm 18mm}*{box-sizing:border-box}body{font-family:"Segoe UI",Arial,sans-serif;color:#1F1A26;font-size:10.3pt;line-height:1.36;margin:0}' +
+    '.cab{display:flex;justify-content:space-between;align-items:center}.cab img{height:46px}.cab .tit{text-align:right}.cab h1{font-size:17pt;margin:0;letter-spacing:.02em}.cab .sub{font-size:10pt;color:#6E6780;margin-top:2px}' +
+    '.faixa{height:4px;border-radius:2px;margin:8px 0 10px;background:linear-gradient(90deg,#D9538F,#EF4827,#F7962C);-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    'h2{font-size:10.5pt;text-transform:uppercase;letter-spacing:.06em;color:#D9538F;margin:11px 0 5px}table{width:100%;border-collapse:collapse}td{padding:4px 8px;border:1px solid #DDD8E3;vertical-align:top}' +
+    'td.r{width:34%;background:#F6F3F8;color:#4A4356;font-weight:600;-webkit-print-color-adjust:exact;print-color-adjust:exact}p{margin:6px 0;text-align:justify}ol{margin:4px 0 0 18px;padding:0}ol li{margin:1px 0;text-align:justify}' +
+    '.marca{display:inline-block;width:13px;height:13px;border:1.5px solid #1F1A26;border-radius:2px;text-align:center;line-height:11px;font-size:10pt;margin-right:6px}' +
+    '.fotos{display:flex;gap:12px}.fotos figure{flex:1;margin:0}.fotos img,.semfoto{width:100%;height:170px;object-fit:cover;border:1px solid #DDD8E3;border-radius:4px}' +
+    '.semfoto{display:flex;align-items:center;justify-content:center;color:#8A8396;background:#F6F3F8}.fotos figcaption{font-size:9pt;color:#6E6780;margin-top:3px}' +
+    '.assin{display:flex;gap:28px;margin-top:30px}.assin div{flex:1;text-align:center;font-size:10pt}.assin .linha{border-top:1px solid #1F1A26;padding-top:4px;font-weight:600}.assin small{color:#6E6780;display:block}' +
+    '.rod{margin-top:12px;padding-top:6px;border-top:1px solid #DDD8E3;font-size:8.5pt;color:#8A8396;display:flex;justify-content:space-between}' +
+    '</style></head><body>' +
+    '<div class="cab">' + (logo ? '<img src="' + logo + '" alt="VTM Mídia">' : '<b>VTM Mídia</b>') +
+    '<div class="tit"><h1>TERMO DE RESPONSABILIDADE</h1><div class="sub">Entrega e retirada de totem · ' + e(d.os) + '</div></div></div><div class="faixa"></div>' +
+    '<p>Pelo presente termo, o(a) responsável abaixo identificado(a), em nome do cliente <b>' + e(d.cliente) + '</b>, declara receber da ' +
+    '<b>VTM MARKETING E PUBLICIDADE LTDA (VTM Mídia)</b> o equipamento descrito, nas condições a seguir.</p>' +
+    '<h2>Dados da entrega</h2><table>' +
+    '<tr><td class="r">Cliente</td><td>' + e(d.cliente) + '</td></tr>' +
+    '<tr><td class="r">Equipamento</td><td>Totem digital VTM Mídia</td></tr>' +
+    '<tr><td class="r">Local de entrega</td><td>' + e(d.local || '—') + '</td></tr>' +
+    '<tr><td class="r">Data e horário da entrega</td><td>' + e(d.entrega || '—') + '</td></tr>' +
+    '<tr><td class="r">Responsável pelo recebimento</td><td>' + e(d.resp) + (d.contato ? ' — ' + e(d.contato) : '') + '</td></tr>' +
+    '<tr><td class="r">Situação</td><td><span class="marca">' + (d.entregue ? '✓' : '&nbsp;') + '</span>Totem entregue</td></tr>' +
+    '<tr><td class="r">Retirada</td><td>' + (d.retirada ? 'Retirada prevista para ' + e(d.retiradaCurta) : 'Retirada prevista: a definir') + '</td></tr></table>' +
+    '<h2>Compromissos do responsável</h2><p>Ao assinar este termo, o(a) responsável pelo recebimento se compromete a:</p><ol>' +
+    '<li>Receber o totem em perfeito estado de funcionamento e conservação, conforme o registro fotográfico deste termo.</li>' +
+    '<li>Zelar pela guarda e conservação do equipamento enquanto ele estiver no local, mantendo-o protegido e em ambiente adequado.</li>' +
+    '<li>Não desligar, remover, mudar de lugar, abrir ou alterar o equipamento sem autorização da VTM Mídia.</li>' +
+    '<li>Comunicar à VTM Mídia, de imediato, qualquer dano, falha, furto ou ocorrência envolvendo o equipamento.</li>' +
+    '<li>Permitir o acesso da equipe técnica da VTM Mídia para manutenção e para a retirada na data combinada.</li>' +
+    '<li>Responder por danos causados por mau uso, negligência ou ação de terceiros, ressalvado o desgaste natural do uso.</li></ol>' +
+    '<h2>Registro fotográfico da entrega</h2><div class="fotos">' + foto(d.fotoE, 'Foto de verificação da entrega' + (d.entrega ? ' — ' + e(d.entrega) : '')) + '</div>' +
+    '<p style="margin-top:12px">Manaus/AM, ' + dataLonga + '.</p>' +
+    '<div class="assin"><div><div class="linha">' + e(d.resp) + '</div><small>Responsável pelo recebimento · ' + e(d.cliente) + '</small><small>RG/CPF: ______________________</small></div>' +
+    '<div><div class="linha">VTM Mídia</div><small>Técnico responsável pela entrega</small><small>Nome: ______________________</small></div></div>' +
+    '<div class="rod"><span>Documento gerado pelo Painel de Manutenção VTM em ' + gerado + '</span><span>' + e(d.os) + '</span></div>' +
+    '<script>window.onload=function(){setTimeout(function(){window.print();},500);};<\/script></body></html>';
+}
+function gerarTermoTotem(){
+  const g = function(id){ return (document.getElementById(id).value || '').trim(); };
+  const it = editingId ? items.find(function(x){ return x.id === editingId; }) : null;
+  const d = { os: it ? it.code : 'OS nova', cliente: g('fTotemCliente'), local: localTotemDoForm(),
+    entrega: dataHoraBR(g('fTotemEntrega')), retirada: dataHoraBR(g('fTotemRetirada')),
+    resp: g('fTotemRespNome'), contato: g('fTotemRespContato'), entregue: document.getElementById('fTotemEntregue').checked,
+    retiradaCurta: dataHoraCurta(g('fTotemRetirada')),
+    fotoE: fotoParaTermo(pendingFotosVerificacao) };
+  if(!d.cliente || !d.resp){ askConfirm('Preencha o Cliente e o nome do Responsável pelo recebimento antes de gerar o termo.', ()=>{}); return; }
+  const alvo = urlDoRelatorio(htmlTermoTotem(d));
+  let janela = null;
+  try{ janela = window.open(alvo.url, '_blank'); }catch(e){ janela = null; }
+  if(!janela){
+    const a = document.createElement('a'); a.href = alvo.url; a.download = 'Termo_Totem_' + d.os.replace(/\s+/g,'_') + '.html';
+    document.body.appendChild(a); a.click(); a.remove();
+    askConfirm('O navegador bloqueou a nova janela. O termo foi baixado: abra o arquivo e escolha "Salvar como PDF" na impressão.', ()=>{});
+  }
+}
+
 function onAcaoChange(){
   const acao = document.getElementById('fAcao').value;
   const it = editingId ? items.find(x=>x.id===editingId) : null;
@@ -3874,6 +4016,7 @@ function onAcaoChange(){
     : 'Define qual relatório esta OS abre: ' + (ACOES[acao]||ACOES.visita).rel + '.';
   document.getElementById('comprovacaoWrap').style.display = (acao === 'comprovacao') ? 'block' : 'none';
   aplicaLocalMultiplo(acao === 'visita');
+  aplicaModoTotem(acao === 'totem');
   atualizaBotaoVistoria();
 }
 
@@ -3994,6 +4137,8 @@ function openModal(id){
   preencheSelectLocais(it.local);
   document.getElementById('fAcao').value = it.acao || 'visita';
   aplicaLocalMultiplo((it.acao || 'visita') === 'visita');   // visita existente abre com os locais dela marcados
+  preencheTotem(it);
+  aplicaModoTotem(it.acao === 'totem');
     document.getElementById('fLocalFoto').value = it.localFoto || '';
     const gEl = document.getElementById('fCompGrupos');
     if(gEl){
@@ -4033,6 +4178,7 @@ function openModal(id){
   } else {
     document.getElementById('modalTitle').textContent = 'Nova ordem de serviço';
     ['fLocal','fTipo','fSolicitante','fTecnicoM','fDiagnostico'].forEach(id=>document.getElementById(id).value='');
+    preencheTotem(null);
     document.getElementById('fAcao').value = 'visita';
     document.getElementById('fLocalFoto').value = '';
     const gElN = document.getElementById('fCompGrupos');
@@ -4460,6 +4606,15 @@ async function saveOS(){
                 (editingId ? ((items.find(x=>x.id===editingId)||{}).telaCodigo || '') : ''),
     materiais: materiais,
   };
+  if(acaoEscolhida === 'totem'){
+    const tg = id => (document.getElementById(id).value || '').trim();
+    Object.assign(data, {
+      totemCliente: tg('fTotemCliente'), totemEntrega: tg('fTotemEntrega'), totemRetirada: tg('fTotemRetirada'),
+      totemRespNome: tg('fTotemRespNome'), totemRespContato: tg('fTotemRespContato'),
+      totemEntregue: document.getElementById('fTotemEntregue').checked
+    });
+    if(!data.tipo) data.tipo = 'Entrega de totem' + (data.totemCliente ? ' — ' + data.totemCliente : '');
+  }
   if(!editingId) data.status = 'aberta';   // toda OS nasce Aberta
   if(editingId){
     const it = items.find(x=>x.id===editingId);
