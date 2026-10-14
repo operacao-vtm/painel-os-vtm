@@ -2829,7 +2829,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '5.02';
+const VERSAO_PAINEL = '5.03';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -2900,6 +2900,8 @@ let andamentoConfirmadoEm = 0;
 function garanteRotaDeHoje(){
   const hoje = hojeISO();
   if(rotaPacheco && rotaPacheco.data === hoje) return;
+  // o que ainda não foi concluído passa para o dia novo; as encerradas ficam só no histórico
+  const levar = [];
   // a rota de um dia anterior vai para o histórico, com a situação final de cada OS
   if(rotaPacheco && rotaPacheco.data && (rotaPacheco.itens || []).length){
     const fechada = JSON.parse(JSON.stringify(rotaPacheco));
@@ -2911,8 +2913,23 @@ function garanteRotaDeHoje(){
     historicoRotas.push(fechada);
     historicoRotas.sort(function(a, b){ return a.data.localeCompare(b.data); });
     if(historicoRotas.length > 120) historicoRotas = historicoRotas.slice(-120);
+    rotaPacheco.itens.forEach(function(i){
+      const os = items.find(function(x){ return x.id === i.osId; });
+      if(os && os.status !== 'concluida') levar.push(Object.assign({}, i, { desde: i.desde || rotaPacheco.data }));
+    });
   }
-  rotaPacheco = { data: hoje, itens: [], atualizadoPor: '', atualizadoEm: 0 };
+  rotaPacheco = { data: hoje, itens: levar, atualizadoPor: '', atualizadoEm: levar.length ? Date.now() : 0 };
+}
+
+// Virada do dia: roda sozinha (ao abrir o painel, a cada leitura do servidor e a cada minuto).
+// Quem pode mexer na rota grava a virada; quem só observa apenas atualiza a própria tela.
+function verificaViradaDoDia(){
+  if(!rotaPacheco || !rotaPacheco.data || rotaPacheco.data === hojeISO()) return false;
+  garanteRotaDeHoje();
+  renderFaixaRota();
+  const podeGravar = currentUser && (ehOperador() || currentUser.role === 'tecnico');
+  if(podeGravar && leituDoServidorOk) persistComAviso('Não foi possível gravar a virada do dia da rota. Ela será tentada de novo.');
+  return true;
 }
 
 // Toda OS que vai para Em andamento entra na rota do dia, no horário em que começou
@@ -3065,6 +3082,7 @@ async function loadData(){
     leituDoServidorOk = true;
     arquivaMesesAnteriores();   // deixa o quadro só com o mês corrente
     tiraRetrato();
+    verificaViradaDoDia();
   }catch(e){
     console.error('Erro ao carregar dados do Apps Script', e);
     if(!items) items = [];
@@ -3448,6 +3466,7 @@ async function refreshFromServer(){
     leituDoServidorOk = true;
     arquivaMesesAnteriores();
     tiraRetrato();
+    verificaViradaDoDia();
     markSynced();
     render();
   }catch(e){
@@ -3458,6 +3477,7 @@ async function refreshFromServer(){
 
 function startPolling(){
   setInterval(refreshFromServer, 8000);
+  setInterval(verificaViradaDoDia, 60000);   // passa da meia-noite com a tela aberta
 }
 
 function renderConfigNeeded(){
@@ -5849,8 +5869,10 @@ function htmlRotaDiaParada(){
     const abre = os ? ' onclick="openModal(\'' + os.id + '\')" title="Abrir ' + escVist(os.code || '') + '"' : '';
     return '<div class="rm-lin' + (st === 'concluida' ? ' feita' : '') + '"' + abre + '><b>' + escVist(i.horario || '--:--') + '</b>' +
            '<span class="p" style="background:' + (COR[st] || COR.aberta) + '"></span>' +
-           '<div class="tx"><span class="s">' + escVist(acao + ' — ' + ((os && os.tipo) || i.tipo || '')) + '</span>' +
-           '<span class="sub">' + escVist((os && os.local) || i.local || '') + (tec ? ' · 👷 ' + escVist(tec) : '') + '</span></div></div>';
+           '<div class="tx"><span class="s">' + escVist((function(){ const tp = (os && os.tipo) || i.tipo || '';
+             return tp.toLowerCase().indexOf(acao.toLowerCase()) === 0 ? tp : acao + ' — ' + tp; })()) + '</span>' +
+           '<span class="sub">' + escVist((os && os.local) || i.local || '') + (tec ? ' · 👷 ' + escVist(tec) : '') +
+           (i.desde && i.desde !== hojeISO() ? ' · desde ' + i.desde.slice(8, 10) + '/' + i.desde.slice(5, 7) : '') + '</span></div></div>';
   }).join('');
   return '<div class="rm-cab"><span class="t">🔧 Rota de hoje</span>' +
     '<span class="r">' + its.length + ' parada' + (its.length > 1 ? 's' : '') + ' · ' + nAnd + ' em andamento · ' + nFeita + ' encerrada' + (nFeita === 1 ? '' : 's') + '</span>' +
