@@ -279,6 +279,61 @@
     .fx-parada, .fx-parada *{ white-space:nowrap !important; }
   }
 
+
+  /* ========== Mapa de Telas em Modo TV (telão) ========== */
+  #modoTVMapaPage{ position:fixed; inset:0; z-index:121; background:#100D16; color:#F2EEF5; overflow:hidden; display:none; font-family:'Segoe UI', system-ui, Arial, sans-serif; }
+  #modoTVMapaPage .tvm-palco{ position:absolute; left:50%; top:50%; width:1920px; height:1080px; transform:translate(-50%,-50%); padding:26px 32px; display:flex; flex-direction:column; gap:18px; }
+  #modoTVMapaPage .tvm-topo{ display:flex; align-items:center; gap:18px; }
+  #modoTVMapaPage .tvm-logo{ display:flex; align-items:flex-end; gap:5px; height:38px; }
+  #modoTVMapaPage .tvm-logo i{ width:10px; border-radius:3px; background:linear-gradient(180deg,#D9538F,#F7962C); display:block; }
+  #modoTVMapaPage h1{ margin:0; font-size:32px; font-weight:800; letter-spacing:-.01em; color:#F2EEF5; }
+  #modoTVMapaPage .tvm-sub{ color:#8A8396; font-size:16px; margin-top:2px; }
+  #modoTVMapaPage .tvm-vivo{ margin-left:auto; display:flex; align-items:center; gap:10px; font-size:16px; color:#B9B1C6; }
+  #modoTVMapaPage .tvm-vivo b{ width:12px; height:12px; border-radius:50%; background:#25B987; animation:tvmVivo 1.6s ease-in-out infinite; }
+  @keyframes tvmVivo{ 0%{ box-shadow:0 0 0 0 rgba(37,185,135,.7);} 70%{ box-shadow:0 0 0 12px rgba(37,185,135,0);} 100%{ box-shadow:0 0 0 0 rgba(37,185,135,0);} }
+  #modoTVMapaPage .tvm-relogio{ font-size:34px; font-weight:800; font-variant-numeric:tabular-nums; margin-left:22px; }
+  #modoTVMapaPage .tvm-fechar{ margin-left:16px; width:44px; height:44px; border-radius:12px; border:1px solid rgba(154,147,166,.3); background:#1C1724; color:#F2EEF5; font-size:20px; cursor:pointer; }
+  #modoTVMapaPage .tvm-kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  #modoTVMapaPage .tvm-kpi{ background:#1C1724; border:1px solid rgba(154,147,166,.22); border-radius:16px; padding:14px 22px; display:flex; align-items:center; gap:18px; }
+  #modoTVMapaPage .tvm-kpi .n{ font-size:56px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
+  #modoTVMapaPage .tvm-kpi .l{ font-size:18px; color:#B9B1C6; font-weight:600; }
+  #modoTVMapaPage .tvm-kpi.vm .n{ color:#F0386B; } #modoTVMapaPage .tvm-kpi.az .n{ color:#4F8BFF; } #modoTVMapaPage .tvm-kpi.vd .n{ color:#25B987; }
+  #modoTVMapaPage .tvm-kpi.vm.alerta{ border-color:rgba(240,56,107,.7); animation:tvmAlerta 1.6s ease-in-out infinite; }
+  @keyframes tvmAlerta{ 50%{ box-shadow:0 0 28px rgba(240,56,107,.45); } }
+  #modoTVMapaPage .tvm-corpo{ flex:1; min-height:0; display:grid; grid-template-columns:1fr 400px; gap:18px; }
+  #modoTVMapaPage .tvm-mapa{ display:grid; grid-template-columns:1.25fr 1fr; grid-template-rows:auto 1fr; gap:16px; min-height:0; }
+  #modoTVMapaPage .tvm-coluna{ display:flex; flex-direction:column; gap:16px; }
+  #modoTVMapaPage .tvm-grupo{ background:#1C1724; border:1px solid rgba(154,147,166,.22); border-radius:16px; padding:14px 18px; min-height:0; }
+  #modoTVMapaPage .tvm-grupo h2{ margin:0 0 10px; font-size:18px; font-weight:800; display:flex; align-items:center; gap:10px; color:#F2EEF5; }
+  #modoTVMapaPage .tvm-grupo h2 small{ font-size:14px; color:#8A8396; font-weight:600; }
+  #modoTVMapaPage .tvm-linha{ display:flex; align-items:center; gap:10px; margin:7px 0; }
+  #modoTVMapaPage .tvm-linha .nome{ width:118px; flex:none; font-size:15px; font-weight:700; color:#B9B1C6; }
+  #modoTVMapaPage .tvm-telas{ display:flex; flex-wrap:wrap; gap:6px; }
+  #modoTVMapaPage .tvm-t{ width:34px; height:34px; border-radius:8px; display:grid; place-items:center; font-size:13px; font-weight:800; color:#fff; background:rgba(37,185,135,.85); transition:background .5s ease; }
+  #modoTVMapaPage .tvm-clientes{ grid-column:1 / span 2; display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  #modoTVMapaPage .tvm-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  #modoTVMapaPage .tvm-chip{ font-size:13px; font-weight:700; padding:6px 10px; border-radius:8px; color:#fff; background:rgba(37,185,135,.85); transition:background .5s ease; white-space:nowrap; }
+  #modoTVMapaPage .vist{ background:#4F8BFF !important; box-shadow:0 0 10px rgba(79,139,255,.45); }
+  #modoTVMapaPage .prob{ background:#F0386B !important; animation:tvmBrilha 1.4s ease-in-out infinite; }
+  @keyframes tvmBrilha{ 0%,100%{ box-shadow:0 0 6px rgba(240,56,107,.6); transform:scale(1);} 50%{ box-shadow:0 0 0 5px rgba(240,56,107,.25), 0 0 22px rgba(240,56,107,.95); transform:scale(1.08);} }
+  #modoTVMapaPage .muda{ animation:tvmMuda .9s ease; }
+  #modoTVMapaPage .prob.muda{ animation:tvmMuda .9s ease, tvmBrilha 1.4s ease-in-out .9s infinite; }
+  @keyframes tvmMuda{ 0%{ transform:scale(1.5);} 100%{ transform:scale(1);} }
+  #modoTVMapaPage .tvm-lado{ display:flex; flex-direction:column; gap:16px; min-height:0; }
+  #modoTVMapaPage .tvm-caixa{ background:#1C1724; border:1px solid rgba(154,147,166,.22); border-radius:16px; padding:14px 18px; min-height:0; overflow:hidden; }
+  #modoTVMapaPage .tvm-caixa h3{ margin:0 0 10px; font-size:18px; font-weight:800; color:#F2EEF5; }
+  #modoTVMapaPage .tvm-item{ display:flex; gap:10px; align-items:baseline; padding:7px 0; border-bottom:1px solid rgba(154,147,166,.22); font-size:15px; }
+  #modoTVMapaPage .tvm-item:last-child{ border-bottom:0; }
+  #modoTVMapaPage .tvm-item b{ font-variant-numeric:tabular-nums; min-width:62px; }
+  #modoTVMapaPage .tvm-item .x{ color:#B9B1C6; }
+  #modoTVMapaPage .tvm-vazio{ color:#8A8396; font-size:15px; padding:6px 0; }
+  #modoTVMapaPage .tvm-evento{ font-size:14px; padding:6px 0; border-bottom:1px solid rgba(154,147,166,.22); color:#B9B1C6; animation:tvmEntra .6s ease; }
+  #modoTVMapaPage .tvm-evento em{ font-style:normal; color:#8A8396; margin-right:6px; font-variant-numeric:tabular-nums; }
+  @keyframes tvmEntra{ from{ opacity:0; transform:translateY(-8px);} to{ opacity:1; transform:none;} }
+  #modoTVMapaPage .tvm-aviso{ position:absolute; left:50%; top:24px; transform:translate(-50%,-160%); background:#241E2E; border:2px solid #F0386B; border-radius:14px; padding:14px 26px; font-size:22px; font-weight:800; box-shadow:0 20px 40px rgba(0,0,0,.5); transition:transform .5s ease; z-index:5; }
+  #modoTVMapaPage .tvm-aviso.ok{ border-color:#25B987; } #modoTVMapaPage .tvm-aviso.az{ border-color:#4F8BFF; }
+  #modoTVMapaPage .tvm-aviso.mostra{ transform:translate(-50%,0); }
+
   @keyframes faixaRotaScroll{
     0%{ transform:translateX(0); }
     100%{ transform:translateX(-100%); }
@@ -1691,6 +1746,32 @@
 <div id="mtResumo"></div>
 
 
+<div id="modoTVMapaPage" aria-label="Mapa de Telas em Modo TV">
+  <div class="tvm-palco" id="tvmPalco">
+    <div class="tvm-aviso" id="tvmAviso"></div>
+    <div class="tvm-topo">
+      <div class="tvm-logo" aria-hidden="true"><i style="height:100%"></i><i style="height:70%"></i><i style="height:84%"></i><i style="height:54%"></i></div>
+      <div><h1>Mapa de Telas — VTM Mídia</h1><div class="tvm-sub">Situação de cada tela em tempo real</div></div>
+      <div class="tvm-vivo"><b></b>ao vivo · atualiza a cada 5 s</div>
+      <div class="tvm-relogio" id="tvmRelogio">--:--</div>
+      <button class="tvm-fechar" onclick="fecharModoTVMapa()" title="Sair do Modo TV (Esc)">✕</button>
+    </div>
+    <div class="tvm-kpis">
+      <div class="tvm-kpi vm" id="tvmKVm"><div class="n" id="tvmNVm">0</div><div class="l">com problema</div></div>
+      <div class="tvm-kpi az"><div class="n" id="tvmNAz">0</div><div class="l">em vistoria</div></div>
+      <div class="tvm-kpi vd"><div class="n" id="tvmNVd">0</div><div class="l">funcionando</div></div>
+      <div class="tvm-kpi"><div class="n" id="tvmNTot">0</div><div class="l">telas no total</div></div>
+    </div>
+    <div class="tvm-corpo">
+      <div class="tvm-mapa" id="tvmMapa"></div>
+      <div class="tvm-lado">
+        <div class="tvm-caixa" style="flex:1.2"><h3>🔴 Precisam de ação</h3><div id="tvmProb"></div></div>
+        <div class="tvm-caixa" style="flex:.7"><h3>🔵 Em vistoria</h3><div id="tvmVist"></div></div>
+        <div class="tvm-caixa" style="flex:1"><h3>🕒 Últimas atualizações</h3><div id="tvmEv"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="modoTVPage" style="display:none;position:fixed;inset:0;background:#0B0910;z-index:120;overflow:hidden;">
   <div class="tv-wrap">
     <div class="tv-topo">
@@ -1782,6 +1863,7 @@
         <button class="btn" id="mtFpend" onclick="mtFiltrar('pend')">Sem registro</button>
         <button class="btn" id="mtFresolvidas" onclick="mtFiltrar('resolvidas')">✅ Resolvidas por mês</button>
         <select id="mtMes" onchange="renderMapaTelas()" style="display:none;padding:8px 10px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--panel-alt);color:var(--text);font:inherit;font-size:12.5px;"></select>
+        <button class="btn" onclick="abrirModoTVMapa()" title="Abrir o mapa no telão (link com #tvmapa no final)">📺 Modo TV</button>
         <button class="btn" id="btnMtEditar" onclick="mtAlternarEdicao()" style="display:none;">✏️ Nomear telas</button>
       </div>
     </div>
@@ -2829,7 +2911,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '5.03';
+const VERSAO_PAINEL = '5.04';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -7874,7 +7956,143 @@ function aplicaLicenca(){
 let _tvTimer = null;
 
 let _tvAutoAberto = false;
+// ============ Mapa de Telas em Modo TV ============
+let _tvmTimer = null, _tvmAnterior = null, _tvmIndice = null, _tvmTotal = -1;
+function tvmEstado(st){ return (st === 'nc' || st === 'local') ? 'prob' : (st === 'vistoria' ? 'vist' : 'ok'); }
+function tvmChave(t){ return t.grupo + '|' + t.local + '|' + t.codigo; }
+function tvmHora(){ const d = new Date(); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
+function tvmEscala(){
+  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+  document.getElementById('tvmPalco').style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+}
+function tvmEvento(txt, tipo){
+  const ev = document.getElementById('tvmEv');
+  ev.insertAdjacentHTML('afterbegin', '<div class="tvm-evento"><em>' + tvmHora() + '</em>' + escVist(txt) + '</div>');
+  while(ev.children.length > 6) ev.lastChild.remove();
+  const a = document.getElementById('tvmAviso');
+  a.className = 'tvm-aviso ' + (tipo || ''); a.textContent = txt;
+  requestAnimationFrame(function(){ a.classList.add('mostra'); });
+  clearTimeout(window._tvmAv); window._tvmAv = setTimeout(function(){ a.classList.remove('mostra'); }, 4000);
+}
+function tvmMontaEstrutura(grupos){
+  _tvmIndice = {}; let k = 0;
+  const id = function(t){ const key = tvmChave(t); if(!(key in _tvmIndice)) _tvmIndice[key] = 'tvm' + (k++); return _tvmIndice[key]; };
+  const curto = function(c){ return String(c).indexOf('-') >= 0 ? String(c).split('-').pop() : c; };
+  const total = function(g){ return g.locais.reduce(function(n, l){ return n + l.telas.length; }, 0); };
+  const quadros = grupos.filter(function(g){ return g.locais.some(function(l){ return l.telas.length > 1; }); });
+  const clientes = grupos.filter(function(g){ return quadros.indexOf(g) < 0; });
+  const blocoQ = function(g){
+    return '<div class="tvm-grupo"><h2>' + escVist(g.grupo) + ' <small>' + total(g) + ' telas</small></h2>' +
+      g.locais.filter(function(l){ return l.telas.length; }).map(function(l){
+        return '<div class="tvm-linha"><div class="nome">' + escVist(l.nome.replace('Plataforma ', 'Plat. ')) + '</div><div class="tvm-telas">' +
+          l.telas.map(function(t){ return '<div class="tvm-t" id="' + id(t) + '" title="' + escVist(t.codigo) + '">' + escVist(curto(t.codigo)) + '</div>'; }).join('') +
+          '</div></div>';
+      }).join('') + '</div>';
+  };
+  const blocoC = function(g){
+    return '<div class="tvm-grupo"><h2>' + escVist(g.grupo) + ' <small>' + total(g) + '</small></h2><div class="tvm-chips">' +
+      g.locais.map(function(l){ return l.telas.map(function(t){
+        return '<span class="tvm-chip" id="' + id(t) + '" title="' + escVist(t.codigo) + '">' + escVist(l.nome.replace(/\s*\(.*?\)/g, '')) + '</span>'; }).join(''); }).join('') +
+      '</div></div>';
+  };
+  document.getElementById('tvmMapa').innerHTML =
+    (quadros[0] ? blocoQ(quadros[0]) : '<div></div>') +
+    '<div class="tvm-coluna">' + quadros.slice(1).map(blocoQ).join('') + '</div>' +
+    '<div class="tvm-clientes">' + clientes.map(blocoC).join('') + '</div>';
+}
+function renderModoTVMapa(){
+  const grupos = mtMontar();
+  const telas = [];
+  grupos.forEach(function(g){ g.locais.forEach(function(l){ l.telas.forEach(function(t){ telas.push(t); }); }); });
+  if(!_tvmIndice || telas.length !== _tvmTotal){ tvmMontaEstrutura(grupos); _tvmTotal = telas.length; }
+  const agora = {};
+  telas.forEach(function(t){
+    const key = tvmChave(t), s = tvmEstado(t.status);
+    agora[key] = { s: s, t: t };
+    const el = document.getElementById(_tvmIndice[key]); if(!el) return;
+    const base = el.classList.contains('tvm-chip') ? 'tvm-chip' : 'tvm-t';
+    const mudou = _tvmAnterior && _tvmAnterior[key] && _tvmAnterior[key] !== s;
+    el.className = base + (s === 'ok' ? '' : ' ' + s) + (mudou ? ' muda' : '');
+    if(mudou) setTimeout(function(){ el.classList.remove('muda'); }, 950);
+  });
+  // avisos: o que mudou desde a última leitura, agrupado por local
+  if(_tvmAnterior){
+    const porLocal = {};
+    Object.keys(agora).forEach(function(key){
+      const antes = _tvmAnterior[key], dep = agora[key].s;
+      if(!antes || antes === dep) return;
+      const t = agora[key].t, ch = t.local + '|' + dep;
+      (porLocal[ch] = porLocal[ch] || { local: t.local, s: dep, antes: antes, telas: [], os: t.os }).telas.push(t.codigo);
+    });
+    Object.keys(porLocal).forEach(function(ch){
+      const m = porLocal[ch], qt = m.telas.length > 1 ? m.telas.length + ' telas' : m.telas[0];
+      if(m.s === 'prob') tvmEvento('🔴 ' + m.local + ': ' + qt + ' com problema' + (m.os && m.os.code ? ' — ' + m.os.code : ''), '');
+      else if(m.s === 'vist') tvmEvento('🔵 Vistoria em ' + m.local + (m.os && m.os.code ? ' — ' + m.os.code : ''), 'az');
+      else if(m.antes === 'vist') tvmEvento('✅ Vistoria concluída: ' + m.local, 'ok');
+      else tvmEvento('✅ ' + m.local + ': ' + qt + (m.telas.length > 1 ? ' voltaram' : ' voltou') + ' a funcionar', 'ok');
+    });
+  }
+  _tvmAnterior = {}; Object.keys(agora).forEach(function(key){ _tvmAnterior[key] = agora[key].s; });
+
+  // contadores
+  const v = Object.values(agora);
+  const nP = v.filter(function(x){ return x.s === 'prob'; }).length, nV = v.filter(function(x){ return x.s === 'vist'; }).length;
+  document.getElementById('tvmNVm').textContent = nP;
+  document.getElementById('tvmNAz').textContent = nV;
+  document.getElementById('tvmNVd').textContent = v.length - nP - nV;
+  document.getElementById('tvmNTot').textContent = v.length;
+  document.getElementById('tvmKVm').classList.toggle('alerta', nP > 0);
+  document.getElementById('tvmRelogio').textContent = tvmHora();
+
+  // listas laterais, por local
+  const lista = function(s){
+    const r = {};
+    v.filter(function(x){ return x.s === s; }).forEach(function(x){
+      const t = x.t; const o = (r[t.local] = r[t.local] || { n: 0, os: {}, desde: Infinity });
+      o.n++; if(t.os && t.os.code) o.os[t.os.code] = 1;
+      if(t.os && t.os.dataAbertura) o.desde = Math.min(o.desde, t.os.dataAbertura);
+    });
+    return r;
+  };
+  const dias = function(d){ if(!isFinite(d)) return ''; const n = Math.floor((Date.now() - d) / 86400000); return n <= 0 ? 'hoje' : n + (n === 1 ? ' dia' : ' dias'); };
+  const p = lista('prob'), vi = lista('vist');
+  const linha = function(cor, l, x, comDias){
+    return '<div class="tvm-item"><b style="color:' + cor + '">' + x.n + (x.n > 1 ? ' telas' : ' tela') + '</b><span>' + escVist(l) +
+      ' <span class="x">· ' + escVist(Object.keys(x.os).join(', ') || 'OS') + (comDias && dias(x.desde) ? ' · ' + dias(x.desde) : '') + '</span></span></div>';
+  };
+  document.getElementById('tvmProb').innerHTML = Object.keys(p).length
+    ? Object.keys(p).sort(function(a, b){ return p[a].desde - p[b].desde; }).map(function(l){ return linha('#F0386B', l, p[l], true); }).join('')
+    : '<div class="tvm-vazio">Nenhuma tela com problema 🎉</div>';
+  document.getElementById('tvmVist').innerHTML = Object.keys(vi).length
+    ? Object.keys(vi).map(function(l){ return linha('#4F8BFF', l, vi[l], false); }).join('')
+    : '<div class="tvm-vazio">Nenhuma vistoria agora</div>';
+}
+function fechaPerguntaPerfilNoTelao(){ const bv = document.getElementById('boasVindasOverlay'); if(bv) bv.classList.remove('show'); }
+function abrirModoTVMapa(){
+  fechaPerguntaPerfilNoTelao();
+  const pg = document.getElementById('modoTVMapaPage');
+  pg.style.display = 'block';
+  _tvmAnterior = null; _tvmIndice = null; _tvmTotal = -1;
+  document.getElementById('tvmEv').innerHTML = '';
+  tvmEscala();
+  renderModoTVMapa();
+  tvmEvento('🖥️ Telão ligado — mostrando ' + _tvmTotal + ' telas', 'az');
+  if(_tvmTimer) clearInterval(_tvmTimer);
+  _tvmTimer = setInterval(renderModoTVMapa, 5000);
+  if(pg.requestFullscreen){ pg.requestFullscreen().catch(function(){}); }
+}
+function fecharModoTVMapa(){
+  document.getElementById('modoTVMapaPage').style.display = 'none';
+  if(_tvmTimer){ clearInterval(_tvmTimer); _tvmTimer = null; }
+  if(document.fullscreenElement && document.exitFullscreen){ document.exitFullscreen().catch(function(){}); }
+}
+window.addEventListener('resize', function(){ if(document.getElementById('modoTVMapaPage').style.display === 'block') tvmEscala(); });
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && document.getElementById('modoTVMapaPage').style.display === 'block') fecharModoTVMapa();
+});
+
 function abrirModoTV(){
+  fechaPerguntaPerfilNoTelao();
   document.getElementById('modoTVPage').style.display = 'block';
   renderModoTV();
   // atualiza sozinho a cada 60s, para o telão ficar sempre atual
@@ -9819,12 +10037,19 @@ startPolling();
 
 /* modo quiosque/telão: abrir a URL terminando em #tv entra direto no Modo TV.
    Espera os dados chegarem (3s) antes de abrir, para já mostrar tudo preenchido. */
+// aberto como telão (TV Box): não pergunta "Quem está usando?" — essa janela aberta
+// por trás pausaria a releitura do servidor e o telão ficaria parado
+const MODO_TELAO = /^#(tv|modotv|tvmapa)$/i.test(location.hash);
 if(location.hash === '#tv' || location.hash === '#modotv'){
   setTimeout(function(){ if(!_tvAutoAberto){ _tvAutoAberto = true; abrirModoTV(); } }, 3000);
 }
+// ...e terminando em #tvmapa entra direto no Mapa de Telas em Modo TV
+if(location.hash === '#tvmapa'){
+  setTimeout(function(){ if(!_tvAutoAberto){ _tvAutoAberto = true; abrirModoTVMapa(); } }, 3000);
+}
 
 // primeira visita (sem sessão e sem escolha anterior): pergunta quem está usando
-if(!currentUser && !jaEscolheuPerfil()){
+if(!currentUser && !jaEscolheuPerfil() && !MODO_TELAO){
   setTimeout(abrirBoasVindas, 400);
 }
 
