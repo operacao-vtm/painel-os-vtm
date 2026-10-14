@@ -1594,6 +1594,34 @@
     table.rep-table thead{display:table-header-group;}
     table.rep-table tr{page-break-inside:avoid;}
   }
+  /* ---------- Rotas do motorista (v5.05) ---------- */
+  .rm-modal{width:1020px;}
+  .rm-sub{font-size:12px;color:var(--muted);margin:0 0 12px;}
+  .rm-filtros{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;}
+  .rm-filtros label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);}
+  .rm-filtros input{background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:var(--r-sm);padding:7px 9px;font:inherit;}
+  .rm-resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px;}
+  .rm-resumo div{background:var(--panel-alt);border:1px solid var(--border);border-radius:var(--r-md);padding:8px 10px;}
+  .rm-resumo b{display:block;font-size:17px;}
+  .rm-resumo small{font-size:11px;color:var(--muted);}
+  .rm-corpo{display:grid;grid-template-columns:330px 1fr;gap:12px;align-items:start;}
+  @media (max-width:820px){ .rm-corpo{grid-template-columns:1fr;} }
+  .rm-lista{display:flex;flex-direction:column;gap:6px;max-height:560px;overflow:auto;}
+  .rm-item{text-align:left;background:var(--panel-alt);border:1px solid var(--border);border-radius:var(--r-md);padding:9px 11px;color:var(--text);cursor:pointer;font:inherit;}
+  .rm-item:hover{border-color:var(--border-strong);}
+  .rm-item.sel{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber-bg);}
+  .rm-item b{display:block;font-size:13px;}
+  .rm-item span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .rm-vazio{font-size:12.5px;color:var(--muted);padding:14px;background:var(--panel-alt);border-radius:var(--r-md);}
+  .rm-detalhe h3{font-size:14px;margin:0 0 8px;}
+  .rm-mapa{height:320px;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--border);margin-bottom:10px;background:var(--panel-alt);}
+  .rm-tabela-wrap{overflow-x:auto;}
+  .rm-tabela{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .rm-tabela th,.rm-tabela td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  .rm-tabela th{font-size:11px;color:var(--muted);font-weight:600;}
+  .rm-semos{color:var(--muted);}
+  .rm-pino{width:22px;height:22px;border-radius:50%;border:2px solid #fff;color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;box-shadow:0 1px 4px rgba(0,0,0,.5);}
+  .rm-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
 </style>
 <style id="estiloPagina">@page{size:A4 landscape;margin:10mm;}</style>
 <script>
@@ -1657,6 +1685,7 @@
     <button class="btn" id="btnLocaisEquipe" onclick="openCadastro('locais')" style="display: none;">📍 Locais</button>
     <button class="btn" id="btnSolicitacoes" onclick="openSolicitacoes()" style="display: none;position:relative;">📥 Solicitações<span id="badgeSolicitacoes" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;"></span></button>
     <button class="btn" id="btnRotaFixa" onclick="openRotaFixa()" style="display: none;">🚌 Rota fixa</button>
+    <button class="btn" id="btnRotasMotorista" onclick="openRotasMotorista()" style="display: none;">🚗 Rotas do motorista</button>
     <button class="btn" id="btnMapaTelas" onclick="openMapaTelas()">🖥️ Mapa de Telas</button>
     <button class="btn" id="btnDashboard" onclick="openDashboard()">📊 Dashboard</button>
     <div class="menu-mais" id="menuMais">
@@ -1694,6 +1723,25 @@
     <div id="listaSolicitacoes" style="max-height:420px;overflow:auto;"></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeSolicitacoes()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="rotasMotoristaOverlay">
+  <div class="modal rm-modal">
+    <h2>🚗 Rotas do motorista</h2>
+    <p class="rm-sub">Rotas enviadas pelo app do motorista (Rota VTM): onde ele parou, quanto tempo ficou, km pelas ruas e gasolina estimada.</p>
+    <div class="rm-filtros">
+      <label>Mês <input type="month" id="rmMes" onchange="carregarRotasMotorista()"></label>
+      <button class="btn" onclick="carregarRotasMotorista()">↻ Atualizar</button>
+    </div>
+    <div id="rmResumo" class="rm-resumo"></div>
+    <div class="rm-corpo">
+      <div id="rmLista" class="rm-lista"></div>
+      <div id="rmDetalhe" class="rm-detalhe"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeRotasMotorista()">Fechar</button>
     </div>
   </div>
 </div>
@@ -2911,8 +2959,8 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '5.04';
-const VERSAO_DATA = '31/08/2026';
+const VERSAO_PAINEL = '5.05';
+const VERSAO_DATA = '14/10/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
 
@@ -3797,6 +3845,7 @@ function updateModeUI(){
   document.getElementById('btnSolicitacoes').style.display = isOperador ? 'inline-flex' : 'none';
   document.getElementById('btnLocaisEquipe').style.display = (abreDireto || isManut) ? 'inline-flex' : 'none';
   document.getElementById('btnRotaFixa').style.display = isOperador ? 'inline-flex' : 'none';
+  document.getElementById('btnRotasMotorista').style.display = isOperador ? 'inline-flex' : 'none';
   atualizaBadgeSolicitacoes();
 }
 
@@ -6823,6 +6872,139 @@ function removerDest(tipo, i){
     persistComAviso('Não foi possível confirmar a remoção no servidor. Repita com boa conexão.');
     renderDestinatarios();
   });
+}
+
+/* ============================================================
+   ROTAS DO MOTORISTA (v5.05)
+   As rotas vêm do app do motorista (Rota_Motorista_Celular.html) e
+   ficam numa aba própria da planilha ("Rotas do motorista"), fora do
+   JSON do painel — por isso são lidas à parte, só quando a janela abre.
+   ============================================================ */
+let rmRotas = [], rmSel = -1, rmMapa = null;
+const RM_FUSO = 'America/Manaus';
+function rmEsc(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function rmHora(t){ return new Date(t).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', timeZone:RM_FUSO }); }
+function rmDia(t){ return new Date(t).toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit', timeZone:RM_FUSO }); }
+function rmDur(ms){ const m = Math.max(0, Math.round(ms/60000)); return m < 60 ? m + ' min' : Math.floor(m/60) + 'h' + String(m%60).padStart(2,'0'); }
+function rmNum(v, casas){ return (v || 0).toFixed(casas == null ? 1 : casas).replace('.', ','); }
+function rmBrl(v){ return 'R$ ' + rmNum(v, 2); }
+function rmMesAtual(){ const p = new Date().toLocaleDateString('en-CA', { timeZone:RM_FUSO }); return p.slice(0, 7); }
+
+function openRotasMotorista(){
+  if(!ehOperador()) return;
+  const campo = document.getElementById('rmMes');
+  if(!campo.value) campo.value = rmMesAtual();
+  document.getElementById('rotasMotoristaOverlay').classList.add('show');
+  carregarRotasMotorista();
+}
+function closeRotasMotorista(){
+  document.getElementById('rotasMotoristaOverlay').classList.remove('show');
+}
+
+async function carregarRotasMotorista(){
+  const lista = document.getElementById('rmLista');
+  document.getElementById('rmDetalhe').innerHTML = '';
+  document.getElementById('rmResumo').innerHTML = '';
+  if(!gasConfigured()){ lista.innerHTML = '<div class="rm-vazio">O endereço do servidor não está configurado neste painel.</div>'; return; }
+  lista.innerHTML = '<div class="rm-vazio">Buscando as rotas…</div>';
+  const mes = document.getElementById('rmMes').value || rmMesAtual();
+  let json = null;
+  try{
+    const resp = await fetch(GAS_URL + '?api=rotasMotorista&mes=' + encodeURIComponent(mes), { method:'GET' });
+    json = await resp.json();
+  }catch(e){
+    lista.innerHTML = '<div class="rm-vazio">Não consegui falar com o servidor. Confira a internet e toque em Atualizar.</div>';
+    return;
+  }
+  if(!json || !Array.isArray(json.rotas)){
+    // servidor antigo devolve os dados do painel em vez da lista de rotas
+    lista.innerHTML = '<div class="rm-vazio">O servidor ainda não tem as rotas do motorista. Atualize o código do Apps Script para a versão v5 e faça uma nova versão da implantação.</div>';
+    return;
+  }
+  rmRotas = json.rotas; rmSel = -1;
+  rmMostrarResumo();
+  if(!rmRotas.length){ lista.innerHTML = '<div class="rm-vazio">Nenhuma rota enviada neste mês.</div>'; return; }
+  lista.innerHTML = rmRotas.map((r, i) => {
+    const comOS = (r.paradas||[]).filter(p => p.tipo !== 'semos').length, semOS = (r.paradas||[]).length - comOS;
+    const fim = r.fim && r.fim.t ? r.fim.t : r.inicio.t;
+    return `<button class="rm-item" data-i="${i}" onclick="rmSelecionar(${i})">
+      <b>${rmEsc(rmDia(r.inicio.t))} · ${rmHora(r.inicio.t)} às ${rmHora(fim)}</b>
+      <span>${rmNum(r.km)} km · ${rmNum(r.litros)} L · ${rmBrl(r.custo)} · ${comOS} com OS${semOS ? ', ' + semOS + ' sem OS' : ''}</span>
+    </button>`;
+  }).join('');
+  rmSelecionar(0);
+}
+
+function rmMostrarResumo(){
+  const soma = (f) => rmRotas.reduce((s, r) => s + (f(r) || 0), 0);
+  const km = soma(r => r.km), litros = soma(r => r.litros), custo = soma(r => r.custo);
+  const tempo = soma(r => (r.fim && r.fim.t ? r.fim.t : r.inicio.t) - r.inicio.t);
+  const comOS = soma(r => (r.paradas||[]).filter(p => p.tipo !== 'semos').length);
+  const semOS = soma(r => (r.paradas||[]).filter(p => p.tipo === 'semos').length);
+  document.getElementById('rmResumo').innerHTML = [
+    [rmRotas.length, 'rotas no mês'], [rmNum(km) + ' km', 'rodados'], [rmNum(litros) + ' L', 'gasolina (estim.)'],
+    [rmBrl(custo), 'custo (estim.)'], [rmDur(tempo), 'tempo em rota'], [comOS + ' / ' + semOS, 'paradas com OS / sem OS']
+  ].map(c => `<div><b>${c[0]}</b><small>${c[1]}</small></div>`).join('');
+}
+
+function rmCarregarLeaflet(){
+  if(window.L && window.L.map) return Promise.resolve();
+  return new Promise((ok, falha) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet';
+    css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(css);
+    const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    sc.onload = ok; sc.onerror = falha; document.head.appendChild(sc);
+  });
+}
+
+function rmSelecionar(i){
+  rmSel = i; const r = rmRotas[i]; if(!r) return;
+  document.querySelectorAll('#rmLista .rm-item').forEach(b => b.classList.toggle('sel', +b.dataset.i === i));
+  const fim = r.fim && r.fim.t ? r.fim.t : r.inicio.t;
+  const paradas = r.paradas || [];
+  let n = 0;
+  const linhas = paradas.map(p => {
+    const s = p.tipo === 'semos'; const sai = p.saida || fim;
+    return `<tr class="${s ? 'rm-semos' : ''}"><td>${s ? '⏸' : (++n)}</td><td>${rmEsc(p.nome)}</td><td>${s ? 'Sem OS' : 'Com OS'}</td>
+      <td>${rmHora(p.t)}</td><td>${rmHora(sai)}</td><td>${rmDur(sai - p.t)}</td></tr>`;
+  }).join('');
+  const pts = [r.inicio, ...paradas, r.fim].filter(x => x && x.lat != null);
+  const linkCaminho = pts.length > 1 ? 'https://www.google.com/maps/dir/' + pts.slice(0, 10).map(x => x.lat.toFixed(5) + ',' + x.lng.toFixed(5)).join('/') : '';
+  document.getElementById('rmDetalhe').innerHTML = `
+    <h3>${rmEsc(rmDia(r.inicio.t))} · saída ${rmHora(r.inicio.t)}, fim ${rmHora(fim)} (${rmDur(fim - r.inicio.t)})</h3>
+    <div class="rm-resumo">
+      <div><b>${rmNum(r.km)} km</b><small>${r.kmReta ? 'aprox., em linha reta' : 'pelas ruas'}</small></div>
+      <div><b>${rmNum(r.litros)} L</b><small>gasolina (${rmNum(r.kml)} km/l)</small></div>
+      <div><b>${rmBrl(r.custo)}</b><small>litro a ${rmBrl(r.preco)}</small></div>
+      <div><b>${paradas.length}</b><small>paradas</small></div>
+    </div>
+    <div class="rm-mapa" id="rmMapa"></div>
+    <div class="rm-tabela-wrap"><table class="rm-tabela">
+      <thead><tr><th>#</th><th>Local</th><th>Tipo</th><th>Chegada</th><th>Saída</th><th>Tempo</th></tr></thead>
+      <tbody>${linhas || '<tr><td colspan="6">Nenhuma parada registrada.</td></tr>'}</tbody>
+    </table></div>
+    ${linkCaminho ? `<div class="rm-links"><a class="btn" href="${linkCaminho}" target="_blank" rel="noopener">🗺️ Abrir o caminho no Google Maps</a></div>` : ''}`;
+  rmDesenharMapa(r, pts);
+}
+
+async function rmDesenharMapa(r, pts){
+  const caixa = document.getElementById('rmMapa'); if(!caixa) return;
+  if(!pts.length){ caixa.innerHTML = '<div class="rm-vazio">Esta rota não tem pontos com localização.</div>'; return; }
+  try{ await rmCarregarLeaflet(); }catch(e){ caixa.innerHTML = '<div class="rm-vazio">Não consegui carregar o mapa (sem internet?).</div>'; return; }
+  if(rmMapa){ rmMapa.remove(); rmMapa = null; }
+  if(!document.getElementById('rmMapa')) return;
+  rmMapa = L.map('rmMapa');
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' }).addTo(rmMapa);
+  if(r.linha && r.linha.length > 1) L.polyline(r.linha, { color:'#E5397F', weight:5, opacity:.9 }).addTo(rmMapa);
+  else L.polyline(pts.map(x => [x.lat, x.lng]), { color:'#F58220', weight:3, dashArray:'8 8' }).addTo(rmMapa);
+  const pino = (cor, txt) => L.divIcon({ className:'', html:`<div class="rm-pino" style="background:${cor}">${txt}</div>`, iconSize:null, iconAnchor:[11,11] });
+  let n = 0;
+  if(r.inicio.lat != null) L.marker([r.inicio.lat, r.inicio.lng], { icon:pino('#5B3E8C','▶') }).addTo(rmMapa).bindTooltip('Saída ' + rmHora(r.inicio.t));
+  (r.paradas||[]).forEach(p => { if(p.lat == null) return; const s = p.tipo === 'semos';
+    L.marker([p.lat, p.lng], { icon:pino(s ? '#6C7A99' : '#2FBFA0', s ? '⏸' : (++n)) }).addTo(rmMapa).bindTooltip((s ? 'Sem OS — ' : '') + rmEsc(p.nome) + '<br>' + rmHora(p.t)); });
+  if(r.fim && r.fim.lat != null) L.marker([r.fim.lat, r.fim.lng], { icon:pino('#E5397F','■') }).addTo(rmMapa).bindTooltip('Fim ' + rmHora(r.fim.t));
+  rmMapa.fitBounds(L.latLngBounds(pts.map(x => [x.lat, x.lng])).pad(0.2), { maxZoom:16 });
+  setTimeout(() => rmMapa && rmMapa.invalidateSize(), 60);
 }
 
 function openRotaFixa(){
