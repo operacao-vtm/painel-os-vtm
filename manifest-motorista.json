@@ -1,0 +1,18 @@
+{
+  "id": "./Rota_Motorista_Celular.html",
+  "name": "Rota do Motorista — VTM",
+  "short_name": "Rota VTM",
+  "description": "Rota do motorista da VTM: paradas, relatório no WhatsApp e gasto de gasolina.",
+  "start_url": "./Rota_Motorista_Celular.html",
+  "scope": "./Rota_Motorista_Celular.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#15121B",
+  "theme_color": "#15121B",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icone-motorista-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icone-motorista-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icone-motorista-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
