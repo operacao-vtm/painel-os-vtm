@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Demo — Rota do motorista</title>
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --brand-1:#E5397F; --brand-2:#F58220;
+    --brand-grad:linear-gradient(135deg,#E5397F 0%,#F58220 100%);
+    --bg:#15121B; --panel:#1E1A26; --panel-alt:#272231;
+    --border:#342E40; --border-strong:#453D54;
+    --text:#F2EFF5; --muted:#9A93A6;
+    --amber:#F58220; --amber-bg:#3B2410;
+    --teal:#2FBFA0; --teal-bg:#12332C;
+    --red:#E5397F; --red-bg:#3A1526;
+    --r-sm:8px; --r-md:12px; --r-lg:18px;
+    --shadow-lg:0 8px 28px rgba(0,0,0,.45);
+    color-scheme:dark;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  [data-theme="light"]{
+    --bg:#F7F5F9; --panel:#FFFFFF; --panel-alt:#F4F1F7;
+    --border:#E6E1EC; --border-strong:#D3CCDC;
+    --text:#241F2C; --muted:#6E6779;
+    --amber:#D96A0B; --amber-bg:#FDF1E3;
+    --teal:#1B9C7E; --teal-bg:#E4F5F0;
+    --red:#D6246B; --red-bg:#FCE9F1;
+    --shadow-lg:0 8px 28px rgba(40,20,60,.12);
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  html{scroll-padding-top:env(safe-area-inset-top,0px)}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font-family:'Open Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:14px;line-height:1.45}
+  button{font-family:inherit}
+  button:focus-visible{outline:3px solid var(--brand-2);outline-offset:2px}
+
+  .topo{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--panel)}
+  .marca{width:34px;height:34px;border-radius:10px;background:var(--brand-grad);display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px}
+  .topo h1{font-size:16px;margin:0;font-weight:700}
+  .topo small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+  .topo .esp{flex:1}
+  .btn-tema{background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:var(--r-md);padding:7px 11px;cursor:pointer;font-size:14px}
+
+  .aviso{margin:14px 18px 0;padding:10px 14px;border-radius:var(--r-md);background:var(--amber-bg);color:var(--text);font-size:12.5px;border:1px solid color-mix(in srgb,var(--amber) 35%,transparent)}
+
+  .modo{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 18px 0}
+  .modo span{color:var(--muted);font-size:13px}
+  .seg{display:inline-flex;background:var(--panel-alt);border:1px solid var(--border);border-radius:999px;padding:3px}
+  .seg button{border:0;background:transparent;color:var(--muted);padding:7px 14px;border-radius:999px;cursor:pointer;font-weight:600;font-size:13px}
+  .seg button.on{background:var(--brand-grad);color:#fff}
+
+  .grade{display:grid;grid-template-columns:330px 1fr;gap:16px;padding:14px 18px 18px}
+  @media (max-width:820px){ .grade{grid-template-columns:1fr} }
+
+  /* tela do motorista */
+  .celular{background:var(--panel);border:1px solid var(--border);border-radius:24px;padding:16px;box-shadow:var(--shadow-lg);align-self:start}
+  .celular .quem{font-size:12px;color:var(--muted)}
+  .celular .quem b{color:var(--text)}
+  .relogio{font-size:34px;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px}
+  .estado{font-size:13px;color:var(--muted);min-height:38px}
+  .estado.alerta{color:var(--amber);font-weight:600}
+  .numeros{display:flex;gap:8px;margin:10px 0 14px}
+  .numeros div{flex:1;background:var(--panel-alt);border-radius:var(--r-md);padding:8px 10px}
+  .numeros b{display:block;font-size:18px}
+  .numeros small{color:var(--muted);font-size:11px}
+  .acao{width:100%;border:0;border-radius:16px;padding:16px;font-size:17px;font-weight:700;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:10px}
+  .acao:disabled{opacity:.35;cursor:not-allowed}
+  .b-iniciar{background:var(--brand-grad);color:#fff}
+  .b-parada{background:var(--amber);color:#fff}
+  .b-encerrar{background:transparent;color:var(--red);border:2px solid var(--red)}
+  .pulsa{animation:pulso 1.4s ease-in-out infinite}
+  @keyframes pulso{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--amber) 55%,transparent)}50%{box-shadow:0 0 0 10px transparent}}
+  .b-encerrar.pulsa{animation-name:pulsoR}
+  @keyframes pulsoR{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--red) 55%,transparent)}50%{box-shadow:0 0 0 10px transparent}}
+  @media (prefers-reduced-motion:reduce){ .pulsa{animation:none} }
+
+  .extras{display:flex;gap:8px;margin-top:4px}
+  .extras button{flex:1;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:var(--r-md);padding:8px;font-size:12.5px;cursor:pointer;font-weight:600}
+  .paradas{margin-top:14px;border-top:1px solid var(--border);padding-top:10px}
+  .paradas h3{font-size:13px;margin:0 0 6px;color:var(--muted);font-weight:600}
+  .paradas ol{margin:0;padding:0;list-style:none}
+  .paradas li{display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:13px;border-bottom:1px dashed var(--border)}
+  .paradas li:last-child{border-bottom:0}
+  .bola{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;background:var(--teal)}
+  .bola.fora{background:var(--amber)}
+  .paradas .vazio{color:var(--muted);font-size:12.5px}
+
+  .mapa-box{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;min-height:520px}
+  .mapa-top{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .mapa-top b{font-size:14px}
+  .legenda{display:flex;gap:12px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+  .legenda i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+  #mapa{flex:1;min-height:460px}
+  @media (max-width:820px){ #mapa{min-height:56vh} }
+  [data-theme="dark"] .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9)}
+  .sem-mapa{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:800;max-width:90%;
+            background:var(--amber-bg);color:var(--text);border:1px solid var(--amber);border-radius:var(--r-md);
+            padding:8px 12px;font-size:12.5px;display:none;text-align:center}
+  .sem-mapa.on{display:block}
+  .leaflet-container{background:var(--panel-alt);font-family:inherit}
+  .leaflet-tooltip{font-family:inherit;font-size:12px}
+
+  .pin{width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
+  .pin.cad{background:#8C8597}
+  .pin.ok{width:24px;height:24px;background:#2FBFA0;color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;border-width:2px}
+  .pin.fora{width:24px;height:24px;background:#F58220;color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;border-width:2px}
+  .pin.base{width:26px;height:26px;background:#5B3E8C;color:#fff;font-size:13px;display:grid;place-items:center;border-width:2px}
+  .carro{width:30px;height:30px;border-radius:50%;background:var(--brand-grad);border:3px solid #fff;display:grid;place-items:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+
+  .locais{grid-column:1 / -1;background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px}
+  .locais-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .locais-top h2{font-size:15px;margin:0}
+  .locais-top small{color:var(--muted);font-size:12.5px}
+  .locais-top button{background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:var(--r-md);padding:7px 12px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .lista-locais{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+  .item-local{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--panel-alt);border:1px solid var(--border);border-radius:var(--r-md);padding:9px 10px;cursor:pointer;color:var(--text);font:inherit}
+  .item-local:hover{border-color:var(--border-strong)}
+  .item-local .st{flex:none;width:10px;height:10px;border-radius:50%;margin-top:5px;background:#8C8597}
+  .item-local .st.ok{background:#2FBFA0} .item-local .st.aprox{background:#F58220} .item-local .st.nao{background:#E5397F}
+  .item-local.sel{border-color:var(--brand-1);box-shadow:0 0 0 2px color-mix(in srgb,var(--brand-1) 35%,transparent)}
+  .locais-acoes{display:flex;gap:8px;flex-wrap:wrap}
+  .locais-top button.on{background:var(--brand-grad);color:#fff;border-color:transparent}
+  .locais-top button:disabled{opacity:.4;cursor:not-allowed}
+  .dica-ajuste{display:none;margin:0 0 10px;padding:9px 12px;border-radius:var(--r-md);background:var(--teal-bg);font-size:12.5px;border:1px solid color-mix(in srgb,var(--teal) 40%,transparent)}
+  .dica-ajuste.on{display:block}
+  .pin.mover{width:20px;height:20px;background:#E5397F;cursor:grab}
+  .pin.mover.sel{width:26px;height:26px;background:#F58220}
+  .rotulo{font-size:11px;font-weight:700;padding:1px 5px}
+  .aviso-copiado{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--teal);color:#fff;padding:9px 16px;border-radius:999px;font-weight:600;font-size:13px;z-index:2000;display:none}
+  .aviso-copiado.on{display:block}
+  .item-local b{display:block;font-size:12.5px}
+  .item-local span{display:block;font-size:11.5px;color:var(--muted)}
+  .item-local em{display:block;font-style:normal;font-size:11px;margin-top:2px;color:var(--muted)}
+  .relatorio{grid-column:1 / -1;background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;display:none}
+  .relatorio.on{display:block}
+  .relatorio h2{font-size:16px;margin:0 0 4px}
+  .relatorio p.sub{margin:0 0 12px;color:var(--muted);font-size:12.5px}
+  .rel-grade{display:grid;grid-template-columns:1fr 360px;gap:16px}
+  @media (max-width:820px){ .rel-grade{grid-template-columns:1fr} }
+  .tabela-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  td.fora{color:var(--amber);font-weight:600}
+  .zap{background:#0b141a;border-radius:var(--r-md);padding:12px}
+  [data-theme="light"] .zap{background:#e9e2d8}
+  .balao{background:#005c4b;color:#e9edef;border-radius:10px 2px 10px 10px;padding:10px 12px;font-size:13px;white-space:pre-wrap;line-height:1.5;margin-left:auto;max-width:100%}
+  [data-theme="light"] .balao{background:#d9fdd3;color:#111b21}
+  .b-zap{margin-top:10px;width:100%;border:0;border-radius:var(--r-md);padding:12px;background:#25D366;color:#073b1e;font-weight:700;font-size:14px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="marca">VTM</div>
+  <div>
+    <h1>Rota do motorista</h1>
+    <small>Demonstração para conferir o desenho. Nada aqui grava no painel.</small>
+  </div>
+  <div class="esp"></div>
+  <button class="btn-tema" id="btnTema" aria-label="Trocar tema claro e escuro">☀️</button>
+</header>
+
+<div class="aviso">As 17 lojas Nova Era são localizadas pelo endereço quando a página abre (precisa de internet). A base VTM também é localizada pelo endereço. O caminho do carro é só de exemplo: no sistema real, o caminho vem do GPS do celular do motorista.</div>
+
+<div class="modo">
+  <span>Como o mapa mostra a rota:</span>
+  <div class="seg" role="group" aria-label="Modo do mapa">
+    <button id="mTrajeto" class="on">Trajeto inteiro</button>
+    <button id="mPontos">Só os pontos</button>
+  </div>
+</div>
+
+<main class="grade">
+  <section class="celular" aria-label="Tela do motorista no celular">
+    <div class="quem">Acesso do <b>motorista de rota</b></div>
+    <div class="relogio" id="relogio">--:--</div>
+    <div class="estado" id="estado">Localizando as lojas no mapa…</div>
+    <div class="numeros">
+      <div><b id="nKm">0,0</b><small>km rodados</small></div>
+      <div><b id="nParadas">0</b><small>paradas</small></div>
+    </div>
+    <button class="acao b-iniciar" id="bIniciar" disabled>▶ Iniciar rota</button>
+    <button class="acao b-parada" id="bParada" disabled>📍 Parada</button>
+    <button class="acao b-encerrar" id="bEncerrar" disabled>■ Encerrar</button>
+    <div class="extras">
+      <button id="bVeloc">Velocidade: 1x</button>
+      <button id="bPronto" disabled>Ver exemplo pronto</button>
+    </div>
+    <div class="paradas">
+      <h3>Paradas desta rota</h3>
+      <ol id="listaParadas"><li class="vazio">Nenhuma parada ainda.</li></ol>
+    </div>
+  </section>
+
+  <section class="mapa-box" aria-label="Mapa da rota">
+    <div class="mapa-top">
+      <b id="tituloMapa">Mapa próprio da rota</b>
+      <div class="legenda">
+        <span><i style="background:#5B3E8C"></i>Base</span>
+        <span><i style="background:#8C8597"></i>Local cadastrado</span>
+        <span><i style="background:#2FBFA0"></i>Parada marcada</span>
+        <span><i style="background:#F58220"></i>Parada fora do cadastro</span>
+      </div>
+    </div>
+    <div style="position:relative;flex:1;display:flex"><div id="mapa" style="flex:1"></div><div class="sem-mapa" id="semMapa">O mapa da cidade não carregou. Baixe o arquivo e abra no Chrome, com internet.</div></div>
+  </section>
+
+  <section class="locais" aria-label="Locais cadastrados no mapa">
+    <div class="locais-top">
+      <div><h2>Locais cadastrados no mapa: Nova Era (17)</h2><small id="geoStatus">Localizando os endereços…</small></div>
+      <div class="locais-acoes">
+        <button id="bAjustar">✋ Ajustar posições</button>
+        <button id="bCopiar">Copiar posições</button>
+        <button id="bRebuscar">Buscar os endereços de novo</button>
+      </div>
+    </div>
+    <div class="dica-ajuste" id="dicaAjuste">Modo de ajuste ligado. Arraste cada loja (e a bandeira da base) até o lugar certo no mapa. Se uma loja não apareceu no mapa, toque nela na lista e depois toque no mapa onde ela fica. O que você ajustar fica guardado e tem prioridade sobre a busca por endereço.</div>
+    <div class="lista-locais" id="listaLocais"></div>
+  </section>
+
+  <section class="relatorio" id="relatorio" aria-label="Relatório da rota">
+    <h2>Relatório gerado no Encerrar</h2>
+    <p class="sub" id="relSub"></p>
+    <div class="rel-grade">
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Local</th><th>Chegada</th><th>Saída</th><th>Tempo parado</th></tr></thead>
+          <tbody id="relCorpo"></tbody>
+        </table>
+      </div>
+      <div>
+        <div class="zap"><div class="balao" id="zapTexto"></div></div>
+        <button class="b-zap" id="bZap">Enviar no WhatsApp</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="aviso-copiado" id="avisoCopiado">Posições copiadas</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function(){
+  // ---------- tema ----------
+  const html = document.documentElement;
+  const btnTema = document.getElementById('btnTema');
+  btnTema.onclick = () => {
+    const claro = html.getAttribute('data-theme') === 'light';
+    html.setAttribute('data-theme', claro ? 'dark' : 'light');
+    btnTema.textContent = claro ? '☀️' : '🌙';
+  };
+
+  // ---------- base (exemplo) e as 17 Nova Era ----------
+  const C = ', Manaus, AM, Brasil';
+  // base: localizada pelo endereço; até achar (ou se não achar) fica num ponto de exemplo
+  const BASE = { nome:'Base VTM', end:'Av. Dr. Theomário Pinto da Costa, 770, Sala 04',
+                 q:['Avenida Doutor Theomário Pinto da Costa, 770'+C, 'Avenida Theomário Pinto da Costa, 770'+C],
+                 lat:-3.1063, lng:-60.0158, exemplo:true };
+  const LOCAIS = [
+    { nome:'NOVA ERA ALVORADA',                  end:'Av. Des. João Machado, 1500 – Alvorada',            q:['Avenida Desembargador João Machado, 1500, Alvorada'+C] },
+    { nome:'NOVA ERA ALVORADA 2',                end:'Av. Des. João Machado, 2955 – Alvorada',            q:['Avenida Desembargador João Machado, 2955, Alvorada'+C] },
+    { nome:'NOVA ERA BARREIRA',                  end:'Av. Torquato Tapajós, 11559 – Santa Etelvina',      q:['Avenida Torquato Tapajós, 11559, Santa Etelvina'+C] },
+    { nome:'NOVA ERA CENTRO',                    end:'Rua dos Barés, 425 – Centro',                       q:['Rua dos Barés, 425, Centro'+C] },
+    { nome:'NOVA ERA CIDADE DE DEUS',            end:'Rua Francisca Mendes, 2360 – Cidade de Deus',       q:['Rua Francisca Mendes, 2360, Cidade de Deus'+C] },
+    { nome:'NOVA ERA COMPENSA AV BRASIL',        end:'Av. Brasil, 15 – Compensa',                         q:['Avenida Brasil, 15, Compensa'+C, 'Avenida Brasil, 15, Santo Antônio'+C] },
+    { nome:'NOVA ERA COMPENSA PONTE',            end:'Estrada da Estanave, 583 – Compensa',               q:['Estrada da Estanave, 583, Compensa'+C] },
+    { nome:'NOVA ERA FLORES',                    end:'Av. Torquato Tapajós, 2871 – Flores',               q:['Avenida Torquato Tapajós, 2871, Flores'+C] },
+    { nome:'NOVA ERA MAX TEIXEIRA (NOEL NUTELS)',end:'Av. Max Teixeira, 4000 – Cidade Nova, 69090-002',   q:['Avenida Max Teixeira, 4000, Cidade Nova, Manaus, AM, 69090-002, Brasil', 'Avenida Max Teixeira, 4000, Cidade Nova'+C] },
+    { nome:'NOVA ERA MAX TEIXIERA',              end:'Av. Max Teixeira, 1878 – Cidade Nova',              q:['Avenida Max Teixeira, 1878, Cidade Nova'+C] },
+    { nome:'NOVA ERA PONTA NEGRA',               end:'Av. Coronel Teixeira, 7849 – Ponta Negra',          q:['Avenida Coronel Teixeira, 7849, Ponta Negra'+C] },
+    { nome:'NOVA ERA SILVES',                    end:'Av. Silves, 1783 – Crespo',                         q:['Avenida Silves, 1783, Crespo'+C] },
+    { nome:'NOVA ERA VIA NORTE',                 end:'Shopping Via Norte – Av. Arq. José Henriques Bento Rodrigues, 3760', q:['Manaus Via Norte Shopping'+C, 'Avenida Arquiteto José Henriques Bento Rodrigues, 3760, Monte das Oliveiras'+C] },
+    { nome:'NOVA ERA VIVER MELHOR',              end:'Av. Comendador José Cruz, 244 – Lago Azul, 69018-150', q:['Avenida Comendador José Cruz, 244, Lago Azul, Manaus, AM, 69018-150, Brasil', 'Avenida Comendador José Cruz, 244, Lago Azul'+C] },
+    { nome:'NOVA ERA TORRES',                    end:'Av. Nathan Xavier de Albuquerque, 230 – Novo Aleixo (entrada pela Nathan Xavier)', q:['Avenida Nathan Xavier de Albuquerque, 230, Novo Aleixo'+C, 'Avenida Nathan Xavier de Albuquerque, Novo Aleixo'+C] },
+    { nome:'NOVA ERA COROADO',                   end:'Av. Cosme Ferreira, 3700 – Coroado III',            q:['Avenida Cosme Ferreira, 3700, Coroado'+C] },
+    { nome:'NOVA ERA GRANDE CIRCULAR',           end:'Av. Autaz Mirim, 9094 – Jorge Teixeira',            q:['Avenida Autaz Mirim, 9094, Jorge Teixeira'+C] },
+  ];
+  const RAIO = 150; // metros: "chegou perto"
+  // lojas usadas na rota de exemplo, nesta ordem (as que forem localizadas)
+  const ROTA_EXEMPLO = ['NOVA ERA FLORES','NOVA ERA MAX TEIXEIRA (NOEL NUTELS)','NOVA ERA VIA NORTE','NOVA ERA TORRES'];
+
+  function dist(a, b){
+    const R = 6371000, t = Math.PI/180;
+    const dLat = (b[0]-a[0])*t, dLng = (b[1]-a[1])*t;
+    const x = Math.sin(dLat/2)**2 + Math.cos(a[0]*t)*Math.cos(b[0]*t)*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(x));
+  }
+
+  // caminho ponto a ponto (~35 m), com leve tremor de GPS; montado depois de localizar as lojas
+  let semente = 7;
+  function rnd(){ semente = (semente*16807) % 2147483647; return semente/2147483647 - .5; }
+  let CAMINHO = [], FIM_DE_PERNA = new Set(), ULTIMO = 0, TEMPO_PARADO = [];
+  function montarCaminho(paradasPrevistas){
+    CAMINHO = []; FIM_DE_PERNA = new Set(); semente = 7;
+    const pts = [[BASE.lat,BASE.lng], ...paradasPrevistas, [BASE.lat,BASE.lng]];
+    for (let pi = 0; pi < pts.length-1; pi++){
+      const A = pts[pi], B = pts[pi+1];
+      const perna = [A, [A[0], B[1]], B]; // vai por uma "rua" e vira na outra
+      for (let i = 0; i < perna.length-1; i++){
+        const a = perna[i], b = perna[i+1];
+        const n = Math.max(1, Math.round(dist(a,b)/35));
+        for (let k = (pi===0 && i===0 ? 0 : 1); k <= n; k++){
+          const f = k/n, tremor = (k===n) ? 0 : 0.00005;
+          CAMINHO.push([a[0]+(b[0]-a[0])*f + rnd()*tremor, a[1]+(b[1]-a[1])*f + rnd()*tremor]);
+        }
+      }
+      FIM_DE_PERNA.add(CAMINHO.length-1);
+    }
+    ULTIMO = CAMINHO.length-1;
+  }
+
+  // ---------- mapa ----------
+  const mapa = L.map('mapa', { zoomControl:true, attributionControl:true });
+  // mapa da cidade: tenta um servidor; se não carregar, passa para o próximo
+  const OSM  = { url:'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr:'© OpenStreetMap', sub:'' };
+  const ESRI = { url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+                 attr:'© Esri, OpenStreetMap', sub:'' };
+  const RESERVAS = [
+    { url:'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', attr:'© OpenStreetMap France', sub:'abc' },
+    { url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attr:'© OpenTopoMap, OpenStreetMap', sub:'abc' },
+  ];
+  // publicada no GitHub (endereço http/https): mapa do OpenStreetMap, o mais atualizado.
+  // aberta direto do computador: o OpenStreetMap recusa, então começa pela Esri.
+  const NO_SITE = location.protocol === 'https:' || location.protocol === 'http:';
+  const FONTES = NO_SITE ? [OSM, ESRI, ...RESERVAS] : [ESRI, ...RESERVAS, OSM];
+  let fonteAtual = 0, camadaCidade = null, carregou = false, erros = 0;
+  function poeMapaCidade(){
+    if (camadaCidade) mapa.removeLayer(camadaCidade);
+    const f = FONTES[fonteAtual];
+    camadaCidade = L.tileLayer(f.url,
+      { maxZoom:19, attribution:f.attr, subdomains:f.sub || 'abc' });
+    erros = 0;
+    camadaCidade.on('tileload', () => { carregou = true; document.getElementById('semMapa').classList.remove('on'); });
+    camadaCidade.on('tileerror', () => {
+      if (carregou) return;
+      if (++erros >= 4){
+        if (fonteAtual < FONTES.length-1){ fonteAtual++; poeMapaCidade(); }
+        else document.getElementById('semMapa').classList.add('on');
+      }
+    });
+    camadaCidade.addTo(mapa);
+  }
+  poeMapaCidade();
+  window.__trocaTemaMapa = poeMapaCidade;
+  mapa.setView([-3.08,-60.01], 12); // Manaus
+
+  const icone = (cls, txt='') => L.divIcon({ className:'', html:`<div class="pin ${cls}">${txt}</div>`, iconSize:null, iconAnchor:[12,12] });
+  let marcaBase = null;
+  function desenharBase(){
+    if (marcaBase) mapa.removeLayer(marcaBase);
+    marcaBase = L.marker([BASE.lat,BASE.lng], { icon:icone('base','⚑'), zIndexOffset:400, draggable:ajustando }).addTo(mapa);
+    if (ajustando) marcaBase.bindTooltip('Base VTM', { permanent:true, direction:'top', offset:[0,-12], className:'rotulo' });
+    else marcaBase.bindTooltip(`Base VTM<br>${BASE.end}${BASE.manual ? '<br><i>ajustada por você</i>' : BASE.exemplo ? '<br><i>endereço não encontrado: ponto de exemplo</i>' : (BASE.exato ? '' : '<br><i>posição aproximada</i>')}`);
+    marcaBase.on('dragend', () => { const ll = marcaBase.getLatLng(); fixarBase(ll.lat, ll.lng); });
+  }
+  let ajustando = false, selecionada = null;
+  desenharBase();
+  const camadaLocais = L.layerGroup().addTo(mapa);
+  let marcasLocais = [];
+  function desenharLocais(){
+    camadaLocais.clearLayers();
+    marcasLocais = LOCAIS.map((l,i) => {
+      if (l.lat == null) return null;
+      L.circle([l.lat,l.lng], { radius:RAIO, color:'#8C8597', weight:1, fillOpacity:.06, dashArray:'3 4', interactive:false }).addTo(camadaLocais);
+      if (!ajustando){
+        return L.marker([l.lat,l.lng], { icon:L.divIcon({className:'',html:'<div class="pin cad"></div>',iconAnchor:[8,8]}) })
+                .addTo(camadaLocais).bindTooltip(`${l.nome}<br>${l.end}${l.manual ? '<br><i>ajustada por você</i>' : l.exato ? '' : '<br><i>posição aproximada</i>'}`);
+      }
+      const sel = selecionada === i, tam = sel ? 13 : 10;
+      const m = L.marker([l.lat,l.lng], { draggable:true, zIndexOffset: sel ? 900 : 600,
+                  icon:L.divIcon({className:'',html:`<div class="pin mover${sel?' sel':''}"></div>`,iconAnchor:[tam,tam]}) })
+                .addTo(camadaLocais)
+                .bindTooltip(l.nome.replace('NOVA ERA ',''), { permanent:true, direction:'top', offset:[0,-10], className:'rotulo' });
+      m.on('dragend', () => { const ll = m.getLatLng(); fixarLoja(i, ll.lat, ll.lng); });
+      m.on('click', () => { selecionada = i; listarLocais(); desenharLocais(); });
+      return m;
+    });
+  }
+
+  const camadaRota = L.layerGroup().addTo(mapa);
+  let carro = null;
+
+  // ---------- estado da rota ----------
+  let modo = 'trajeto';
+  let pos = 0, rodando = false, aguardando = false, encerrada = false, iniciada = false;
+  let relogioMin = 8*60; // 08:00
+  let saidaMin = null, fimMin = null;
+  let percorridos = [];   // todos os pontos do GPS (modo trajeto)
+  let paradas = [];       // {nome, cadastrado, lat, lng, chegada, saida}
+  let velocidade = 1, timer = null;
+
+  const $ = id => document.getElementById(id);
+  const hhmm = m => { m = Math.round(m); return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
+  const km = m => (m/1000).toFixed(1).replace('.',',');
+  const dur = m => { m = Math.round(m); return m < 60 ? m+' min' : Math.floor(m/60)+'h'+String(m%60).padStart(2,'0'); };
+
+  function kmTrajeto(){ let d=0; for(let i=1;i<percorridos.length;i++) d+=dist(percorridos[i-1],percorridos[i]); return d; }
+  function pontosChave(){
+    const p = [[BASE.lat,BASE.lng], ...paradas.map(x=>[x.lat,x.lng])];
+    if (encerrada) p.push(CAMINHO[pos]);
+    return p;
+  }
+  function kmPontos(){ const p = pontosChave(); let d=0; for(let i=1;i<p.length;i++) d+=dist(p[i-1],p[i]); return d; }
+
+  function desenhar(){
+    camadaRota.clearLayers();
+    if (!iniciada) return;
+    if (modo === 'trajeto'){
+      L.polyline(percorridos, { color:'#E5397F', weight:5, opacity:.9, lineJoin:'round' }).addTo(camadaRota);
+    } else {
+      const p = pontosChave();
+      if (!encerrada && rodando) p.push(null);
+      L.polyline(p.filter(Boolean), { color:'#F58220', weight:3, opacity:.9, dashArray:'8 8' }).addTo(camadaRota);
+    }
+    let n = 0;
+    paradas.forEach(pa => {
+      const txt = pa.cadastrado ? (++n) : '?';
+      L.marker([pa.lat,pa.lng], { icon:icone(pa.cadastrado?'ok':'fora', txt), zIndexOffset:500 })
+        .addTo(camadaRota)
+        .bindTooltip(`${pa.nome}<br>Chegada ${hhmm(pa.chegada)}${pa.saida!=null?' · saída '+hhmm(pa.saida):''}`);
+    });
+    if (!encerrada){
+      const p = CAMINHO[pos];
+      const opac = modo==='trajeto' ? 1 : .55;
+      carro = L.marker(p, { icon:L.divIcon({className:'',html:`<div class="carro" style="opacity:${opac}">🚐</div>`,iconAnchor:[15,15]}), zIndexOffset:1000 }).addTo(camadaRota);
+    }
+    $('nKm').textContent = km(modo==='trajeto' ? kmTrajeto() : kmPontos());
+    $('nParadas').textContent = paradas.length;
+    $('tituloMapa').textContent = modo==='trajeto'
+      ? 'Mapa próprio da rota: caminho gravado o tempo todo'
+      : 'Mapa próprio da rota: só onde ele tocou (linha reta entre os pontos)';
+  }
+
+  function listarParadas(){
+    const ol = $('listaParadas');
+    if (!paradas.length){ ol.innerHTML = '<li class="vazio">Nenhuma parada ainda.</li>'; return; }
+    let n = 0;
+    ol.innerHTML = paradas.map(p => {
+      const bola = p.cadastrado ? `<span class="bola">${++n}</span>` : '<span class="bola fora">?</span>';
+      const s = p.saida!=null ? ` até ${hhmm(p.saida)}` : ' (parado agora)';
+      return `<li>${bola}<div><b>${p.nome}</b><br><span style="color:var(--muted)">${hhmm(p.chegada)}${s}</span></div></li>`;
+    }).join('');
+  }
+
+  function maisPerto(lat, lng){
+    let melhor = null, dm = Infinity;
+    LOCAIS.forEach((l,i) => { if (l.lat == null) return; const d = dist([lat,lng],[l.lat,l.lng]); if (d < dm){ dm = d; melhor = i; } });
+    return dm <= RAIO ? { i:melhor, d:dm } : null;
+  }
+
+  function estado(txt, alerta){ const e=$('estado'); e.textContent = txt; e.classList.toggle('alerta', !!alerta); }
+
+  // ---------- movimento ----------
+  function passo(){
+    if (!rodando || aguardando) return;
+    for (let k=0; k<velocidade; k++){
+      if (pos >= ULTIMO) break;
+      const d = dist(CAMINHO[pos], CAMINHO[pos+1]);
+      pos++;
+      relogioMin += (d/1000) / 25 * 60;   // média de 25 km/h no trânsito
+      percorridos.push(CAMINHO[pos]);
+      if (FIM_DE_PERNA.has(pos)) break;
+    }
+    $('relogio').textContent = hhmm(relogioMin);
+    if (pos === ULTIMO){
+      rodando = false; aguardando = true;
+      estado('De volta à base. Toque em Encerrar para fechar a rota.', true);
+      $('bParada').classList.remove('pulsa');
+      $('bEncerrar').classList.add('pulsa');
+    } else if (FIM_DE_PERNA.has(pos)){
+      aguardando = true;
+      const perto = maisPerto(CAMINHO[pos][0], CAMINHO[pos][1]);
+      estado(perto ? `Você está perto de ${LOCAIS[perto.i].nome}. Toque em Parada.`
+                   : 'Parado. Nenhum local cadastrado por perto. Toque em Parada para registrar mesmo assim.', true);
+      $('bParada').classList.add('pulsa');
+    } else {
+      estado('Em rota. O caminho está sendo gravado.');
+    }
+    desenhar();
+  }
+
+  function iniciar(){
+    if (iniciada) return;
+    iniciada = true; rodando = true; saidaMin = relogioMin;
+    percorridos = [CAMINHO[0]];
+    $('bIniciar').disabled = true;
+    $('bParada').disabled = false;
+    $('bEncerrar').disabled = false;
+    $('bPronto').disabled = true; $('bAjustar').disabled = true; $('bRebuscar').disabled = true;
+    estado('Rota iniciada às '+hhmm(saidaMin)+'. Gravando o caminho.');
+    timer = setInterval(passo, 70);
+    desenhar();
+  }
+
+  function marcarParada(instantaneo){
+    if (!iniciada || encerrada || pos === ULTIMO) return;
+    const [lat,lng] = CAMINHO[pos];
+    const perto = maisPerto(lat,lng);
+    const p = { nome: perto ? LOCAIS[perto.i].nome : 'Parada fora do cadastro',
+                cadastrado: !!perto, lat, lng, chegada: relogioMin, saida: null };
+    paradas.push(p);
+    if (perto && marcasLocais[perto.i]) marcasLocais[perto.i].setOpacity(0);
+    $('bParada').classList.remove('pulsa');
+    $('bParada').disabled = true;
+    const minutos = TEMPO_PARADO[paradas.length-1] ?? 10;
+    estado(perto ? `Parada marcada em ${p.nome}. Quando sair do raio, o sistema anota a saída sozinho.`
+                 : 'Parada registrada fora do cadastro, com o ponto no mapa.');
+    listarParadas(); desenhar();
+    const continuar = () => {
+      relogioMin += minutos; p.saida = relogioMin;
+      $('relogio').textContent = hhmm(relogioMin);
+      aguardando = false; rodando = true;
+      $('bParada').disabled = false;
+      listarParadas(); desenhar();
+    };
+    if (instantaneo) continuar(); else setTimeout(continuar, 1600);
+  }
+
+  function encerrar(){
+    if (!iniciada || encerrada) return;
+    clearInterval(timer);
+    encerrada = true; rodando = false; fimMin = relogioMin;
+    const aberta = paradas.find(p => p.saida == null); if (aberta) aberta.saida = relogioMin;
+    ['bParada','bEncerrar'].forEach(id => { $(id).disabled = true; $(id).classList.remove('pulsa'); });
+    estado('Rota encerrada às '+hhmm(fimMin)+'. Relatório pronto para o WhatsApp.');
+    listarParadas(); desenhar(); montarRelatorio();
+    mapa.fitBounds(L.latLngBounds(percorridos).pad(0.12));
+    $('relatorio').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  // ---------- relatório ----------
+  function textoZap(){
+    const kmTxt = modo==='trajeto' ? `${km(kmTrajeto())} km` : `${km(kmPontos())} km (aprox., em linha reta)`;
+    let n = 0;
+    const linhas = paradas.map(p => {
+      const ico = p.cadastrado ? `${++n}.` : '⚠️';
+      let l = `${ico} ${p.nome} — chegou ${hhmm(p.chegada)}, ficou ${dur(p.saida-p.chegada)}`;
+      if (!p.cadastrado) l += `\n    https://maps.google.com/?q=${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
+      return l;
+    });
+    const fimTxt = pos === ULTIMO ? 'Base VTM' : 'fora da base';
+    return `*Relatório de rota — Motorista*\n📅 ${new Date().toLocaleDateString('pt-BR')}\n\n` +
+           `🚩 Saída: ${hhmm(saidaMin)} — Base VTM\n` +
+           (linhas.length ? linhas.join('\n') + '\n' : 'Nenhuma parada registrada.\n') +
+           `🏁 Retorno: ${hhmm(fimMin)} — ${fimTxt}\n\n` +
+           `⏱️ Tempo total: ${dur(fimMin-saidaMin)}\n🛣️ Distância: ${kmTxt}\n` +
+           `📍 Paradas: ${paradas.length}`;
+  }
+  function montarRelatorio(){
+    if (!encerrada) return;
+    $('relatorio').classList.add('on');
+    $('relSub').textContent = `Saída ${hhmm(saidaMin)}, retorno ${hhmm(fimMin)}. ` +
+      (modo==='trajeto' ? 'Distância pelo caminho gravado.' : 'Distância aproximada, em linha reta entre os pontos.');
+    let n = 0;
+    $('relCorpo').innerHTML = paradas.map(p => `<tr>
+      <td>${p.cadastrado ? ++n : '?'}</td>
+      <td class="${p.cadastrado?'':'fora'}">${p.nome}</td>
+      <td>${hhmm(p.chegada)}</td><td>${hhmm(p.saida)}</td><td>${dur(p.saida-p.chegada)}</td></tr>`).join('');
+    $('zapTexto').textContent = textoZap();
+  }
+  $('bZap').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(textoZap()), '_blank');
+
+  // ---------- exemplo pronto ----------
+  function exemploPronto(){
+    iniciar(); clearInterval(timer);
+    while (pos < ULTIMO){
+      aguardando = false; rodando = true;
+      passo();
+      if (pos < ULTIMO && FIM_DE_PERNA.has(pos)) marcarParada(true);
+    }
+    encerrar();
+  }
+
+  // ---------- botões ----------
+  $('bIniciar').onclick = iniciar;
+  $('bParada').onclick = () => marcarParada(false);
+  $('bEncerrar').onclick = encerrar;
+  $('bPronto').onclick = exemploPronto;
+  $('bVeloc').onclick = () => {
+    velocidade = velocidade === 1 ? 3 : (velocidade === 3 ? 6 : 1);
+    $('bVeloc').textContent = 'Velocidade: ' + velocidade + 'x';
+  };
+  function trocaModo(m){
+    modo = m;
+    $('mTrajeto').classList.toggle('on', m==='trajeto');
+    $('mPontos').classList.toggle('on', m==='pontos');
+    desenhar(); montarRelatorio();
+  }
+  $('mTrajeto').onclick = () => trocaModo('trajeto');
+  $('mPontos').onclick  = () => trocaModo('pontos');
+
+  // ---------- localizar os endereços ----------
+  const NO_MAPA = 'demoRotaMotorista_locais_v1';
+  const dentroDeManaus = (lat,lng) => lat > -3.26 && lat < -2.90 && lng > -60.16 && lng < -59.84;
+  async function buscarJSON(url){
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 9000);
+    try { const r = await fetch(url, { signal:ctl.signal }); if (!r.ok) return null; return await r.json(); }
+    catch(e){ return null; } finally { clearTimeout(t); }
+  }
+  const SERVICOS = [
+    async q => { // Esri
+      const j = await buscarJSON('https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=1&countryCode=BRA&outFields=Addr_type&SingleLine='+encodeURIComponent(q));
+      const c = j && j.candidates && j.candidates[0]; if (!c || c.score < 75) return null;
+      const tipo = (c.attributes && c.attributes.Addr_type) || '';
+      return { lat:c.location.y, lng:c.location.x, exato:['PointAddress','StreetAddress','Subaddress','POI'].includes(tipo) };
+    },
+    async q => { // Photon (OpenStreetMap)
+      const j = await buscarJSON('https://photon.komoot.io/api/?limit=1&lat=-3.08&lon=-60.01&q='+encodeURIComponent(q));
+      const f = j && j.features && j.features[0]; if (!f) return null;
+      const pr = f.properties || {};
+      return { lat:f.geometry.coordinates[1], lng:f.geometry.coordinates[0], exato:!!pr.housenumber || pr.osm_key==='shop' };
+    },
+    async q => { // Nominatim (OpenStreetMap)
+      const j = await buscarJSON('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q='+encodeURIComponent(q));
+      const f = j && j[0]; if (!f) return null;
+      return { lat:+f.lat, lng:+f.lon, exato:f.type==='house' || f.category==='shop' };
+    },
+  ];
+  async function localizar(l){
+    let aprox = null;
+    for (const q of l.q){
+      for (const svc of SERVICOS){
+        let r = null; try { r = await svc(q); } catch(e){}
+        if (r && dentroDeManaus(r.lat, r.lng)){
+          if (r.exato) return r;
+          if (!aprox) aprox = r;
+        }
+      }
+    }
+    return aprox;
+  }
+  function lerGuardado(){ try { return JSON.parse(localStorage.getItem(NO_MAPA) || '{}'); } catch(e){ return {}; } }
+  function guardar(g){ try { localStorage.setItem(NO_MAPA, JSON.stringify(g)); } catch(e){} }
+
+  function listarLocais(){
+    $('listaLocais').innerHTML = LOCAIS.map((l,i) => {
+      const st = l.estado === 'buscando' ? ['', 'buscando…']
+               : l.lat == null ? ['nao', 'não encontrado no mapa']
+               : l.manual ? ['ok', '✋ ajustada por você']
+               : l.exato ? ['ok', 'no número'] : ['aprox', 'só a rua: posição aproximada'];
+      return `<button class="item-local${ajustando && selecionada===i ? ' sel' : ''}" data-i="${i}"><i class="st ${st[0]}"></i><div><b>${l.nome}</b><span>${l.end}</span><em>${st[1]}</em></div></button>`;
+    }).join('');
+    $('listaLocais').querySelectorAll('.item-local').forEach(b => b.onclick = () => {
+      const l = LOCAIS[+b.dataset.i];
+      if (ajustando){
+        selecionada = +b.dataset.i; listarLocais(); desenharLocais();
+        dica(l.lat == null ? `Toque no mapa onde fica a ${l.nome}.` : `Arraste a ${l.nome} até o lugar certo, ou toque no mapa onde ela fica.`);
+        if (l.lat != null) mapa.setView([l.lat,l.lng], 17);
+        return;
+      }
+      if (l.lat == null) return;
+      mapa.setView([l.lat,l.lng], 16);
+      if (marcasLocais[+b.dataset.i]) marcasLocais[+b.dataset.i].openTooltip();
+    });
+  }
+
+  async function localizarTodos(forcar){
+    let g = lerGuardado();
+    if (forcar){
+      const so = {}; Object.keys(g).forEach(k => { if (g[k].manual) so[k] = g[k]; }); g = so; guardar(g);
+      if (!g['BASE VTM']) Object.assign(BASE, { lat:-3.1063, lng:-60.0158, exemplo:true, exato:false });
+    }
+    $('bAjustar').disabled = true;
+    $('bIniciar').disabled = true; $('bPronto').disabled = true; $('bRebuscar').disabled = true;
+    LOCAIS.forEach(l => { const s = g[l.nome]; if (s && (s.manual || s.q === l.q.join('|'))){ l.lat = s.lat; l.lng = s.lng; l.exato = s.exato; l.manual = !!s.manual; l.estado = 'pronto'; } else { l.lat = l.lng = null; l.estado = 'buscando'; } });
+    listarLocais(); desenharLocais();
+    if (g['BASE VTM'] && (g['BASE VTM'].manual || g['BASE VTM'].q === BASE.q.join('|'))){ Object.assign(BASE, g['BASE VTM'], { exemplo:false }); }
+    else {
+      $('geoStatus').textContent = 'Localizando a base VTM…';
+      const rb = await localizar(BASE);
+      if (rb){ Object.assign(BASE, rb, { exemplo:false }); g['BASE VTM'] = Object.assign({ q:BASE.q.join('|') }, rb); guardar(g); }
+    }
+    desenharBase();
+    let feitos = LOCAIS.filter(l => l.estado === 'pronto').length;
+    for (const l of LOCAIS){
+      if (l.estado === 'pronto') continue;
+      $('geoStatus').textContent = `Localizando ${feitos+1} de ${LOCAIS.length}: ${l.nome}…`;
+      const r = await localizar(l);
+      if (r){ l.lat = r.lat; l.lng = r.lng; l.exato = r.exato; g[l.nome] = Object.assign({ q:l.q.join('|') }, r); guardar(g); }
+      l.estado = 'pronto'; feitos++;
+      listarLocais(); desenharLocais();
+    }
+    const achados = LOCAIS.filter(l => l.lat != null);
+    const aprox = achados.filter(l => !l.exato).length, nao = LOCAIS.length - achados.length;
+    $('geoStatus').textContent = `${achados.length} de ${LOCAIS.length} no mapa` +
+      (aprox ? ` · ${aprox} com posição aproximada` : '') + (nao ? ` · ${nao} não encontrada(s)` : '') +
+      (achados.length ? '. Toque numa loja para ver onde caiu.' : '. Abra no Chrome, com internet.') +
+      (BASE.exemplo ? ' A base VTM não foi encontrada pelo endereço e está num ponto de exemplo.' : (BASE.exato ? '' : ' A base VTM ficou com posição aproximada.'));
+    $('bRebuscar').disabled = false; $('bAjustar').disabled = false;
+    if (achados.length){
+      mapa.fitBounds(L.latLngBounds(achados.map(l => [l.lat,l.lng]).concat([[BASE.lat,BASE.lng]])).pad(0.08));
+    }
+    prepararRota();
+  }
+
+  function prepararRota(){
+    const lojas = ROTA_EXEMPLO.map(n => LOCAIS.find(l => l.nome === n)).filter(l => l && l.lat != null);
+    if (lojas.length < 2){
+      estado('Não consegui localizar lojas suficientes para simular a rota. Abra no Chrome, com internet, e toque em "Buscar os endereços de novo".', true);
+      return;
+    }
+    const prev = lojas.map(l => [l.lat, l.lng]);
+    // parada fora do cadastro (posto) no meio da 2ª perna, longe de qualquer loja
+    const a = prev[0], b = prev[1];
+    let posto = [(a[0]+b[0])/2 + 0.004, (a[1]+b[1])/2 + 0.004];
+    if (maisPerto(posto[0], posto[1])) posto = [posto[0] + 0.006, posto[1] - 0.006];
+    prev.splice(1, 0, posto);
+    TEMPO_PARADO = prev.map((_, i) => [18, 7, 25, 15, 20, 12][i] ?? 15);
+    montarCaminho(prev);
+    $('bIniciar').disabled = false; $('bPronto').disabled = false;
+    estado('Toque em Iniciar rota quando sair da base.');
+  }
+
+  // ---------- ajuste manual das posições ----------
+  function dica(txt){ $('dicaAjuste').textContent = txt; }
+  const DICA_PADRAO = $('dicaAjuste').textContent;
+  function fixarLoja(i, lat, lng){
+    const l = LOCAIS[i]; Object.assign(l, { lat, lng, exato:true, manual:true, estado:'pronto' });
+    const g = lerGuardado(); g[l.nome] = { lat, lng, exato:true, manual:true }; guardar(g);
+    selecionada = i; listarLocais(); desenharLocais();
+    dica(`${l.nome} guardada no novo lugar. Escolha a próxima loja ou toque em Concluir ajuste.`);
+  }
+  function fixarBase(lat, lng){
+    Object.assign(BASE, { lat, lng, exato:true, manual:true, exemplo:false });
+    const g = lerGuardado(); g['BASE VTM'] = { lat, lng, exato:true, manual:true }; guardar(g);
+    desenharBase(); dica('Base VTM guardada no novo lugar.');
+  }
+  mapa.on('click', e => {
+    if (!ajustando || selecionada == null) return;
+    fixarLoja(selecionada, e.latlng.lat, e.latlng.lng);
+  });
+  $('bAjustar').onclick = () => {
+    if (iniciada) return;
+    ajustando = !ajustando; selecionada = null;
+    $('bAjustar').classList.toggle('on', ajustando);
+    $('bAjustar').textContent = ajustando ? '✓ Concluir ajuste' : '✋ Ajustar posições';
+    $('dicaAjuste').classList.toggle('on', ajustando); dica(DICA_PADRAO);
+    $('bRebuscar').disabled = ajustando;
+    desenharBase(); desenharLocais(); listarLocais();
+    if (ajustando){
+      $('bIniciar').disabled = true; $('bPronto').disabled = true;
+      estado('Ajustando as posições das lojas. A rota fica parada até concluir.');
+      $('geoStatus').scrollIntoView({ behavior:'smooth', block:'start' });
+    } else {
+      prepararRota();
+    }
+  };
+  $('bCopiar').onclick = () => {
+    const f = n => n.toFixed(6);
+    const linhas = [`BASE VTM: ${f(BASE.lat)}, ${f(BASE.lng)}${BASE.manual ? ' (ajustada)' : ''}`]
+      .concat(LOCAIS.map(l => l.lat == null ? `${l.nome}: não encontrada` : `${l.nome}: ${f(l.lat)}, ${f(l.lng)}${l.manual ? ' (ajustada)' : ''}`));
+    const texto = linhas.join('\n');
+    const ok = () => { $('avisoCopiado').classList.add('on'); setTimeout(() => $('avisoCopiado').classList.remove('on'), 1800); };
+    const reserva = () => { const t = document.createElement('textarea'); t.value = texto; document.body.appendChild(t); t.select();
+                           try { document.execCommand('copy'); ok(); } catch(e){ window.prompt('Copie as posições:', texto); } t.remove(); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(ok, reserva); else reserva();
+  };
+  $('bRebuscar').onclick = () => { if (!iniciada && !ajustando) localizarTodos(true); };
+  $('relogio').textContent = hhmm(relogioMin);
+  desenhar();
+  localizarTodos(false);
+})();
+</script>
+</body>
+</html>
