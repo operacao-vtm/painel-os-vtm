@@ -298,22 +298,20 @@
   let semente = 7;
   function rnd(){ semente = (semente*16807) % 2147483647; return semente/2147483647 - .5; }
   let CAMINHO = [], FIM_DE_PERNA = new Set(), ULTIMO = 0, TEMPO_PARADO = [];
-  function montarCaminho(paradasPrevistas){
-    CAMINHO = []; FIM_DE_PERNA = new Set(); semente = 7;
-    const pts = [[BASE.lat,BASE.lng], ...paradasPrevistas, [BASE.lat,BASE.lng]];
-    for (let pi = 0; pi < pts.length-1; pi++){
-      const A = pts[pi], B = pts[pi+1];
-      const perna = [A, [A[0], B[1]], B]; // vai por uma "rua" e vira na outra
+  // recebe as pernas já desenhadas pelas ruas (cada uma de A até B) e espalha um ponto a cada ~35 m
+  function montarCaminho(pernas){
+    CAMINHO = []; FIM_DE_PERNA = new Set();
+    pernas.forEach((perna, pi) => {
       for (let i = 0; i < perna.length-1; i++){
         const a = perna[i], b = perna[i+1];
         const n = Math.max(1, Math.round(dist(a,b)/35));
         for (let k = (pi===0 && i===0 ? 0 : 1); k <= n; k++){
-          const f = k/n, tremor = (k===n) ? 0 : 0.00005;
-          CAMINHO.push([a[0]+(b[0]-a[0])*f + rnd()*tremor, a[1]+(b[1]-a[1])*f + rnd()*tremor]);
+          const f = k/n;
+          CAMINHO.push([a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f]);
         }
       }
       FIM_DE_PERNA.add(CAMINHO.length-1);
-    }
+    });
     ULTIMO = CAMINHO.length-1;
   }
 
@@ -701,22 +699,64 @@
     prepararRota();
   }
 
-  function prepararRota(){
+  // ---------- caminho pelas ruas (serviço de rotas do OpenStreetMap) ----------
+  const RUAS_GUARDADAS = 'demoRotaMotorista_ruas_v1';
+  const chavePerna = (A,B) => [A[0],A[1],B[0],B[1]].map(n => n.toFixed(5)).join(',');
+  function lerRuas(){ try { return JSON.parse(localStorage.getItem(RUAS_GUARDADAS) || '{}'); } catch(e){ return {}; } }
+  function guardarRuas(r){ try { localStorage.setItem(RUAS_GUARDADAS, JSON.stringify(r)); } catch(e){} }
+  async function pernaPelasRuas(A, B){
+    const guardadas = lerRuas(), k = chavePerna(A,B);
+    if (guardadas[k]) return guardadas[k];
+    const servicos = [
+      `https://router.project-osrm.org/route/v1/driving/${A[1]},${A[0]};${B[1]},${B[0]}?overview=full&geometries=geojson`,
+      `https://routing.openstreetmap.de/routed-car/route/v1/driving/${A[1]},${A[0]};${B[1]},${B[0]}?overview=full&geometries=geojson`,
+    ];
+    for (const url of servicos){
+      const j = await buscarJSON(url);
+      const g = j && j.routes && j.routes[0] && j.routes[0].geometry;
+      if (g && g.coordinates && g.coordinates.length > 1){
+        // começa exatamente no ponto de saída e termina exatamente na porta da loja
+        const linha = [A, ...g.coordinates.map(c => [+c[1].toFixed(6), +c[0].toFixed(6)]), B];
+        guardadas[k] = linha; guardarRuas(guardadas);
+        return linha;
+      }
+    }
+    return null;
+  }
+
+  let versaoRota = 0;
+  async function prepararRota(){
+    const minha = ++versaoRota;
     const lojas = ROTA_EXEMPLO.map(n => LOCAIS.find(l => l.nome === n)).filter(l => l && l.lat != null);
     if (lojas.length < 2){
       estado('Não consegui localizar lojas suficientes para simular a rota. Abra no Chrome, com internet, e toque em "Buscar os endereços de novo".', true);
       return;
     }
-    const prev = lojas.map(l => [l.lat, l.lng]);
-    // parada fora do cadastro (posto) no meio da 2ª perna, longe de qualquer loja
-    const a = prev[0], b = prev[1];
-    let posto = [(a[0]+b[0])/2 + 0.004, (a[1]+b[1])/2 + 0.004];
-    if (maisPerto(posto[0], posto[1])) posto = [posto[0] + 0.006, posto[1] - 0.006];
-    prev.splice(1, 0, posto);
-    TEMPO_PARADO = prev.map((_, i) => [18, 7, 25, 15, 20, 12][i] ?? 15);
-    montarCaminho(prev);
-    $('bIniciar').disabled = false; $('bPronto').disabled = false;
-    estado('Toque em Iniciar rota quando sair da base.');
+    $('bIniciar').disabled = true; $('bPronto').disabled = true;
+    estado('Calculando o caminho pelas ruas…');
+    const base = [BASE.lat, BASE.lng];
+    const pontos = [base, ...lojas.map(l => [l.lat, l.lng]), base];
+    const pernas = []; let emReta = 0;
+    for (let i = 0; i < pontos.length-1; i++){
+      let linha = await pernaPelasRuas(pontos[i], pontos[i+1]);
+      if (minha !== versaoRota) return; // as posições mudaram no meio do cálculo
+      if (!linha){ linha = [pontos[i], [pontos[i][0], pontos[i+1][1]], pontos[i+1]]; emReta++; }
+      pernas.push(linha);
+    }
+    // parada fora do cadastro (posto): um ponto da própria rua, no meio da perna entre a 1ª e a 2ª loja
+    const p = pernas[1]; let total = 0; const acum = [0];
+    for (let i = 1; i < p.length; i++){ total += dist(p[i-1], p[i]); acum.push(total); }
+    let corte = -1;
+    for (const alvo of [0.5, 0.4, 0.6, 0.3, 0.7]){
+      const k = acum.findIndex(d => d >= total*alvo);
+      if (k > 0 && k < p.length-1 && !maisPerto(p[k][0], p[k][1])){ corte = k; break; }
+    }
+    if (corte > 0) pernas.splice(1, 1, p.slice(0, corte+1), p.slice(corte));
+    TEMPO_PARADO = (corte > 0 ? [18, 7, 25, 15, 20] : [18, 25, 15, 20]).concat([15, 15]);
+    montarCaminho(pernas);
+    if (!ajustando){ $('bIniciar').disabled = false; $('bPronto').disabled = false; }
+    estado(emReta ? 'O serviço de rotas não respondeu para parte do caminho; esse trecho ficou em linha reta. Toque em Iniciar rota quando sair da base.'
+                  : 'Toque em Iniciar rota quando sair da base.', !!emReta);
   }
 
   // ---------- ajuste manual das posições ----------
