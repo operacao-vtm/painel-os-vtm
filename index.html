@@ -230,6 +230,55 @@
     #faixaRotaTexto, #faixaRotaFixaTexto{ word-break:break-word; }
   }
 
+  /* computador: as faixas de rota ficam paradas, em cartões (no celular continuam empilhadas como texto) */
+  .faixa-parada{ white-space:normal !important; overflow:visible !important; padding:10px 14px !important; }
+  .faixa-parada > div{ display:block !important; animation:none !important; padding-left:0 !important; white-space:normal !important; }
+  .fx-tit{ font-size:13px; font-weight:800; margin-bottom:8px; }
+  .fx-tit small{ font-weight:600; opacity:.75; }
+  .fx-lista{ display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:6px 10px; }
+  .fx-item{ display:flex; align-items:flex-start; gap:10px; padding:7px 10px; border-radius:7px;
+    background:rgba(127,127,127,.08); border:1px solid rgba(127,127,127,.28); font-size:13px; line-height:1.35; }
+  .fx-item b{ font-size:14px; min-width:44px; font-variant-numeric:tabular-nums; }
+  .fx-item span{ flex:1; min-width:0; font-weight:600; }
+  .fx-item small{ display:block; font-weight:500; opacity:.75; margin-top:2px; }
+  .fx-item i{ font-style:normal; font-size:11px; font-weight:700; color:#2FBF8F; border:1px solid rgba(47,191,143,.55); border-radius:999px; padding:1px 8px; flex:none; }
+  .fx-item.feita{ opacity:.72; }
+  .fx-paradas{ display:flex; flex-wrap:wrap; gap:6px; }
+  .fx-parada{ display:inline-flex; align-items:center; gap:7px; padding:5px 11px; border-radius:999px;
+    background:rgba(127,127,127,.08); border:1px solid rgba(127,127,127,.28); font-size:13px; font-weight:600; }
+  .fx-parada b{ font-size:11px; min-width:18px; height:18px; border-radius:50%; display:inline-grid; place-items:center; background:rgba(127,127,127,.2); }
+
+  /* Rota de hoje compacta: uma linha por OS, altura limitada, o resto rola dentro da faixa */
+  .rm-cab{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+  .rm-cab .t{ font-size:13px; font-weight:800; }
+  .rm-cab .r{ font-size:12px; font-weight:600; opacity:.8; }
+  .rm-cab .prox{ font-size:12px; font-weight:700; padding:2px 9px; border-radius:999px; background:rgba(91,141,239,.18); color:#5B8DEF; }
+  .rm-cab .leg{ font-size:11px; opacity:.75; display:flex; gap:10px; }
+  .rm-cab .leg i{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:4px; }
+  .rm-cab button{ margin-left:auto; font:700 12px inherit; color:inherit; background:rgba(127,127,127,.12); border:1px solid rgba(127,127,127,.35); border-radius:999px; padding:3px 12px; cursor:pointer; }
+  .rm-lista{ display:grid; grid-template-columns:1fr 1fr; column-gap:14px; max-height:118px; overflow-y:auto; padding-right:4px; }
+  .rm-lista.aberta{ max-height:none; }
+  .rm-lin{ display:flex; align-items:center; gap:10px; padding:6px 4px; border-bottom:1px solid rgba(127,127,127,.22); font-size:13px; min-width:0; cursor:pointer; }
+  .rm-lin:hover{ background:rgba(127,127,127,.1); }
+  .rm-lin b{ font-variant-numeric:tabular-nums; min-width:42px; }
+  .rm-lin .p{ width:9px; height:9px; border-radius:50%; flex:none; }
+  .rm-lin .tx{ flex:1; min-width:0; display:flex; align-items:baseline; gap:10px; }
+  .rm-lin .s{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap !important; font-weight:600; }
+  .rm-lin .sub{ font-size:12px; opacity:.72; white-space:nowrap !important; flex:none; }
+  .rm-lin.feita{ opacity:.6; }
+  @media (max-width:640px){
+    .rm-cab .leg{ display:none; }
+    .rm-lista{ grid-template-columns:1fr; max-height:196px; }
+    .rm-lin{ align-items:flex-start; padding:7px 2px; }
+    .rm-lin .p{ margin-top:5px; }
+    .rm-lin .tx{ display:block; }
+    .rm-lin .s, .rm-lin .sub{ display:block; overflow:hidden; text-overflow:ellipsis; }
+    .fx-parada{ font-size:12px; padding:4px 9px; flex:none; scroll-snap-align:start; }
+    /* rota fixa no celular: uma linha só, que desliza para o lado */
+    .fx-paradas{ flex-wrap:nowrap; overflow-x:auto; scroll-snap-type:x proximity; padding-bottom:4px; -webkit-overflow-scrolling:touch; }
+    .fx-parada, .fx-parada *{ white-space:nowrap !important; }
+  }
+
   @keyframes faixaRotaScroll{
     0%{ transform:translateX(0); }
     100%{ transform:translateX(-100%); }
@@ -2780,7 +2829,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '5.00';
+const VERSAO_PAINEL = '5.02';
 const VERSAO_DATA = '31/08/2026';
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -5746,7 +5795,7 @@ function textoDaRota(){
   }).join('  →  ');
 }
 
-function atualizaFaixaGenerica(idFaixa, idTexto, mostrar, conteudo){
+function atualizaFaixaGenerica(idFaixa, idTexto, mostrar, conteudo, htmlParado){
   const faixa = document.getElementById(idFaixa);
   const texto = document.getElementById(idTexto);
   if(!faixa || !texto) return;
@@ -5755,6 +5804,15 @@ function atualizaFaixaGenerica(idFaixa, idTexto, mostrar, conteudo){
     texto.classList.remove('rolando');
     return;
   }
+  // computador: faixa parada, em cartões, para dar tempo de ler
+  if(htmlParado){
+    faixa.classList.add('faixa-parada');
+    texto.classList.remove('rolando');
+    texto.innerHTML = htmlParado;
+    faixa.style.display = 'block';
+    return;
+  }
+  faixa.classList.remove('faixa-parada');
   texto.textContent = conteudo;
   faixa.style.display = 'block';
   // só anima (rola) se o texto for mais largo que a faixa; senão fica parado e legível
@@ -5768,11 +5826,45 @@ function atualizaFaixaGenerica(idFaixa, idTexto, mostrar, conteudo){
   });
 }
 
+let rotaExpandida = false;   // "Ver todas" aberto ou recolhido (só neste aparelho)
+function alternaRotaExpandida(ev){
+  if(ev) ev.stopPropagation();
+  rotaExpandida = !rotaExpandida;
+  renderFaixaRota();
+}
+function htmlRotaDiaParada(){
+  const NOME = { corretiva:'Corretiva', preventiva:'Preventiva', visita:'Vistoria', totem:'Totem', comprovacao:'Comprovação' };
+  const COR = { concluida:'#2FBF8F', andamento:'#5B8DEF', aberta:'#E5397F' };
+  const its = (rotaPacheco.itens || []).slice()
+    .sort(function(a, b){ return (a.horario || '99:99').localeCompare(b.horario || '99:99'); });
+  let nAnd = 0, nFeita = 0, prox = null;
+  const linhas = its.map(function(i){
+    const os = items.find(function(x){ return x.id === i.osId; }) || null;
+    const st = os ? os.status : 'aberta';
+    if(st === 'andamento') nAnd++;
+    if(st === 'concluida') nFeita++;
+    if(!prox && st !== 'concluida' && st !== 'andamento') prox = i;
+    const acao = NOME[(os && os.acao) || i.acao] || 'OS';
+    const tec = String(i.tecnico || '').split(' - ')[0];
+    const abre = os ? ' onclick="openModal(\'' + os.id + '\')" title="Abrir ' + escVist(os.code || '') + '"' : '';
+    return '<div class="rm-lin' + (st === 'concluida' ? ' feita' : '') + '"' + abre + '><b>' + escVist(i.horario || '--:--') + '</b>' +
+           '<span class="p" style="background:' + (COR[st] || COR.aberta) + '"></span>' +
+           '<div class="tx"><span class="s">' + escVist(acao + ' — ' + ((os && os.tipo) || i.tipo || '')) + '</span>' +
+           '<span class="sub">' + escVist((os && os.local) || i.local || '') + (tec ? ' · 👷 ' + escVist(tec) : '') + '</span></div></div>';
+  }).join('');
+  return '<div class="rm-cab"><span class="t">🔧 Rota de hoje</span>' +
+    '<span class="r">' + its.length + ' parada' + (its.length > 1 ? 's' : '') + ' · ' + nAnd + ' em andamento · ' + nFeita + ' encerrada' + (nFeita === 1 ? '' : 's') + '</span>' +
+    (prox ? '<span class="prox">Próxima: ' + escVist(prox.horario || '') + ' · ' + escVist(prox.local || '') + '</span>' : '') +
+    '<span class="leg"><span><i style="background:#E5397F"></i>aberta</span><span><i style="background:#5B8DEF"></i>em andamento</span><span><i style="background:#2FBF8F"></i>encerrada</span></span>' +
+    '<button type="button" onclick="alternaRotaExpandida(event)">' + (rotaExpandida ? 'Recolher ▴' : 'Ver todas ▾') + '</button></div>' +
+    '<div class="rm-lista' + (rotaExpandida ? ' aberta' : '') + '">' + linhas + '</div>';
+}
 function renderFaixaRota(){
   const valida = rotaPacheco && rotaPacheco.itens && rotaPacheco.itens.length;
   const conteudo = '🔧 Rota de hoje: ' + textoDaRota();
-  atualizaFaixaGenerica('faixaRota', 'faixaRotaTexto', valida, conteudo);
-  atualizaFaixaGenerica('faixaRotaDash', 'faixaRotaTextoDash', valida, conteudo);
+  const parado = valida ? htmlRotaDiaParada() : '';
+  atualizaFaixaGenerica('faixaRota', 'faixaRotaTexto', valida, conteudo, parado);
+  atualizaFaixaGenerica('faixaRotaDash', 'faixaRotaTextoDash', valida, conteudo, parado);
 }
 
 function atualizaBadgeSolicitacoes(){
@@ -6478,9 +6570,18 @@ function renderFaixaRotaFixa(){
   const valida = rotaFixaAtivaHoje() && rotaFixa.linhas && rotaFixa.linhas.length;
   const conteudo = '🚌 ' + (rotaFixa.titulo || 'Rota fixa de vistoria') + ' (' + DIAS_SEMANA_LABEL[diaSemanaHoje()] + '): ' +
     (rotaFixa.linhas||[]).join('  →  ');
-  atualizaFaixaGenerica('faixaRotaFixa', 'faixaRotaFixaTexto', valida, conteudo);
-  atualizaFaixaGenerica('faixaRotaFixaDash', 'faixaRotaFixaTextoDash', valida, conteudo);
+  let parado = '';
+  if(valida){
+    const linhas = rotaFixa.linhas || [];
+    parado = '<div class="fx-tit">🚌 ' + escVist(rotaFixa.titulo || 'Rota fixa de vistoria') + ' <small>· ' +
+      DIAS_SEMANA_LABEL[diaSemanaHoje()] + ' · ' + linhas.length + ' parada' + (linhas.length > 1 ? 's' : '') + '</small></div>' +
+      '<div class="fx-paradas">' + linhas.map(function(l, k){ return '<span class="fx-parada"><b>' + (k + 1) + '</b>' + escVist(l) + '</span>'; }).join('') + '</div>';
+  }
+  atualizaFaixaGenerica('faixaRotaFixa', 'faixaRotaFixaTexto', valida, conteudo, parado);
+  atualizaFaixaGenerica('faixaRotaFixaDash', 'faixaRotaFixaTextoDash', valida, conteudo, parado);
 }
+// trocar entre celular e computador (girar a tela, redimensionar a janela) refaz as faixas
+try{ window.matchMedia('(max-width:640px)').addEventListener('change', function(){ renderFaixaRota(); renderFaixaRotaFixa(); }); }catch(e){}
 
 // ---------- destinatários dos avisos automáticos (só administrador) ----------
 function normalizaDestinatarios(d){
