@@ -1970,7 +1970,7 @@
 </div>
 
 <div class="toolbar">
-  <input type="text" id="search" placeholder="Buscar por local, código ou técnico..." oninput="render()">
+  <input type="text" id="search" name="buscaOS" autocomplete="off" data-lpignore="true" placeholder="Buscar por local, código ou técnico..." onkeydown="buscaDigitada=true" onpaste="buscaDigitada=true" oninput="render()">
   <select id="fPrioridade" onchange="render()">
     <option value="">Prioridade: todas</option>
     <option value="maxima">Prioridade Máxima</option>
@@ -2535,12 +2535,12 @@
     </div>
     <div class="field" id="loginNameField" style="display: block;">
       <label>Seu nome</label>
-      <input type="text" id="loginName" placeholder="Seu nome">
+      <input type="text" id="loginName" placeholder="Seu nome" autocomplete="username">
       <p id="slotsInfo" style="font-size:11px;color:var(--muted);margin:5px 0 0;">Vagas de administrador: 0/5 preenchidas</p>
     </div>
     <div class="field">
       <label>Código de acesso</label>
-      <input type="password" id="codeInput" placeholder="Digite o código" onkeydown="if(event.key===&#39;Enter&#39;)confirmCode()">
+      <input type="password" id="codeInput" placeholder="Digite o código" autocomplete="current-password" onkeydown="if(event.key===&#39;Enter&#39;)confirmCode()">
     </div>
     <p id="codeError" style="color:var(--red);font-size:12px;display:none;margin:0 0 8px;">Verifique os dados informados.</p>
     <div class="modal-actions">
@@ -2959,8 +2959,9 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '5.05';
+const VERSAO_PAINEL = '5.06';
 const VERSAO_DATA = '14/10/2026';
+let buscaDigitada = false;   // v5.06: ver render()
 
 const GAS_URL = EMPRESA.gasUrl;
 
@@ -5386,7 +5387,12 @@ function render(){
     <div class="stat"><div class="label">Médio de execução</div><div class="val mono">${mediaDuracao(items, tempoExecucao)}</div></div>
   `;
 
-  const q = document.getElementById('search').value.toLowerCase();
+  const campoBusca = document.getElementById('search');
+  // v5.06: o Chrome preenchia esta busca sozinho com o nome salvo no login
+  // (ex.: "Robert Furtuoso") e o painel passava a filtrar por ele no primeiro clique.
+  // Só vale o que foi digitado ou colado aqui.
+  if(!buscaDigitada && campoBusca.value) campoBusca.value = '';
+  const q = campoBusca.value.toLowerCase();
   const fp = document.getElementById('fPrioridade').value;
   const ft = document.getElementById('fTecnico').value;
   const fs = document.getElementById('fStatusFiltro').value;
