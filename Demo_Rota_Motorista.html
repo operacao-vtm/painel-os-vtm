@@ -76,6 +76,25 @@
   .b-iniciar{background:var(--brand-grad);color:#fff}
   .b-parada{background:var(--amber);color:#fff}
   .b-encerrar{background:transparent;color:var(--red);border:2px solid var(--red)}
+  .b-semos{background:transparent;color:var(--amber);border:2px solid var(--amber)}
+  .b-continuar{background:var(--teal);color:#fff}
+  .b-continuar.pulsa{animation-name:pulsoT}
+  .b-semos.pulsa{animation-name:pulso}
+  @keyframes pulsoT{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--teal) 55%,transparent)}50%{box-shadow:0 0 0 10px transparent}}
+  .duas{display:flex;gap:8px} .duas .acao{flex:1;font-size:15px;padding:14px 8px}
+  .bola.semos{background:#6C7A99}
+  .pin.semos{width:24px;height:24px;background:#6C7A99;color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;border-width:2px}
+  .veiculo{grid-column:1 / -1;background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px}
+  .veiculo h2{font-size:15px;margin:0 0 4px}
+  .veiculo p{margin:0 0 12px;color:var(--muted);font-size:12.5px}
+  .campos{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .campos label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+  .campos input,.campos select{background:var(--panel-alt);border:1px solid var(--border);color:var(--text);border-radius:var(--r-md);padding:8px 10px;font:inherit;font-size:14px;width:150px}
+  .resumo-comb{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .resumo-comb div{background:var(--panel-alt);border-radius:var(--r-md);padding:8px 12px;min-width:130px}
+  .resumo-comb b{display:block;font-size:17px}
+  .resumo-comb small{color:var(--muted);font-size:11px}
+  td.semos{color:#8FA0C4;font-weight:600}
   .pulsa{animation:pulso 1.4s ease-in-out infinite}
   @keyframes pulso{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--amber) 55%,transparent)}50%{box-shadow:0 0 0 10px transparent}}
   .b-encerrar.pulsa{animation-name:pulsoR}
@@ -187,9 +206,14 @@
     <div class="numeros">
       <div><b id="nKm">0,0</b><small>km rodados</small></div>
       <div><b id="nParadas">0</b><small>paradas</small></div>
+      <div><b id="nLitros">0,0</b><small>litros (estim.)</small></div>
     </div>
     <button class="acao b-iniciar" id="bIniciar" disabled>▶ Iniciar rota</button>
-    <button class="acao b-parada" id="bParada" disabled>📍 Parada</button>
+    <div class="duas">
+      <button class="acao b-parada" id="bParada" disabled>📍 Parada</button>
+      <button class="acao b-semos" id="bSemOS" disabled>⏸ Parada sem OS</button>
+    </div>
+    <button class="acao b-continuar" id="bContinuar" disabled>▶ Continuar rota</button>
     <button class="acao b-encerrar" id="bEncerrar" disabled>■ Encerrar</button>
     <div class="extras">
       <button id="bVeloc">Velocidade: 1x</button>
@@ -209,6 +233,7 @@
         <span><i style="background:#8C8597"></i>Local cadastrado</span>
         <span><i style="background:#2FBFA0"></i>Parada marcada</span>
         <span><i style="background:#F58220"></i>Parada fora do cadastro</span>
+        <span><i style="background:#6C7A99"></i>Parada sem OS</span>
       </div>
     </div>
     <div style="position:relative;flex:1;display:flex"><div id="mapa" style="flex:1"></div><div class="sem-mapa" id="semMapa">O mapa da cidade não carregou. Baixe o arquivo e abra no Chrome, com internet.</div></div>
@@ -227,13 +252,32 @@
     <div class="lista-locais" id="listaLocais"></div>
   </section>
 
+  <section class="veiculo" aria-label="Veículo e combustível">
+    <h2>Veículo da rota: Nissan Tiida 1.8 Flex</h2>
+    <p>Combustível estimado pela distância rodada e pelo rendimento médio abaixo. Os valores iniciais são de referência (rendimento na cidade e preço médio em Manaus); ajuste para o carro de vocês.</p>
+    <div class="campos">
+      <label>Combustível
+        <select id="cComb"><option value="gasolina">Gasolina</option><option value="etanol">Etanol</option></select></label>
+      <label>Rendimento médio (km/l)
+        <input id="cKml" type="number" step="0.1" min="1" inputmode="decimal"></label>
+      <label>Preço do litro (R$)
+        <input id="cPreco" type="number" step="0.01" min="0" inputmode="decimal"></label>
+    </div>
+    <div class="resumo-comb">
+      <div><b id="rKm">0,0 km</b><small>distância da rota</small></div>
+      <div><b id="rLitros">0,0 L</b><small>combustível gasto (estim.)</small></div>
+      <div><b id="rCusto">R$ 0,00</b><small>custo da rota (estim.)</small></div>
+      <div><b id="rPorKm">R$ 0,00</b><small>custo por km</small></div>
+    </div>
+  </section>
+
   <section class="relatorio" id="relatorio" aria-label="Relatório da rota">
     <h2>Relatório gerado no Encerrar</h2>
     <p class="sub" id="relSub"></p>
     <div class="rel-grade">
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>#</th><th>Local</th><th>Chegada</th><th>Saída</th><th>Tempo parado</th></tr></thead>
+          <thead><tr><th>#</th><th>Local</th><th>Tipo</th><th>Chegada</th><th>Saída</th><th>Tempo parado</th></tr></thead>
           <tbody id="relCorpo"></tbody>
         </table>
       </div>
@@ -393,7 +437,7 @@
   let saidaMin = null, fimMin = null;
   let percorridos = [];   // todos os pontos do GPS (modo trajeto)
   let paradas = [];       // {nome, cadastrado, lat, lng, chegada, saida}
-  let velocidade = 1, timer = null;
+  let velocidade = 1, timer = null, parado = false;
 
   const $ = id => document.getElementById(id);
   const hhmm = m => { m = Math.round(m); return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
@@ -420,10 +464,11 @@
     }
     let n = 0;
     paradas.forEach(pa => {
-      const txt = pa.cadastrado ? (++n) : '?';
-      L.marker([pa.lat,pa.lng], { icon:icone(pa.cadastrado?'ok':'fora', txt), zIndexOffset:500 })
+      const cls = pa.semOS ? 'semos' : pa.cadastrado ? 'ok' : 'fora';
+      const txt = pa.semOS ? '⏸' : pa.cadastrado ? (++n) : '?';
+      L.marker([pa.lat,pa.lng], { icon:icone(cls, txt), zIndexOffset:500 })
         .addTo(camadaRota)
-        .bindTooltip(`${pa.nome}<br>Chegada ${hhmm(pa.chegada)}${pa.saida!=null?' · saída '+hhmm(pa.saida):''}`);
+        .bindTooltip(`${pa.semOS ? 'Parada sem OS — ' : ''}${pa.nome}<br>Chegada ${hhmm(pa.chegada)}${pa.saida!=null?' · saída '+hhmm(pa.saida):''}`);
     });
     if (!encerrada){
       const p = CAMINHO[pos];
@@ -432,6 +477,7 @@
     }
     $('nKm').textContent = km(modo==='trajeto' ? kmTrajeto() : kmPontos());
     $('nParadas').textContent = paradas.length;
+    atualizarCombustivel();
     $('tituloMapa').textContent = modo==='trajeto'
       ? 'Mapa próprio da rota: caminho gravado o tempo todo'
       : 'Mapa próprio da rota: só onde ele tocou (linha reta entre os pontos)';
@@ -442,9 +488,9 @@
     if (!paradas.length){ ol.innerHTML = '<li class="vazio">Nenhuma parada ainda.</li>'; return; }
     let n = 0;
     ol.innerHTML = paradas.map(p => {
-      const bola = p.cadastrado ? `<span class="bola">${++n}</span>` : '<span class="bola fora">?</span>';
+      const bola = p.semOS ? '<span class="bola semos">⏸</span>' : p.cadastrado ? `<span class="bola">${++n}</span>` : '<span class="bola fora">?</span>';
       const s = p.saida!=null ? ` até ${hhmm(p.saida)}` : ' (parado agora)';
-      return `<li>${bola}<div><b>${p.nome}</b><br><span style="color:var(--muted)">${hhmm(p.chegada)}${s}</span></div></li>`;
+      return `<li>${bola}<div><b>${p.semOS ? 'Sem OS — ' : ''}${p.nome}</b><br><span style="color:var(--muted)">${hhmm(p.chegada)}${s}</span></div></li>`;
     }).join('');
   }
 
@@ -471,14 +517,14 @@
     if (pos === ULTIMO){
       rodando = false; aguardando = true;
       estado('De volta à base. Toque em Encerrar para fechar a rota.', true);
-      $('bParada').classList.remove('pulsa');
+      ['bParada','bSemOS'].forEach(id => { $(id).classList.remove('pulsa'); $(id).disabled = true; });
       $('bEncerrar').classList.add('pulsa');
     } else if (FIM_DE_PERNA.has(pos)){
       aguardando = true;
       const perto = maisPerto(CAMINHO[pos][0], CAMINHO[pos][1]);
       estado(perto ? `Você está perto de ${LOCAIS[perto.i].nome}. Toque em Parada.`
-                   : 'Parado. Nenhum local cadastrado por perto. Toque em Parada para registrar mesmo assim.', true);
-      $('bParada').classList.add('pulsa');
+                   : 'Parado fora do cadastro. Se não for atendimento de OS (abastecer, almoço…), toque em Parada sem OS.', true);
+      $(perto ? 'bParada' : 'bSemOS').classList.add('pulsa');
     } else {
       estado('Em rota. O caminho está sendo gravado.');
     }
@@ -490,7 +536,7 @@
     iniciada = true; rodando = true; saidaMin = relogioMin;
     percorridos = [CAMINHO[0]];
     $('bIniciar').disabled = true;
-    $('bParada').disabled = false;
+    $('bParada').disabled = false; $('bSemOS').disabled = false;
     $('bEncerrar').disabled = false;
     $('bPronto').disabled = true; $('bAjustar').disabled = true; $('bRebuscar').disabled = true;
     estado('Rota iniciada às '+hhmm(saidaMin)+'. Gravando o caminho.');
@@ -498,28 +544,36 @@
     desenhar();
   }
 
-  function marcarParada(instantaneo){
-    if (!iniciada || encerrada || pos === ULTIMO) return;
+  // tipo: 'os' (Parada) ou 'semos' (Parada sem OS). O carro fica parado até tocar em Continuar rota.
+  function marcarParada(tipo, instantaneo){
+    if (!iniciada || encerrada || parado || pos === ULTIMO) return;
     const [lat,lng] = CAMINHO[pos];
     const perto = maisPerto(lat,lng);
-    const p = { nome: perto ? LOCAIS[perto.i].nome : 'Parada fora do cadastro',
-                cadastrado: !!perto, lat, lng, chegada: relogioMin, saida: null };
+    const p = { nome: perto ? LOCAIS[perto.i].nome : (tipo === 'semos' ? 'Fora do cadastro' : 'Parada fora do cadastro'),
+                cadastrado: !!perto, semOS: tipo === 'semos', lat, lng, chegada: relogioMin, saida: null };
     paradas.push(p);
-    if (perto && marcasLocais[perto.i]) marcasLocais[perto.i].setOpacity(0);
-    $('bParada').classList.remove('pulsa');
-    $('bParada').disabled = true;
-    const minutos = TEMPO_PARADO[paradas.length-1] ?? 10;
-    estado(perto ? `Parada marcada em ${p.nome}. Quando sair do raio, o sistema anota a saída sozinho.`
-                 : 'Parada registrada fora do cadastro, com o ponto no mapa.');
+    parado = true; aguardando = true;
+    if (perto && !p.semOS && marcasLocais[perto.i]) marcasLocais[perto.i].setOpacity(0);
+    ['bParada','bSemOS'].forEach(id => { $(id).classList.remove('pulsa'); $(id).disabled = true; });
+    $('bContinuar').disabled = false; $('bContinuar').classList.add('pulsa');
+    estado(p.semOS ? `Parada sem OS registrada${perto ? ' em ' + p.nome : ''}. Toque em Continuar rota quando sair.`
+                   : perto ? `Parada marcada em ${p.nome}. Toque em Continuar rota quando sair.`
+                           : 'Parada registrada fora do cadastro, com o ponto no mapa. Toque em Continuar rota quando sair.');
     listarParadas(); desenhar();
-    const continuar = () => {
-      relogioMin += minutos; p.saida = relogioMin;
-      $('relogio').textContent = hhmm(relogioMin);
-      aguardando = false; rodando = true;
-      $('bParada').disabled = false;
-      listarParadas(); desenhar();
-    };
-    if (instantaneo) continuar(); else setTimeout(continuar, 1600);
+    if (instantaneo) continuarRota();
+  }
+
+  function continuarRota(){
+    if (!parado) return;
+    const p = paradas[paradas.length-1];
+    relogioMin += TEMPO_PARADO[paradas.length-1] ?? 10;   // no exemplo, o tempo da parada passa aqui
+    p.saida = relogioMin; parado = false;
+    $('relogio').textContent = hhmm(relogioMin);
+    $('bContinuar').disabled = true; $('bContinuar').classList.remove('pulsa');
+    if (pos !== ULTIMO){ $('bParada').disabled = false; $('bSemOS').disabled = false; }
+    aguardando = false; rodando = true;
+    estado('Em rota. O caminho está sendo gravado.');
+    listarParadas(); desenhar();
   }
 
   function encerrar(){
@@ -527,7 +581,8 @@
     clearInterval(timer);
     encerrada = true; rodando = false; fimMin = relogioMin;
     const aberta = paradas.find(p => p.saida == null); if (aberta) aberta.saida = relogioMin;
-    ['bParada','bEncerrar'].forEach(id => { $(id).disabled = true; $(id).classList.remove('pulsa'); });
+    parado = false;
+    ['bParada','bSemOS','bContinuar','bEncerrar'].forEach(id => { $(id).disabled = true; $(id).classList.remove('pulsa'); });
     estado('Rota encerrada às '+hhmm(fimMin)+'. Relatório pronto para o WhatsApp.');
     listarParadas(); desenhar(); montarRelatorio();
     mapa.fitBounds(L.latLngBounds(percorridos).pad(0.12));
@@ -539,7 +594,7 @@
     const kmTxt = modo==='trajeto' ? `${km(kmTrajeto())} km` : `${km(kmPontos())} km (aprox., em linha reta)`;
     let n = 0;
     const linhas = paradas.map(p => {
-      const ico = p.cadastrado ? `${++n}.` : '⚠️';
+      const ico = p.semOS ? '⏸️ Sem OS —' : p.cadastrado ? `${++n}.` : '⚠️';
       let l = `${ico} ${p.nome} — chegou ${hhmm(p.chegada)}, ficou ${dur(p.saida-p.chegada)}`;
       if (!p.cadastrado) l += `\n    https://maps.google.com/?q=${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
       return l;
@@ -550,7 +605,8 @@
            (linhas.length ? linhas.join('\n') + '\n' : 'Nenhuma parada registrada.\n') +
            `🏁 Retorno: ${hhmm(fimMin)} — ${fimTxt}\n\n` +
            `⏱️ Tempo total: ${dur(fimMin-saidaMin)}\n🛣️ Distância: ${kmTxt}\n` +
-           `📍 Paradas: ${paradas.length}`;
+           `📍 Paradas: ${paradas.length} (${paradas.filter(p => !p.semOS).length} com OS, ${paradas.filter(p => p.semOS).length} sem OS)\n\n` +
+           textoCombustivel();
   }
   function montarRelatorio(){
     if (!encerrada) return;
@@ -559,8 +615,9 @@
       (modo==='trajeto' ? 'Distância pelo caminho gravado.' : 'Distância aproximada, em linha reta entre os pontos.');
     let n = 0;
     $('relCorpo').innerHTML = paradas.map(p => `<tr>
-      <td>${p.cadastrado ? ++n : '?'}</td>
-      <td class="${p.cadastrado?'':'fora'}">${p.nome}</td>
+      <td>${p.semOS ? '⏸' : p.cadastrado ? ++n : '?'}</td>
+      <td class="${p.semOS ? 'semos' : p.cadastrado ? '' : 'fora'}">${p.nome}</td>
+      <td>${p.semOS ? 'Sem OS' : 'Com OS'}</td>
       <td>${hhmm(p.chegada)}</td><td>${hhmm(p.saida)}</td><td>${dur(p.saida-p.chegada)}</td></tr>`).join('');
     $('zapTexto').textContent = textoZap();
   }
@@ -572,14 +629,50 @@
     while (pos < ULTIMO){
       aguardando = false; rodando = true;
       passo();
-      if (pos < ULTIMO && FIM_DE_PERNA.has(pos)) marcarParada(true);
+      if (pos < ULTIMO && FIM_DE_PERNA.has(pos)){
+        const perto = maisPerto(CAMINHO[pos][0], CAMINHO[pos][1]);
+        marcarParada(perto ? 'os' : 'semos', true);
+      }
     }
     encerrar();
   }
 
   // ---------- botões ----------
   $('bIniciar').onclick = iniciar;
-  $('bParada').onclick = () => marcarParada(false);
+  $('bParada').onclick = () => marcarParada('os', false);
+  $('bSemOS').onclick = () => marcarParada('semos', false);
+  $('bContinuar').onclick = continuarRota;
+
+  // ---------- combustível (Nissan Tiida 1.8 Flex) ----------
+  // referência: rendimento na cidade (Inmetro) e preço médio em Manaus (ANP, set/2026); editáveis
+  const COMB_GUARDADO = 'demoRotaMotorista_combustivel_v1';
+  const COMB_PADRAO = { combustivel:'gasolina', gasolina:{ kml:8.6, preco:6.99 }, etanol:{ kml:6.0, preco:4.99 } };
+  let comb = (() => { try { return Object.assign(JSON.parse(JSON.stringify(COMB_PADRAO)), JSON.parse(localStorage.getItem(COMB_GUARDADO) || '{}')); } catch(e){ return JSON.parse(JSON.stringify(COMB_PADRAO)); } })();
+  const brl = v => 'R$ ' + v.toFixed(2).replace('.', ',');
+  const num1 = v => v.toFixed(1).replace('.', ',');
+  function combAtual(){ return comb[comb.combustivel]; }
+  function mostrarCampos(){ $('cComb').value = comb.combustivel; $('cKml').value = combAtual().kml; $('cPreco').value = combAtual().preco; }
+  function kmRota(){ return (modo === 'trajeto' ? kmTrajeto() : kmPontos()) / 1000; }
+  function contaComb(){
+    const c = combAtual(), k = kmRota(), litros = c.kml > 0 ? k / c.kml : 0;
+    return { k, litros, custo: litros * c.preco, porKm: c.kml > 0 ? c.preco / c.kml : 0, c };
+  }
+  function atualizarCombustivel(){
+    const r = contaComb();
+    $('nLitros').textContent = num1(r.litros);
+    $('rKm').textContent = num1(r.k) + ' km'; $('rLitros').textContent = num1(r.litros) + ' L';
+    $('rCusto').textContent = brl(r.custo); $('rPorKm').textContent = brl(r.porKm);
+  }
+  function textoCombustivel(){
+    const r = contaComb();
+    return `⛽ Combustível (Nissan Tiida, ${comb.combustivel}): ${num1(r.litros)} L ≈ ${brl(r.custo)}\n` +
+           `📈 Rendimento considerado: ${num1(r.c.kml)} km/l · ${brl(r.porKm)} por km`;
+  }
+  function salvarComb(){ try { localStorage.setItem(COMB_GUARDADO, JSON.stringify(comb)); } catch(e){} atualizarCombustivel(); montarRelatorio(); }
+  $('cComb').onchange = () => { comb.combustivel = $('cComb').value; mostrarCampos(); salvarComb(); };
+  $('cKml').oninput = () => { const v = parseFloat($('cKml').value); if (v > 0){ combAtual().kml = v; salvarComb(); } };
+  $('cPreco').oninput = () => { const v = parseFloat($('cPreco').value); if (v >= 0){ combAtual().preco = v; salvarComb(); } };
+  mostrarCampos();
   $('bEncerrar').onclick = encerrar;
   $('bPronto').onclick = exemploPronto;
   $('bVeloc').onclick = () => {
