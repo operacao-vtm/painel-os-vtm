@@ -5578,6 +5578,8 @@ function render(){
 
   document.getElementById('board').innerHTML = cols.map(col=>{
     const colItems = filtered.filter(x=>colunasDe(x).includes(col.key)).sort((a,b)=>{
+      // Encerrada: só pela data de encerramento, a mais recente em primeiro
+      if(col.key === 'concluida') return (b.dataConclusao || b.dataAbertura || 0) - (a.dataConclusao || a.dataAbertura || 0);
       const ma = a.prioridade==='maxima' ? 0 : 1, mb = b.prioridade==='maxima' ? 0 : 1;
       if(ma !== mb) return ma - mb;                 // prioridade máxima primeiro
       return b.dataAbertura - a.dataAbertura;
