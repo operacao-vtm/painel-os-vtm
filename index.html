@@ -1594,6 +1594,57 @@
     table.rep-table thead{display:table-header-group;}
     table.rep-table tr{page-break-inside:avoid;}
   }
+  /* ---------- Campanhas (v5.08) ---------- */
+  .cp-modal{width:1060px;}
+  .cp-modal-form{width:820px;}
+  .cp-sub{font-size:12px;color:var(--muted);margin:0 0 12px;}
+  .cp-resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px;}
+  .cp-resumo div{background:var(--panel-alt);border:1px solid var(--border);border-radius:var(--r-md);padding:8px 10px;}
+  .cp-resumo b{display:block;font-size:18px;}
+  .cp-resumo small{font-size:11px;color:var(--muted);}
+  .cp-filtros{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+  .cp-chip{background:var(--panel-alt);border:1px solid var(--border);color:var(--muted);border-radius:999px;padding:6px 12px;font:inherit;font-weight:600;font-size:12px;cursor:pointer;}
+  .cp-chip.on{background:var(--amber);color:#fff;border-color:transparent;}
+  .cp-busca{flex:1 1 200px;min-width:180px !important;}
+  .cp-lista{display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto;padding:2px;}
+  .cp-camp{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;background:var(--panel-alt);border:1px solid var(--border);border-radius:var(--r-md);padding:11px 13px;cursor:pointer;}
+  .cp-camp:hover{border-color:var(--border-strong);}
+  .cp-camp.sel{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber-bg);}
+  .cp-camp input{width:18px;height:18px;margin-top:2px;accent-color:#F58220;pointer-events:none;}
+  .cp-camp h4{margin:0;font-size:14px;}
+  .cp-cli{font-size:12px;color:var(--muted);}
+  .cp-periodo{display:flex;align-items:center;gap:10px;margin:7px 0 6px;font-size:12px;flex-wrap:wrap;}
+  .cp-progresso{flex:1;min-width:120px;height:6px;border-radius:99px;background:var(--border);overflow:hidden;}
+  .cp-progresso i{display:block;height:100%;background:linear-gradient(135deg,#E5397F,#F58220);}
+  .cp-locais{display:flex;flex-wrap:wrap;gap:4px;}
+  .cp-loc{font-size:11px;border:1px solid var(--border);border-radius:999px;padding:1px 8px;color:var(--muted);}
+  .cp-selo{font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap;}
+  .cp-selo.rodando{background:var(--teal-bg);color:var(--teal);}
+  .cp-selo.acaba{background:var(--amber-bg);color:var(--amber);}
+  .cp-selo.fim,.cp-selo.breve{background:var(--border);color:var(--muted);}
+  .cp-ultima{font-size:11px;color:var(--muted);margin-top:5px;}
+  .cp-ultima.pend{color:var(--amber);}
+  @media (max-width:640px){ .cp-camp{grid-template-columns:auto 1fr;} .cp-selo{grid-column:2;justify-self:start;white-space:normal;} }
+  .cp-vazio{font-size:12.5px;color:var(--muted);padding:14px;background:var(--panel-alt);border-radius:var(--r-md);}
+  .cp-barra{display:none;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border:1px solid var(--amber);border-radius:var(--r-md);background:var(--amber-bg);}
+  .cp-barra.on{display:flex;}
+  .cp-barra-txt{flex:1;min-width:200px;font-size:13px;}
+  .cp-barra-txt small{display:block;color:var(--muted);font-size:11.5px;}
+  .cp-linha2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media (max-width:560px){ .cp-linha2{grid-template-columns:1fr;} }
+  .cp-bloco{border:1px solid var(--border);border-radius:var(--r-md);padding:9px 11px;margin-bottom:8px;background:var(--panel-alt);}
+  .cp-bloco summary{cursor:pointer;font-weight:700;font-size:13px;display:flex;justify-content:space-between;gap:8px;}
+  .cp-bloco summary small{color:var(--muted);font-weight:600;}
+  .cp-marcas{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:4px 12px;margin-top:8px;}
+  .cp-marcas label{display:flex;gap:7px;align-items:center;font-size:12.5px;cursor:pointer;font-weight:400;margin:0;}
+  .cp-marcas input{accent-color:#F58220;width:15px;height:15px;}
+  .cp-atalhos{display:flex;gap:6px;margin-top:8px;}
+  .cp-atalhos .btn{font-size:11px;padding:4px 9px;}
+  .cp-erro{color:var(--red);font-size:12.5px;font-weight:600;min-height:18px;}
+  .cp-grupo{border:1px solid var(--border);border-radius:var(--r-md);padding:11px;margin-bottom:10px;background:var(--panel-alt);}
+  .cp-grupo h4{margin:0 0 2px;font-size:13.5px;}
+  .cp-grupo .cp-resp{font-size:12px;color:var(--teal);margin-bottom:6px;}
+  .cp-grupo .cp-gcamps{font-size:12px;margin-bottom:6px;}
   /* ---------- Rotas do motorista (v5.05) ---------- */
   .rm-modal{width:1020px;}
   .rm-sub{font-size:12px;color:var(--muted);margin:0 0 12px;}
@@ -1686,6 +1737,7 @@
     <button class="btn" id="btnSolicitacoes" onclick="openSolicitacoes()" style="display: none;position:relative;">📥 Solicitações<span id="badgeSolicitacoes" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;"></span></button>
     <button class="btn" id="btnRotaFixa" onclick="openRotaFixa()" style="display: none;">🚌 Rota fixa</button>
     <button class="btn" id="btnRotasMotorista" onclick="openRotasMotorista()" style="display: none;">🚗 Rotas do motorista</button>
+    <button class="btn" id="btnCampanhas" onclick="openCampanhas()" style="display: none;">📢 Campanhas</button>
     <button class="btn" id="btnMapaTelas" onclick="openMapaTelas()">🖥️ Mapa de Telas</button>
     <button class="btn" id="btnDashboard" onclick="openDashboard()">📊 Dashboard</button>
     <div class="menu-mais" id="menuMais">
@@ -1723,6 +1775,69 @@
     <div id="listaSolicitacoes" style="max-height:420px;overflow:auto;"></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeSolicitacoes()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="campanhasOverlay">
+  <div class="modal cp-modal">
+    <h2>📢 Campanhas</h2>
+    <p class="cp-sub">Campanhas no ar e até quando rodam. Marque uma ou mais e peça a comprovação de uma vez.</p>
+    <div id="cpResumo" class="cp-resumo"></div>
+    <div class="cp-filtros">
+      <button class="cp-chip on" data-f="rodando" onclick="cpFiltrar('rodando')">Rodando agora <b id="cpCRodando"></b></button>
+      <button class="cp-chip" data-f="acaba" onclick="cpFiltrar('acaba')">Terminam em 7 dias <b id="cpCAcaba"></b></button>
+      <button class="cp-chip" data-f="breve" onclick="cpFiltrar('breve')">Começam em breve <b id="cpCBreve"></b></button>
+      <button class="cp-chip" data-f="fim" onclick="cpFiltrar('fim')">Encerradas <b id="cpCFim"></b></button>
+      <input type="text" id="cpBusca" class="cp-busca" placeholder="Buscar campanha, cliente ou local…" autocomplete="off" oninput="cpDesenhar()">
+      <button class="btn" onclick="cpSelecionarTodas()">Selecionar todas da lista</button>
+      <button class="btn primary" onclick="cpAbrirCadastro()">＋ Nova campanha</button>
+    </div>
+    <div id="cpLista" class="cp-lista"></div>
+    <div class="cp-barra" id="cpBarra">
+      <div class="cp-barra-txt" id="cpSelTxt"></div>
+      <button class="btn" onclick="cpLimparSelecao()">Limpar seleção</button>
+      <button class="btn primary" onclick="cpAbrirSolicitacao()">📷 Solicitar comprovação</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="carregarCampanhas()">↻ Atualizar</button>
+      <button class="btn" onclick="closeCampanhas()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="campanhaNovaOverlay">
+  <div class="modal cp-modal-form">
+    <h2>＋ Nova campanha</h2>
+    <p class="cp-sub">Cadastre uma vez: ela aparece na lista com o "até quando" e pode ser escolhida para pedir comprovação.</p>
+    <div class="cp-linha2">
+      <div class="field"><label>Cliente *</label><input type="text" id="cpCliente" list="cpListaClientes" autocomplete="off" placeholder="Nome do cliente"></div>
+      <div class="field"><label>Campanha *</label><input type="text" id="cpNome" autocomplete="off" placeholder="Nome da campanha ou do vídeo"></div>
+    </div>
+    <datalist id="cpListaClientes"></datalist>
+    <div class="cp-linha2">
+      <div class="field"><label>Início da veiculação *</label><input type="date" id="cpIni"></div>
+      <div class="field"><label>Fim da veiculação *</label><input type="date" id="cpFim"></div>
+    </div>
+    <div class="field"><label>Locais onde a campanha roda *</label><div id="cpLocais"></div></div>
+    <div class="cp-erro" id="cpErro" role="alert"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="cpFecharCadastro()">Cancelar</button>
+      <button class="btn primary" id="cpBtnSalvar" onclick="cpSalvarCampanha()">Salvar campanha</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="campanhaSolicOverlay">
+  <div class="modal cp-modal-form">
+    <h2>📷 Solicitar comprovação</h2>
+    <p class="cp-sub">Separado por tipo de mídia, porque cada tipo tem um responsável. Confira os locais (pode desmarcar) e envie. Cada pedido vai para 📥 Solicitações, como hoje.</p>
+    <div id="cpGrupos"></div>
+    <div class="field"><label>Prazo para a foto</label><input type="date" id="cpPrazo"></div>
+    <div class="field"><label>Observação (opcional)</label><textarea id="cpObs" rows="2" placeholder="Ex.: o cliente pediu foto com o vídeo passando na tela"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="cpFecharSolicitacao()">Cancelar</button>
+      <button class="btn primary" onclick="cpEnviarSolicitacoes()">Enviar solicitações</button>
     </div>
   </div>
 </div>
@@ -2959,8 +3074,8 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '5.06';
-const VERSAO_DATA = '14/10/2026';
+const VERSAO_PAINEL = '5.08';
+const VERSAO_DATA = '19/10/2026';
 let buscaDigitada = false;   // v5.06: ver render()
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3723,6 +3838,7 @@ function confirmCode(){
     marcarPerfilEscolhido();
     updateModeUI();
     render();
+    openCampanhas();   // v5.08: a Comprovação entra direto nas campanhas
     return;
   }
 
@@ -3847,6 +3963,7 @@ function updateModeUI(){
   document.getElementById('btnLocaisEquipe').style.display = (abreDireto || isManut) ? 'inline-flex' : 'none';
   document.getElementById('btnRotaFixa').style.display = isOperador ? 'inline-flex' : 'none';
   document.getElementById('btnRotasMotorista').style.display = isOperador ? 'inline-flex' : 'none';
+  document.getElementById('btnCampanhas').style.display = podeVerCampanhas() ? 'inline-flex' : 'none';
   atualizaBadgeSolicitacoes();
 }
 
@@ -3872,9 +3989,21 @@ function getEditPermission(item){
   return 'none'; // diretoria e observador: somente leitura
 }
 
+// v5.07: o Administrador (técnico de manutenção) também exclui, mas só até
+// 24 horas depois de a OS ser aberta no painel. O Programador exclui sempre.
+const PRAZO_EXCLUSAO_ADMIN = 24 * 60 * 60 * 1000;
+function osCriadaEm(item){
+  // o id nasce com a hora em que a OS foi registrada (ex.: id1791555663421)
+  const m = /^id(\d{12,})$/.exec(String(item && item.id || ''));
+  return m ? Number(m[1]) : (item && item.dataAbertura) || 0;
+}
 function canDeleteOS(item){
   if(!currentUser || !item) return false;
   if(currentUser.role === 'admin') return true;
+  if(currentUser.role === 'manutencao'){
+    const criada = osCriadaEm(item);
+    return !!criada && (Date.now() - criada) <= PRAZO_EXCLUSAO_ADMIN;
+  }
   return false;   // técnico não exclui: ele solicita, e o administrador decide
 }
 
@@ -4318,6 +4447,14 @@ function aplicaModoEdicao(){
 
   document.getElementById('btnDelete').style.display =
     (it && typeof canDeleteOS === 'function' && canDeleteOS(it)) ? 'inline-flex' : 'none';
+  // v5.07: para o Administrador, mostra até quando ainda dá para excluir
+  if(it && currentUser && currentUser.role === 'manutencao' && canDeleteOS(it)){
+    const limite = new Date(osCriadaEm(it) + PRAZO_EXCLUSAO_ADMIN);
+    document.getElementById('btnDelete').title = 'Pode excluir até ' + limite.toLocaleDateString('pt-BR') + ' às ' +
+      limite.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  } else {
+    document.getElementById('btnDelete').title = '';
+  }
   document.getElementById('btnImprimirOS').style.display = it ? 'inline-flex' : 'none';
   document.getElementById('btnWhatsapp').style.display = it ? 'inline-flex' : 'none';
 
@@ -4892,7 +5029,16 @@ async function saveOS(){
 }
 
 function deleteOS(){
-  if(bloqueiaSeNaoAdmin('excluir uma OS')) return;
+  const alvo = items.find(x=>x.id===editingId);
+  if(!canDeleteOS(alvo)){
+    if(currentUser && currentUser.role === 'manutencao' && alvo){
+      const d = new Date(osCriadaEm(alvo));
+      askConfirm('O Administrador só pode excluir uma OS até 24 horas depois de aberta. Esta foi aberta em ' +
+        d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) + '.', ()=>{});
+      return;
+    }
+    if(bloqueiaSeNaoAdmin('excluir uma OS')) return;
+  }
   items = items.filter(x=>x.id!==editingId);
   persistComAviso('Não foi possível confirmar a exclusão no servidor. Ela ficou removida apenas neste aparelho — abra o painel novamente com boa conexão para garantir a sincronização.');
   backupCSV();
@@ -6878,6 +7024,239 @@ function removerDest(tipo, i){
     persistComAviso('Não foi possível confirmar a remoção no servidor. Repita com boa conexão.');
     renderDestinatarios();
   });
+}
+
+/* ============================================================
+   CAMPANHAS (v5.08)
+   O perfil Comprovação (e o Programador) cadastra as campanhas no ar e
+   pede comprovação de várias de uma vez. As campanhas ficam numa aba
+   própria da planilha ("Campanhas"), fora do JSON do painel, para não
+   serem apagadas quando o painel regrava os dados.
+   Os pedidos saem no MESMO formato da solicitação de comprovação de hoje.
+   ============================================================ */
+let cpCampanhas = [], cpSel = new Set(), cpFiltro = 'rodando', cpGrupos = [];
+const CP_TIPOS = { terminais:'🚌 Terminais / Estações', totem:'🏥 Clínicas e supermercados', plm:'📺 PLM' };
+function podeVerCampanhas(){ return !!currentUser && (currentUser.role === 'comprovacao' || currentUser.role === 'admin'); }
+function cpEsc(v){ return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function cpDataBr(iso){ const p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; }
+function cpDias(a, b){ return Math.round((Date.parse(a + 'T12:00:00') - Date.parse(b + 'T12:00:00')) / 86400000); }
+function cpTipoDoLocal(l){
+  const lc = EMPRESA.locaisComprovacao || {};
+  if((lc.terminais || []).indexOf(l) !== -1) return 'terminais';
+  if((lc.totem || []).indexOf(l) !== -1) return 'totem';
+  if(/^(Terminal|Estação)/.test(l)) return 'terminais';
+  return 'plm';
+}
+function cpSituacao(c){
+  const hoje = hojeISO();
+  if(c.fim < hoje) return 'fim';
+  if(c.ini > hoje) return 'breve';
+  return cpDias(c.fim, hoje) <= 7 ? 'acaba' : 'rodando';
+}
+
+function openCampanhas(){
+  if(!podeVerCampanhas()) return;
+  cpSel.clear();
+  document.getElementById('campanhasOverlay').classList.add('show');
+  carregarCampanhas();
+}
+function closeCampanhas(){ document.getElementById('campanhasOverlay').classList.remove('show'); }
+
+async function carregarCampanhas(){
+  const lista = document.getElementById('cpLista');
+  if(!gasConfigured()){ lista.innerHTML = '<div class="cp-vazio">O endereço do servidor não está configurado neste painel.</div>'; return; }
+  lista.innerHTML = '<div class="cp-vazio">Buscando as campanhas…</div>';
+  let json = null;
+  try{ json = await (await fetch(GAS_URL + '?api=campanhas', { method:'GET' })).json(); }
+  catch(e){ lista.innerHTML = '<div class="cp-vazio">Não consegui falar com o servidor. Confira a internet e toque em Atualizar.</div>'; return; }
+  if(!json || !Array.isArray(json.campanhas)){
+    lista.innerHTML = '<div class="cp-vazio">O servidor ainda não tem as campanhas. Atualize o código do Apps Script para a versão v6 e faça uma nova versão da implantação.</div>';
+    document.getElementById('cpResumo').innerHTML = '';
+    return;
+  }
+  cpCampanhas = json.campanhas;
+  cpDesenhar();
+}
+
+function cpFiltrar(f){
+  cpFiltro = f;
+  document.querySelectorAll('#campanhasOverlay .cp-chip').forEach(b => b.classList.toggle('on', b.dataset.f === f));
+  cpDesenhar();
+}
+function cpVisiveis(){
+  const q = (document.getElementById('cpBusca').value || '').trim().toLowerCase();
+  return cpCampanhas.filter(c => {
+    const s = cpSituacao(c);
+    const passa = cpFiltro === 'rodando' ? (s === 'rodando' || s === 'acaba') : s === cpFiltro;
+    if(!passa) return false;
+    return !q || (c.nome + ' ' + c.cliente + ' ' + (c.locais || []).join(' ')).toLowerCase().indexOf(q) !== -1;
+  }).sort((a, b) => a.fim < b.fim ? -1 : a.fim > b.fim ? 1 : 0);
+}
+function cpDesenhar(){
+  const cont = { rodando:0, acaba:0, breve:0, fim:0 };
+  cpCampanhas.forEach(c => cont[cpSituacao(c)]++);
+  document.getElementById('cpCRodando').textContent = cont.rodando + cont.acaba;
+  document.getElementById('cpCAcaba').textContent = cont.acaba;
+  document.getElementById('cpCBreve').textContent = cont.breve;
+  document.getElementById('cpCFim').textContent = cont.fim;
+  const ativas = cpCampanhas.filter(c => ['rodando','acaba'].indexOf(cpSituacao(c)) !== -1);
+  const locais = new Set(); ativas.forEach(c => (c.locais || []).forEach(l => locais.add(l)));
+  document.getElementById('cpResumo').innerHTML = [
+    [cont.rodando + cont.acaba, 'campanhas rodando agora'], [cont.acaba, 'terminam nos próximos 7 dias'],
+    [locais.size, 'locais com campanha no ar'], [ativas.filter(c => !c.ultimaSolicitacao).length, 'rodando sem comprovação pedida']
+  ].map(x => `<div><b>${x[0]}</b><small>${x[1]}</small></div>`).join('');
+
+  const hoje = hojeISO(), v = cpVisiveis();
+  const ico = { terminais:'🚌', totem:'🏥', plm:'📺' };
+  document.getElementById('cpLista').innerHTML = v.length ? v.map(c => {
+    const s = cpSituacao(c), r = cpDias(c.fim, hoje);
+    const total = Math.max(1, cpDias(c.fim, c.ini)), feito = Math.min(Math.max(cpDias(hoje, c.ini), 0), total);
+    const selo = s === 'fim' ? `<span class="cp-selo fim">Encerrada em ${cpDataBr(c.fim)}</span>`
+               : s === 'breve' ? `<span class="cp-selo breve">Começa em ${cpDataBr(c.ini)}</span>`
+               : s === 'acaba' ? `<span class="cp-selo acaba">Termina ${r === 0 ? 'hoje' : r === 1 ? 'em 1 dia' : 'em ' + r + ' dias'}</span>`
+               : `<span class="cp-selo rodando">Rodando · faltam ${r} dias</span>`;
+    const ult = c.ultimaSolicitacao ? 'Última comprovação pedida: ' + new Date(c.ultimaSolicitacao).toLocaleDateString('pt-BR')
+              : (s === 'breve' ? 'Ainda não começou.' : 'Nenhuma comprovação pedida desta campanha.');
+    return `<div class="cp-camp${cpSel.has(c.id) ? ' sel' : ''}" onclick="cpAlternar('${cpEsc(c.id)}')">
+      <input type="checkbox" tabindex="-1" ${cpSel.has(c.id) ? 'checked' : ''} aria-label="Selecionar">
+      <div><h4>${cpEsc(c.nome)}</h4><div class="cp-cli">Cliente: ${cpEsc(c.cliente)}</div>
+        <div class="cp-periodo"><span>${cpDataBr(c.ini)} até <b>${cpDataBr(c.fim)}</b></span>
+          <span class="cp-progresso" aria-hidden="true"><i style="width:${Math.round(feito/total*100)}%"></i></span></div>
+        <div class="cp-locais">${(c.locais || []).map(l => `<span class="cp-loc">${ico[cpTipoDoLocal(l)]} ${cpEsc(l)}</span>`).join('')}</div>
+        <div class="cp-ultima${!c.ultimaSolicitacao && (s === 'rodando' || s === 'acaba') ? ' pend' : ''}">${ult}</div></div>
+      ${selo}</div>`;
+  }).join('') : '<div class="cp-vazio">' + (cpCampanhas.length ? 'Nenhuma campanha nesta lista.' : 'Nenhuma campanha cadastrada ainda. Toque em ＋ Nova campanha.') + '</div>';
+  cpBarra();
+}
+function cpAlternar(id){ if(cpSel.has(id)) cpSel.delete(id); else cpSel.add(id); cpDesenhar(); }
+function cpSelecionarTodas(){ cpVisiveis().forEach(c => cpSel.add(c.id)); cpDesenhar(); }
+function cpLimparSelecao(){ cpSel.clear(); cpDesenhar(); }
+function cpBarra(){
+  const cs = cpCampanhas.filter(c => cpSel.has(c.id));
+  const locais = new Set(); cs.forEach(c => (c.locais || []).forEach(l => locais.add(l)));
+  document.getElementById('cpBarra').classList.toggle('on', cs.length > 0);
+  document.getElementById('cpSelTxt').innerHTML = `<b>${cs.length} ${cs.length === 1 ? 'campanha selecionada' : 'campanhas selecionadas'}</b><small>${locais.size} locais · ${cs.map(c => cpEsc(c.nome)).join(', ')}</small>`;
+}
+
+// ---------- cadastro ----------
+function cpAbrirCadastro(){
+  ['cpCliente','cpNome','cpFim'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cpIni').value = hojeISO();
+  document.getElementById('cpErro').textContent = '';
+  document.getElementById('cpListaClientes').innerHTML = Array.from(new Set(cpCampanhas.map(c => c.cliente))).sort().map(c => `<option value="${cpEsc(c)}">`).join('');
+  const lc = EMPRESA.locaisComprovacao || {};
+  const bloco = (t, lista, aberto) => `<details class="cp-bloco"${aberto ? ' open' : ''}><summary>${CP_TIPOS[t]}<small>nenhum</small></summary>
+    <div class="cp-marcas">${lista.map(l => `<label><input type="checkbox" value="${cpEsc(l)}"> ${cpEsc(l)}</label>`).join('')}</div>
+    <div class="cp-atalhos"><button type="button" class="btn" data-todos="1">Marcar todos</button><button type="button" class="btn" data-todos="0">Desmarcar</button></div></details>`;
+  const caixa = document.getElementById('cpLocais');
+  caixa.innerHTML = bloco('terminais', lc.terminais || [], true) + bloco('totem', lc.totem || [], false) +
+    `<details class="cp-bloco"><summary>${CP_TIPOS.plm}<small>nenhum</small></summary>
+      <div class="field" style="margin:8px 0 0"><label>Locais de PLM (um por linha)</label><textarea id="cpPlm" rows="3" placeholder="Ex.:&#10;PLM - Getúlio Vargas&#10;PLM - Paraíba"></textarea></div></details>`;
+  caixa.querySelectorAll('[data-todos]').forEach(b => b.onclick = () => {
+    b.closest('.cp-bloco').querySelectorAll('input[type=checkbox]').forEach(i => i.checked = b.dataset.todos === '1'); cpContaMarcados(); });
+  caixa.onchange = caixa.oninput = cpContaMarcados;
+  document.getElementById('campanhaNovaOverlay').oninput = () => { document.getElementById('cpErro').textContent = ''; };
+  document.getElementById('campanhaNovaOverlay').classList.add('show');
+}
+function cpContaMarcados(){
+  document.querySelectorAll('#cpLocais .cp-bloco').forEach(b => {
+    const ta = b.querySelector('textarea');
+    const n = b.querySelectorAll('input[type=checkbox]:checked').length + (ta ? ta.value.split('\n').filter(x => x.trim()).length : 0);
+    b.querySelector('summary small').textContent = n ? n + (n > 1 ? ' marcados' : ' marcado') : 'nenhum';
+  });
+}
+function cpFecharCadastro(){ document.getElementById('campanhaNovaOverlay').classList.remove('show'); }
+async function cpSalvarCampanha(){
+  const v = id => (document.getElementById(id).value || '').trim();
+  const cliente = v('cpCliente'), nome = v('cpNome'), ini = v('cpIni'), fim = v('cpFim');
+  const locais = Array.from(document.querySelectorAll('#cpLocais input[type=checkbox]:checked')).map(i => i.value)
+    .concat(v('cpPlm').split('\n').map(x => x.trim()).filter(Boolean).map(x => /^PLM/i.test(x) ? x : 'PLM - ' + x));
+  const erro = !cliente ? 'Preencha o cliente.' : !nome ? 'Preencha o nome da campanha.' : !ini ? 'Preencha a data de início.'
+             : !fim ? 'Preencha até quando a campanha roda.' : fim < ini ? 'O fim não pode ser antes do início.' : !locais.length ? 'Marque pelo menos um local.' : '';
+  const caixaErro = document.getElementById('cpErro');
+  if(erro){ caixaErro.textContent = erro; return; }
+  const c = { id:'cp' + Date.now(), cliente, nome, ini, fim, locais, criadoPor: currentUser ? currentUser.name : '', criadoEm: Date.now(), ultimaSolicitacao: 0 };
+  const btn = document.getElementById('cpBtnSalvar'); btn.disabled = true; btn.textContent = 'Salvando…';
+  const ok = await cpGravarCampanha(c);
+  btn.disabled = false; btn.textContent = 'Salvar campanha';
+  if(!ok){ caixaErro.textContent = 'Não consegui salvar no servidor. Confira a internet e tente de novo (o servidor precisa estar na versão v6).'; return; }
+  cpCampanhas.push(c);
+  cpFecharCadastro();
+  const s = cpSituacao(c); cpFiltrar(s === 'acaba' ? 'rodando' : s);
+  document.getElementById('cpBusca').value = ''; cpDesenhar();
+}
+async function cpGravarCampanha(c){
+  try{
+    const resp = await fetch(GAS_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+                                        body: JSON.stringify({ action:'salvarCampanha', campanha:c }) });
+    const json = await resp.json().catch(() => null);
+    return !!(json && json.ok === true);
+  }catch(e){ return false; }
+}
+
+// ---------- pedido de comprovação ----------
+function cpAbrirSolicitacao(){
+  const cs = cpCampanhas.filter(c => cpSel.has(c.id));
+  if(!cs.length) return;
+  const por = {};
+  cs.forEach(c => (c.locais || []).forEach(l => {
+    const t = cpTipoDoLocal(l);
+    por[t] = por[t] || { tipo:t, campanhas:[], ids:[], locais:[] };
+    const rot = c.nome + ' (' + c.cliente + ')';
+    if(por[t].campanhas.indexOf(rot) === -1){ por[t].campanhas.push(rot); por[t].ids.push(c.id); }
+    if(por[t].locais.indexOf(l) === -1) por[t].locais.push(l);
+  }));
+  cpGrupos = ['terminais','totem','plm'].filter(t => por[t]).map(t => por[t]);
+  const resp = EMPRESA.responsaveisComprovacao || {};
+  document.getElementById('cpGrupos').innerHTML = cpGrupos.map((g, gi) => `<div class="cp-grupo">
+    <h4>${CP_TIPOS[g.tipo]}</h4><div class="cp-resp">Vai para: ${cpEsc(resp[g.tipo] || 'a definir na aprovação')}</div>
+    <div class="cp-gcamps">${g.campanhas.map(cpEsc).join(' · ')}</div>
+    <div class="cp-marcas">${g.locais.map(l => `<label><input type="checkbox" checked data-g="${gi}" value="${cpEsc(l)}"> ${cpEsc(l)}</label>`).join('')}</div></div>`).join('');
+  const d = new Date(); d.setDate(d.getDate() + 2);
+  document.getElementById('cpPrazo').value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  document.getElementById('cpObs').value = '';
+  document.getElementById('campanhaSolicOverlay').classList.add('show');
+}
+function cpFecharSolicitacao(){ document.getElementById('campanhaSolicOverlay').classList.remove('show'); }
+function cpEnviarSolicitacoes(){
+  const rotulo = { terminais:'Terminais / Estações', totem:'Clínicas e supermercados', plm:'PLM' };
+  const resp = EMPRESA.responsaveisComprovacao || {};
+  const obs = (document.getElementById('cpObs').value || '').trim();
+  const prazo = document.getElementById('cpPrazo').value || hojeISO();
+  const pedidos = cpGrupos.map((g, gi) => ({ g, unidades: Array.from(document.querySelectorAll(`#cpGrupos input[data-g="${gi}"]:checked`)).map(i => i.value) }))
+                          .filter(x => x.unidades.length);
+  if(!pedidos.length){ askConfirm('Marque pelo menos um local.', ()=>{}); return; }
+  const criadas = [];
+  pedidos.forEach((x, k) => {
+    const g = x.g, unidades = x.unidades;
+    const descricao = 'Comprovar ' + g.campanhas.length + ' campanha' + (g.campanhas.length > 1 ? 's' : '') + ':\n' +
+      g.campanhas.map(nm => '• ' + nm).join('\n') +
+      '\n' + rotulo[g.tipo] + ' (' + unidades.length + '):\n' + unidades.map(u => '• ' + u).join('\n') +
+      (obs ? '\nObservação: ' + obs : '');
+    const sol = {
+      tipoMidia: g.tipo, campanhas: g.campanhas.slice(), video: g.campanhas.join(' · '), linkVideo:'', linkVideo2:'',
+      unidades: unidades, responsavel: resp[g.tipo] || '',
+      id: 'sol' + Date.now() + k,
+      protocolo: 'SOL-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + String(solicitacoes.length + 1).padStart(3,'0'),
+      origem:'tecnico', tipo:'abertura', dataHora: Date.now(),
+      solicitante: currentUser ? currentUser.name : '', empresa:'', urgencia:'Normal', prioridade:'normal',
+      acao:'comprovacao', origemPerfil: currentUser ? currentUser.role : '',
+      servicos:[descricao], materiais:[],
+      local: 'Comprovação — ' + rotulo[g.tipo] + ' (' + unidades.length + ' ' + (unidades.length > 1 ? 'locais' : 'local') + ')',
+      dataPrevista: prazo, fotos:[], campanhasIds: g.ids.slice(),
+      status:'pendente', decididoPor:'', decididoEm:0, motivoRejeicao:''
+    };
+    solicitacoes.push(sol); criadas.push(sol);
+  });
+  persistComAviso('Não foi possível confirmar o envio das solicitações ao servidor. Repita com boa conexão.');
+  criadas.forEach(sol => { try{ avisarSolicitacaoPorEmail(sol, 'abertura'); }catch(e){} });
+  // marca nas campanhas a data do pedido de comprovação
+  const agora = Date.now();
+  cpCampanhas.filter(c => cpSel.has(c.id)).forEach(c => { c.ultimaSolicitacao = agora; cpGravarCampanha(c); });
+  cpFecharSolicitacao(); cpSel.clear(); cpDesenhar(); render();
+  askConfirm(criadas.length + (criadas.length > 1 ? ' solicitações enviadas: ' : ' solicitação enviada: ') +
+    criadas.map(s => s.protocolo + ' (' + rotulo[s.tipoMidia] + (s.responsavel ? ' → ' + s.responsavel : '') + ')').join(', ') +
+    '. O administrador foi avisado e vai analisar.', ()=>{});
 }
 
 /* ============================================================
@@ -10222,6 +10601,7 @@ if(currentUser && currentUser.role === 'admin' && currentUser.perfilV !== PERFIL
 loadData();
 updateModeUI();
 startPolling();
+if(currentUser && currentUser.role === 'comprovacao') setTimeout(openCampanhas, 1200);   // v5.08
 
 /* modo quiosque/telão: abrir a URL terminando em #tv entra direto no Modo TV.
    Espera os dados chegarem (3s) antes de abrir, para já mostrar tudo preenchido. */
