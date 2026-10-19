@@ -1641,6 +1641,8 @@
   .cp-atalhos{display:flex;gap:6px;margin-top:8px;}
   .cp-atalhos .btn{font-size:11px;padding:4px 9px;}
   .cp-erro{color:var(--red);font-size:12.5px;font-weight:600;min-height:18px;}
+  .cp-mes-excel{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-right:auto;}
+  .cp-mes-excel input{width:auto !important;min-width:0 !important;}
   .cp-grupo{border:1px solid var(--border);border-radius:var(--r-md);padding:11px;margin-bottom:10px;background:var(--panel-alt);}
   .cp-grupo h4{margin:0 0 2px;font-size:13.5px;}
   .cp-grupo .cp-resp{font-size:12px;color:var(--teal);margin-bottom:6px;}
@@ -1800,6 +1802,8 @@
       <button class="btn primary" onclick="cpAbrirSolicitacao()">📷 Solicitar comprovação</button>
     </div>
     <div class="modal-actions">
+      <label class="cp-mes-excel">Mês <input type="month" id="cpMesExcel"></label>
+      <button class="btn" onclick="baixarExcelCampanhasMes()">📗 Excel do mês</button>
       <button class="btn" onclick="carregarCampanhas()">↻ Atualizar</button>
       <button class="btn" onclick="closeCampanhas()">Fechar</button>
     </div>
@@ -2821,6 +2825,7 @@
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeReportFilter()">Cancelar</button>
+      <button class="btn" id="btnRepExcel" onclick="baixarExcelRelatorioOS()">📗 Baixar em Excel</button>
       <button class="btn primary" onclick="runReport()">Gerar relatório</button>
     </div>
   </div>
@@ -3074,7 +3079,7 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '5.08';
+const VERSAO_PAINEL = '5.09';
 const VERSAO_DATA = '19/10/2026';
 let buscaDigitada = false;   // v5.06: ver render()
 
@@ -7057,6 +7062,7 @@ function cpSituacao(c){
 function openCampanhas(){
   if(!podeVerCampanhas()) return;
   cpSel.clear();
+  if(!document.getElementById('cpMesExcel').value) document.getElementById('cpMesExcel').value = hojeISO().slice(0, 7);
   document.getElementById('campanhasOverlay').classList.add('show');
   carregarCampanhas();
 }
@@ -7257,6 +7263,162 @@ function cpEnviarSolicitacoes(){
   askConfirm(criadas.length + (criadas.length > 1 ? ' solicitações enviadas: ' : ' solicitação enviada: ') +
     criadas.map(s => s.protocolo + ' (' + rotulo[s.tipoMidia] + (s.responsavel ? ' → ' + s.responsavel : '') + ')').join(', ') +
     '. O administrador foi avisado e vai analisar.', ()=>{});
+}
+
+/* ============================================================
+   RELATÓRIOS EM EXCEL (v5.09)
+   Gera o .xlsx no próprio navegador (biblioteca ExcelJS, carregada só
+   quando alguém pede o Excel). Duas planilhas:
+   • Relatório de OS — as OS dos filtros do Relatório de OS
+   • Campanhas do mês — campanhas que rodaram no mês escolhido
+   ============================================================ */
+const XL_FONTE = 'Arial';
+const XL_FUSO_MS = -4 * 3600000;   // Manaus (UTC-4, sem horário de verão)
+function xlCarregar(){
+  if(window.ExcelJS) return Promise.resolve();
+  return new Promise((ok, falha) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+    sc.onload = ok; sc.onerror = falha; document.head.appendChild(sc);
+  });
+}
+function xlData(ts){ return ts ? new Date(ts + XL_FUSO_MS) : null; }                 // data e hora de Manaus
+function xlDia(iso){ const p = String(iso || '').split('-').map(Number); return p.length === 3 ? new Date(Date.UTC(p[0], p[1]-1, p[2])) : null; }
+function xlBorda(){ const f = { style:'thin', color:{ argb:'FFD3CCDC' } }; return { top:f, left:f, bottom:f, right:f }; }
+function xlCabecalho(ws, linha, titulos){
+  titulos.forEach((t, i) => {
+    const c = ws.getCell(linha, i + 1);
+    c.value = t; c.font = { name:XL_FONTE, size:10, bold:true, color:{ argb:'FFFFFFFF' } };
+    c.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF5B3E8C' } };
+    c.alignment = { wrapText:true, vertical:'middle' }; c.border = xlBorda();
+  });
+}
+async function xlBaixar(wb, nome){
+  wb.calcProperties.fullCalcOnLoad = true;   // o Excel calcula as fórmulas ao abrir
+  const buf = await wb.xlsx.writeBuffer();
+  const url = URL.createObjectURL(new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+}
+function xlTextoFiltro(classe, todos, nomes){
+  const marc = [...document.querySelectorAll('.' + classe + ':checked')].map(el => el.value);
+  const total = document.querySelectorAll('.' + classe).length;
+  if(!total || marc.length === total) return todos;
+  if(!marc.length) return 'nenhum';
+  return marc.map(v => (nomes && nomes[v]) || v).join(', ');
+}
+
+async function baixarExcelRelatorioOS(){
+  const lista = filtrarItensRelatorioOS().slice().sort((a, b) => (a.dataAbertura || 0) - (b.dataAbertura || 0));
+  if(!lista.length){ askConfirm('Nenhuma OS com esses filtros.', ()=>{}); return; }
+  const btn = document.getElementById('btnRepExcel'), txt = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Gerando…';
+  try{ await xlCarregar(); }catch(e){ btn.disabled = false; btn.textContent = txt; askConfirm('Não consegui carregar o gerador de Excel (sem internet?).', ()=>{}); return; }
+  const STATUS = { aberta:'Aberta', peca:'Requisição de material', andamento:'Em andamento', concluida:'Encerrada' };
+  const PRIO = { maxima:'Prioridade máxima', urgente:'Urgente', normal:'Normal', preventiva:'Preventiva' };
+  const nomeAcao = a => (ACOES[a] && ACOES[a].curto) || a || '';
+  const de = document.getElementById('repDataDe').value, ate = document.getElementById('repDataAte').value;
+  const br = iso => iso ? iso.split('-').reverse().join('/') : '';
+  const periodo = (de || ate) ? 'abertas ' + (de ? 'de ' + br(de) : 'desde o início') + (ate ? ' até ' + br(ate) : ' até hoje') : 'todo o período';
+  const filtros = 'Filtros usados: ' + periodo +
+    ' · status: ' + xlTextoFiltro('repStatus', 'todos', STATUS) + ' · prioridade: ' + xlTextoFiltro('repPrio', 'todas', PRIO) +
+    ' · técnico: ' + xlTextoFiltro('repTecnico', 'todos') + ' · tipo: ' + xlTextoFiltro('repAcao', 'todos', Object.fromEntries(Object.entries(ACOES).map(([k, v]) => [k, v.curto])));
+
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Painel de Manutenção VTM';
+  const ws = wb.addWorksheet('Relatório de OS', { views:[{ state:'frozen', ySplit:7 }] });
+  ws.getCell('A1').value = 'Painel de Manutenção VTM — Relatório de OS';
+  ws.getCell('A1').font = { name:XL_FONTE, size:14, bold:true };
+  ws.getCell('A2').value = filtros + '   (gerado em ' + new Date().toLocaleString('pt-BR') + ')';
+  ws.getCell('A2').font = { name:XL_FONTE, size:10, italic:true, color:{ argb:'FF6E6779' } };
+  const ini = 8, fim = ini + lista.length - 1;
+  const resumo = [['Total de OS', `COUNTA(A${ini}:A${fim})`], ['Encerradas', `COUNTIF(H${ini}:H${fim},"Encerrada")`],
+    ['Abertas', `COUNTIF(H${ini}:H${fim},"Aberta")`], ['Em andamento', `COUNTIF(H${ini}:H${fim},"Em andamento")`],
+    ['Comprovações', `COUNTIF(D${ini}:D${fim},"Comprovação")`], ['Tempo médio até encerrar (dias)', `IFERROR(AVERAGE(J${ini}:J${fim}),0)`]];
+  const fundo = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF4F1F7' } };
+  resumo.forEach((r, i) => {
+    const a = ws.getCell(4, 1 + i*2), v = ws.getCell(5, 1 + i*2);
+    a.value = r[0]; a.font = { name:XL_FONTE, size:9, color:{ argb:'FF6E6779' } };
+    v.value = { formula:r[1] }; v.font = { name:XL_FONTE, size:13, bold:true };
+    if(i === 5) v.numFmt = '0.0';
+    [a, v, ws.getCell(4, 2 + i*2), ws.getCell(5, 2 + i*2)].forEach(c => c.fill = fundo);
+  });
+  xlCabecalho(ws, 7, ['Código','Abertura','Local','Ação','Prioridade','Problema / tipo','Técnico','Status','Encerramento','Dias até encerrar','Solicitante','Diagnóstico / serviço feito']);
+  lista.forEach((x, i) => {
+    const r = ini + i;
+    const vals = [x.code || '', xlData(x.dataAbertura), x.local || '', nomeAcao(x.acao), PRIO[x.prioridade] || '',
+      String(x.tipo || '').trim(), x.tecnico || '', STATUS[x.status] || x.status || '', xlData(x.dataConclusao),
+      { formula:`IF(I${r}="","",ROUND(I${r}-B${r},1))` }, x.solicitante || x.criadoPor || '', String(x.diagnostico || '').trim()];
+    vals.forEach((v, j) => {
+      const c = ws.getCell(r, j + 1); c.value = v; c.font = { name:XL_FONTE, size:10 }; c.border = xlBorda();
+      c.alignment = { vertical:'top', wrapText: [2,5,11].indexOf(j) !== -1 };
+      if((j === 1 || j === 8) && v) c.numFmt = 'dd/mm/yyyy hh:mm';
+      if(j === 9) c.numFmt = '0.0';
+    });
+  });
+  [10,16,22,14,15,34,22,14,16,10,20,46].forEach((w, i) => ws.getColumn(i + 1).width = w);
+  ws.autoFilter = { from:'A7', to:'L' + fim };
+  ws.getCell(fim + 2, 1).value = '"Dias até encerrar" é calculado na própria planilha: encerramento menos abertura. Fica em branco nas OS ainda abertas.';
+  ws.getCell(fim + 2, 1).font = { name:XL_FONTE, size:10, italic:true, color:{ argb:'FF6E6779' } };
+  await xlBaixar(wb, 'Relatorio_OS_VTM_' + hojeISO() + '.xlsx');
+  btn.disabled = false; btn.textContent = txt;
+}
+
+async function baixarExcelCampanhasMes(){
+  const mes = document.getElementById('cpMesExcel').value || hojeISO().slice(0, 7);
+  const [ano, m] = mes.split('-').map(Number);
+  const iniMes = mes + '-01', fimMes = mes + '-' + String(new Date(ano, m, 0).getDate()).padStart(2, '0');
+  const tsIni = new Date(ano, m - 1, 1).getTime(), tsFim = new Date(ano, m, 1).getTime();
+  const lista = cpCampanhas.filter(c => c.ini <= fimMes && c.fim >= iniMes).sort((a, b) => a.ini < b.ini ? -1 : a.ini > b.ini ? 1 : 0);
+  if(!lista.length){ askConfirm('Nenhuma campanha rodou em ' + mes.split('-').reverse().join('/') + '.', ()=>{}); return; }
+  try{ await xlCarregar(); }catch(e){ askConfirm('Não consegui carregar o gerador de Excel (sem internet?).', ()=>{}); return; }
+  const STATUS = { aberta:'Aberta', peca:'Requisição de material', andamento:'Em andamento', concluida:'Encerrada' };
+  const rotulo = { terminais:'Terminais / Estações', totem:'Clínicas e supermercados', plm:'PLM' };
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Painel de Manutenção VTM';
+  const ws = wb.addWorksheet('Campanhas do mês', { views:[{ state:'frozen', ySplit:6 }] });
+  ws.getCell('A1').value = 'Painel de Manutenção VTM — Campanhas que rodaram no mês';
+  ws.getCell('A1').font = { name:XL_FONTE, size:14, bold:true };
+  ws.getCell('A2').value = 'Gerado em ' + new Date().toLocaleString('pt-BR') + ' · campanhas cadastradas no painel que ficaram no ar em algum dia do mês.';
+  ws.getCell('A2').font = { name:XL_FONTE, size:10, italic:true, color:{ argb:'FF6E6779' } };
+  ws.getCell('A3').value = 'Início do mês'; ws.getCell('B3').value = xlDia(iniMes); ws.getCell('B3').numFmt = 'dd/mm/yyyy';
+  ws.getCell('B3').font = { name:XL_FONTE, size:10, color:{ argb:'FF0000FF' } };
+  ws.getCell('A4').value = 'Fim do mês'; ws.getCell('B4').value = { formula:'EOMONTH(B3,0)' }; ws.getCell('B4').numFmt = 'dd/mm/yyyy';
+  ['A3','A4'].forEach(k => ws.getCell(k).font = { name:XL_FONTE, size:10, bold:true });
+  xlCabecalho(ws, 6, ['Cliente','Campanha','Início','Fim','Dias no ar no mês','Situação no mês','Tipo de mídia','Nº de locais','Locais','Comprovação pedida','Data do pedido','OS de comprovação']);
+  const r0 = 7;
+  lista.forEach((c, i) => {
+    const r = r0 + i;
+    const sols = solicitacoes.filter(s => (s.campanhasIds || []).indexOf(c.id) !== -1 && s.dataHora >= tsIni && s.dataHora < tsFim);
+    const ultima = sols.reduce((mx, s) => Math.max(mx, s.dataHora || 0), 0);
+    const oss = [];
+    sols.forEach(s => items.filter(it => String(it.diagnostico || '').indexOf('(Protocolo: ' + s.protocolo + ')') !== -1)
+                           .forEach(it => oss.push(it.code + ' (' + (STATUS[it.status] || it.status) + ')')));
+    const tipos = []; (c.locais || []).forEach(l => { const t = rotulo[cpTipoDoLocal(l)]; if(tipos.indexOf(t) === -1) tipos.push(t); });
+    const vals = [c.cliente, c.nome, xlDia(c.ini), xlDia(c.fim),
+      { formula:`MAX(0,MIN(D${r},$B$4)-MAX(C${r},$B$3)+1)` },
+      { formula:`IF(AND(C${r}<=$B$3,D${r}>=$B$4),"Rodou o mês todo",IF(AND(C${r}>$B$3,D${r}<$B$4),"Começou e terminou no mês",IF(C${r}>$B$3,"Começou no mês","Terminou no mês")))` },
+      tipos.join(' + '), (c.locais || []).length, (c.locais || []).join(' · '),
+      sols.length ? 'Sim' : 'Não', ultima ? xlData(ultima) : null, oss.join(', ')];
+    vals.forEach((v, j) => {
+      const cel = ws.getCell(r, j + 1); cel.value = v; cel.font = { name:XL_FONTE, size:10 }; cel.border = xlBorda();
+      cel.alignment = { vertical:'top', wrapText: [1,6,8,11].indexOf(j) !== -1 };
+      if((j === 2 || j === 3) && v) cel.numFmt = 'dd/mm/yyyy';
+      if(j === 10 && v) cel.numFmt = 'dd/mm/yyyy hh:mm';
+    });
+  });
+  const rf = r0 + lista.length - 1, rt = rf + 2;
+  const fundo = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFF4F1F7' } };
+  [['Campanhas no mês', `COUNTA(A${r0}:A${rf})`], ['Total de dias no ar (somando campanhas)', `SUM(E${r0}:E${rf})`],
+   ['Com comprovação pedida', `COUNTIF(J${r0}:J${rf},"Sim")`], ['Sem comprovação pedida', `COUNTIF(J${r0}:J${rf},"Não")`]].forEach((t, i) => {
+    const a = ws.getCell(rt + i, 1), v = ws.getCell(rt + i, 5);
+    a.value = t[0]; a.font = { name:XL_FONTE, size:10, bold:true };
+    v.value = { formula:t[1] }; v.font = { name:XL_FONTE, size:11, bold:true };
+    [1,2,3,4,5].forEach(j => ws.getCell(rt + i, j).fill = fundo);
+  });
+  [22,28,12,12,11,24,24,9,56,13,16,22].forEach((w, i) => ws.getColumn(i + 1).width = w);
+  ws.autoFilter = { from:'A6', to:'L' + rf };
+  ws.getCell(rt + 5, 1).value = '"Dias no ar no mês" e "Situação no mês" são calculados a partir das datas da campanha e do mês em B3. "Comprovação pedida" considera os pedidos feitos pela tela de Campanhas neste mês.';
+  ws.getCell(rt + 5, 1).font = { name:XL_FONTE, size:10, italic:true, color:{ argb:'FF6E6779' } };
+  await xlBaixar(wb, 'Campanhas_' + mes + '.xlsx');
 }
 
 /* ============================================================
@@ -10070,6 +10232,7 @@ function handleImportFile(event){
 
 function openReportFilter(modo){
   repModo = (modo === 'vist') ? 'vist' : 'os';
+  document.getElementById('btnRepExcel').style.display = (repModo === 'os') ? 'inline-flex' : 'none';   // v5.09
 
   const statusOpts = [['aberta','Aberta'],['peca','Requisição de material'],['andamento','Em andamento'],['concluida','Encerrada']];
   document.getElementById('repStatusChecks').innerHTML = statusOpts.map(([v,l])=>
@@ -10201,6 +10364,13 @@ function conjuntosDe(it){
 function runReport(){
   if(repModo === 'vist'){ runReportVistoria(); return; }
 
+  const filtered = filtrarItensRelatorioOS();
+  closeReportFilter();
+  generateReport(filtered);
+}
+
+// v5.09: as regras do filtro do Relatório de OS ficam aqui, para o PDF e o Excel usarem as mesmas
+function filtrarItensRelatorioOS(){
   const statusSel = [...document.querySelectorAll('.repStatus:checked')].map(el=>el.value);
   const prioSel = [...document.querySelectorAll('.repPrio:checked')].map(el=>el.value);
   const tecnicoBoxes = document.querySelectorAll('.repTecnico');
@@ -10220,9 +10390,7 @@ function runReport(){
     if(ateTs && x.dataAbertura > ateTs) return false;
     return true;
   });
-
-  closeReportFilter();
-  generateReport(filtered);
+  return filtered;
 }
 
 function runReportVistoria(){
