@@ -5045,6 +5045,12 @@ function deleteOS(){
     if(bloqueiaSeNaoAdmin('excluir uma OS')) return;
   }
   items = items.filter(x=>x.id!==editingId);
+  // OS excluída sai também da rota do dia
+  if(rotaPacheco && (rotaPacheco.itens || []).some(i=>i.osId===editingId)){
+    rotaPacheco.itens = rotaPacheco.itens.filter(i=>i.osId!==editingId);
+    rotaPacheco.atualizadoPor = currentUser ? currentUser.name : '';
+    rotaPacheco.atualizadoEm = Date.now();
+  }
   persistComAviso('Não foi possível confirmar a exclusão no servidor. Ela ficou removida apenas neste aparelho — abra o painel novamente com boa conexão para garantir a sincronização.');
   backupCSV();
   closeModal();
