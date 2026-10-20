@@ -1596,6 +1596,16 @@
   }
   /* ---------- Campanhas (v5.08) ---------- */
   .cp-modal{width:1060px;}
+  .rs-modal{width:1000px;}
+  .rs-frame{width:100%;height:56vh;border:1px solid var(--border);border-radius:var(--r-md);background:#fff;}
+  .rs-envio{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--panel-alt);}
+  .rs-obs{flex-basis:100%;color:var(--muted);font-size:11.5px;}
+  .rs-atv{background:var(--panel-alt);border:1px solid var(--border);border-radius:var(--r-md);padding:11px 13px;}
+  .rs-atv.edita{cursor:pointer;}
+  .rs-atv.edita:hover{border-color:var(--border-strong);}
+  .rs-atv h4{margin:0;font-size:14px;}
+  .rs-atv p{margin:6px 0 0;font-size:12.5px;}
+  .rs-grupo{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:6px 0 0;}
   .cp-modal-form{width:820px;}
   .cp-sub{font-size:12px;color:var(--muted);margin:0 0 12px;}
   .cp-resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px;}
@@ -1733,6 +1743,7 @@
     <button class="btn" id="btnSheetExport" onclick="exportarPlanilhaFormatada()" style="display: inline-flex;">📗 Visualizar em Excel (Backup)</button>
     <button class="btn" id="btnReport" onclick="openReportFilter('os')" style="display: inline-flex;">Relatório de OS</button>
     <button class="btn" id="btnReportVist" onclick="openReportFilter('vist')" style="display: inline-flex;">Relatório de vistoria</button>
+    <button class="btn" id="btnRelSemanal" onclick="openRelSemanal()" style="display: none;">📅 Relatório semanal</button>
     <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleImportFile(event)">
     <button class="btn" id="btnRotaPacheco" onclick="openRotaPacheco()" style="display: none;">🔧 Rota do dia</button>
     <button class="btn" id="btnLocaisEquipe" onclick="openCadastro('locais')" style="display: none;">📍 Locais</button>
@@ -1777,6 +1788,56 @@
     <div id="listaSolicitacoes" style="max-height:420px;overflow:auto;"></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeSolicitacoes()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="relSemOverlay">
+  <div class="modal rs-modal">
+    <h2>📅 Relatório semanal da manutenção</h2>
+    <p class="cp-sub" id="rsPeriodo"></p>
+    <div class="cp-filtros">
+      <button class="cp-chip on" data-a="rel" onclick="rsAba('rel')">Relatório da semana</button>
+      <button class="cp-chip" data-a="atv" onclick="rsAba('atv')">Atividades previstas <b id="rsCAtv"></b></button>
+    </div>
+    <div id="rsAbaRel">
+      <iframe id="rsFrame" class="rs-frame" title="Relatório semanal"></iframe>
+    </div>
+    <div id="rsAbaAtv" style="display:none;">
+      <div class="cp-filtros" id="rsAtvBarra"><button class="btn primary" onclick="rsAbrirAtividade(null)">＋ Nova atividade</button></div>
+      <div id="rsAtvLista" class="cp-lista"></div>
+    </div>
+    <div class="rs-envio" id="rsEnvio">
+      <div class="field" style="margin:0;flex:1 1 320px;">
+        <label>E-mails que recebem o relatório (separe por vírgula)</label>
+        <input type="text" id="rsEmails" autocomplete="off" placeholder="nome@vtmmidia.com.br, outro@vtmmidia.com.br">
+      </div>
+      <button class="btn" onclick="rsSalvarEmails()">Salvar e-mails</button>
+      <button class="btn primary" onclick="rsEnviarAgora()">📧 Enviar agora</button>
+      <small class="rs-obs">Envio automático toda sexta-feira às 14h, em PDF anexo.</small>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="rsImprimir()">🖨️ Imprimir / PDF</button>
+      <button class="btn" onclick="closeRelSemanal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="relSemAtvOverlay">
+  <div class="modal cp-modal-form">
+    <h2 id="rsAtvTitulo">＋ Nova atividade</h2>
+    <div class="field"><label>Atividade *</label><input type="text" id="rsAtvNome" autocomplete="off" placeholder="O que está previsto"></div>
+    <div class="cp-linha2">
+      <div class="field"><label>Prazo *</label><select id="rsAtvPrazo"><option value="medio">Médio prazo</option><option value="longo">Longo prazo</option></select></div>
+      <div class="field"><label>Previsão de conclusão</label><input type="date" id="rsAtvPrev"></div>
+    </div>
+    <div class="field"><label>Andamento: <b id="rsAtvPctTxt">0%</b></label><input type="range" id="rsAtvPct" min="0" max="100" step="5" value="0" oninput="document.getElementById('rsAtvPctTxt').textContent=this.value+'%'"></div>
+    <div class="field"><label>Situação atual</label><textarea id="rsAtvObs" rows="3" placeholder="O que foi feito e o que falta"></textarea></div>
+    <div class="cp-erro" id="rsAtvErro" role="alert"></div>
+    <div class="modal-actions">
+      <button class="btn danger" id="rsAtvExcluir" onclick="rsExcluirAtividade()" style="display:none;">Excluir</button>
+      <button class="btn" onclick="rsFecharAtividade()">Cancelar</button>
+      <button class="btn primary" onclick="rsSalvarAtividade()">Salvar</button>
     </div>
   </div>
 </div>
@@ -3103,7 +3164,7 @@ function testeLoad(){
 
 function testeSave(){
   try{
-    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios, telasInfo }));
+    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios, telasInfo, planejamento }));
     const el = document.getElementById('syncInfo');
     if(el){ el.textContent = 'teste · salvo no navegador ' + new Date().toLocaleTimeString('pt-BR'); }
     return true;
@@ -3221,6 +3282,17 @@ let destinatarios = {
    Formato: { 'T1-03': { nome:'Totem entrada norte', inativa:false } } */
 let telasInfo = {};
 
+/* Relatório semanal: atividades previstas (médio e longo prazo) e
+   os e-mails que recebem o relatório. Formato:
+   { atividades:[{ id, titulo, prazo:'medio'|'longo', previsao:'AAAA-MM-DD', andamento:0-100, obs,
+                   historico:[{ em, andamento, obs, por }], criadoEm, criadoPor }], emails:[] } */
+let planejamento = { atividades: [], emails: [] };
+function normalizaPlanejamento(v){
+  const b = (v && typeof v === 'object') ? v : {};
+  return { atividades: Array.isArray(b.atividades) ? b.atividades.filter(a=>a && a.id) : [],
+           emails: Array.isArray(b.emails) ? b.emails.filter(Boolean) : [] };
+}
+
 const DIAS_SEMANA = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
 const DIAS_SEMANA_LABEL = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
 let rotaFixa = {
@@ -3272,7 +3344,7 @@ function gasConfigured(){
 
 let isModalOpen = false;
 function anyModalOpen(){
-  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay','mtRenOverlay','logOverlay','destinatariosOverlay'].some(id=>{
+  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay','mtRenOverlay','logOverlay','destinatariosOverlay','relSemOverlay','relSemAtvOverlay'].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains('show');
   });
@@ -3299,6 +3371,7 @@ async function loadData(){
       solicitacoes = d.solicitacoes || solicitacoes;
       destinatarios = normalizaDestinatarios(d.destinatarios);
       telasInfo = (d.telasInfo && typeof d.telasInfo === 'object') ? d.telasInfo : telasInfo;
+      planejamento = normalizaPlanejamento(d.planejamento);
       rotaFixa = d.rotaFixa || rotaFixa;
       migraStatusPeca();
       render();
@@ -3327,6 +3400,7 @@ async function loadData(){
     solicitacoes = (json && json.solicitacoes) || solicitacoes;
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
     telasInfo = (json && json.telasInfo && typeof json.telasInfo === 'object') ? json.telasInfo : telasInfo;
+    planejamento = normalizaPlanejamento(json && json.planejamento);
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
     if(json && json.licenca) licenca = json.licenca;
     migraStatusPeca();
@@ -3374,7 +3448,7 @@ async function diagnosticoConexao(){
     return;
   }
 
-  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo });
+  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo, planejamento });
   const tamanho = JSON.stringify(limpo).length;
   const blocos = Math.ceil(tamanho / 45000);
   const pendentes = (solicitacoes||[]).filter(s=>s.status==='pendente').length;
@@ -3469,8 +3543,8 @@ function semFotosLocais(dados){
    ESTE aparelho alterou desde a última leitura.
    ============================================================ */
 let snapServidor = null;   // retrato dos dados na última leitura/gravação
-function estadoLocal(){ return { items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo }; }
-const CHAVES_SIMPLES = ['cadastro','rotaPacheco','historicoRotas','rotaFixa','destinatarios','telasInfo'];
+function estadoLocal(){ return { items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo, planejamento }; }
+const CHAVES_SIMPLES = ['cadastro','rotaPacheco','historicoRotas','rotaFixa','destinatarios','telasInfo','planejamento'];
 // fonte = o que foi lido ou ENVIADO ao servidor (não o que está na tela agora:
 // uma alteração feita durante o envio ainda não foi gravada e precisa seguir "alterada")
 function tiraRetrato(fonte){
@@ -3511,6 +3585,7 @@ async function mesclaComServidor(){
   rotaFixa = pega('rotaFixa') || rotaFixa;
   destinatarios = normalizaDestinatarios(pega('destinatarios'));
   const ti = pega('telasInfo'); telasInfo = (ti && typeof ti === 'object') ? ti : telasInfo;
+  planejamento = normalizaPlanejamento(pega('planejamento'));
   // vagas de login: junta as dos dois lados, ninguém perde a vaga
   const sv = normalizeUserSlots(json.userSlots), lc = normalizeUserSlots(userSlots);
   Object.keys(lc).forEach(function(k){ if(Array.isArray(lc[k])) sv[k] = Array.from(new Set((sv[k] || []).concat(lc[k]))); });
@@ -3712,6 +3787,7 @@ async function refreshFromServer(){
     solicitacoes = (json && json.solicitacoes) || solicitacoes;
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
     telasInfo = (json && json.telasInfo && typeof json.telasInfo === 'object') ? json.telasInfo : telasInfo;
+    planejamento = normalizaPlanejamento(json && json.planejamento);
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
     migraStatusPeca();
     leituDoServidorOk = true;
@@ -3934,6 +4010,7 @@ function updateModeUI(){
   document.getElementById('menuMais').style.display = isAdmin ? 'inline-block' : 'none';
   document.getElementById('btnReport').style.display = podeRelatorio ? 'inline-flex' : 'none';
   document.getElementById('btnReportVist').style.display = podeRelatorio ? 'inline-flex' : 'none';
+  document.getElementById('btnRelSemanal').style.display = (isOperador || isDiretoria) ? 'inline-flex' : 'none';
 
 
   // Pacheco e Robert cuidam da rota do dia e também atuam como técnicos
@@ -7066,6 +7143,296 @@ function cpSituacao(c){
   if(c.fim < hoje) return 'fim';
   if(c.ini > hoje) return 'breve';
   return cpDias(c.fim, hoje) <= 7 ? 'acaba' : 'rodando';
+}
+
+/* ============================================================
+   RELATÓRIO SEMANAL DA MANUTENÇÃO (v5.10)
+   Este bloco é IGUAL no painel (index.html) e no Apps Script:
+   a tela e o PDF do e-mail saem do mesmo código.
+   - Período: da sexta-feira 14h anterior até o momento da emissão.
+   - OS: só Corretiva e Preventiva.
+   - Equipe: EPX quando o técnico ou quem encerrou é o Pacheco ou
+     tem "EPX" escrito; qualquer outro conta como VTM.
+   ============================================================ */
+function relSemPad(n){ return (n < 10 ? '0' : '') + n; }
+function relSemData(ms){
+  var d = new Date(ms);
+  return relSemPad(d.getDate()) + '/' + relSemPad(d.getMonth() + 1) + '/' + d.getFullYear();
+}
+function relSemDataHora(ms){
+  var d = new Date(ms);
+  return relSemData(ms) + ' às ' + relSemPad(d.getHours()) + ':' + relSemPad(d.getMinutes());
+}
+function relSemDataISO(iso){
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+  return m ? (m[3] + '/' + m[2] + '/' + m[1]) : '—';
+}
+function relSemEsc(t){
+  return String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// semana que fecha na sexta às 14h
+function relSemPeriodo(agoraMs){
+  var a = new Date(agoraMs);
+  var s = new Date(a.getFullYear(), a.getMonth(), a.getDate(), 14, 0, 0, 0);
+  s.setDate(s.getDate() - ((a.getDay() - 5 + 7) % 7));
+  if(s.getTime() > agoraMs) s.setDate(s.getDate() - 7);
+  // logo depois das 14h de sexta (hora do envio) ainda vale a semana que acabou de fechar
+  if(agoraMs - s.getTime() < 2 * 3600 * 1000) s.setDate(s.getDate() - 7);
+  return { ini: s.getTime(), fim: agoraMs };
+}
+function relSemEquipe(x){
+  var t = (String(x.tecnico || '') + ' ' + String(x.encerradoPor || '')).toLowerCase();
+  return (t.indexOf('pacheco') >= 0 || t.indexOf('epx') >= 0) ? 'EPX' : 'VTM';
+}
+function relSemQuem(x){
+  return String(x.tecnico || x.encerradoPor || '').trim() || 'Não informado';
+}
+// andamento da atividade no início da semana (último registro antes do período)
+function relSemAndamentoEm(atv, ms){
+  var h = (atv.historico || []).filter(function(r){ return r && r.em < ms; });
+  if(!h.length) return null;
+  h.sort(function(a, b){ return a.em - b.em; });
+  return Number(h[h.length - 1].andamento) || 0;
+}
+function relSemMonta(estado, ini, fim, agoraMs){
+  var e = relSemEsc;
+  var NOMES = { corretiva:'Corretiva', preventiva:'Preventiva' };
+  var os = (estado.items || []).filter(function(x){ return x && (x.acao === 'corretiva' || x.acao === 'preventiva'); });
+  var dentro = function(ms){ return ms && ms >= ini && ms <= fim; };
+  var encerradas = os.filter(function(x){ return x.status === 'concluida' && dentro(x.dataConclusao); })
+                     .sort(function(a, b){ return (b.dataConclusao || 0) - (a.dataConclusao || 0); });
+  var conta = function(lista, acao, cond){ return lista.filter(function(x){ return x.acao === acao && (!cond || cond(x)); }).length; };
+
+  // 1. resumo
+  var linhaResumo = function(acao){
+    return '<tr><td class="r">' + (acao ? NOMES[acao] : 'Total') + '</td>' +
+      '<td class="n">' + os.filter(function(x){ return (!acao || x.acao === acao) && dentro(x.dataAbertura); }).length + '</td>' +
+      '<td class="n">' + encerradas.filter(function(x){ return !acao || x.acao === acao; }).length + '</td>' +
+      '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && relSemEquipe(x) === 'VTM'; }).length + '</td>' +
+      '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && relSemEquipe(x) === 'EPX'; }).length + '</td>' +
+      '<td class="n">' + os.filter(function(x){ return (!acao || x.acao === acao) && x.status !== 'concluida'; }).length + '</td></tr>';
+  };
+  var resumo = '<table><tr><th>Tipo</th><th>Abertas na semana</th><th>Encerradas na semana</th>' +
+    '<th>Encerradas pela VTM</th><th>Encerradas pela EPX</th><th>Em aberto agora</th></tr>' +
+    linhaResumo('corretiva') + linhaResumo('preventiva') + linhaResumo(null).replace('<tr>', '<tr class="tot">') + '</table>';
+
+  // 2. quem realizou
+  var pessoas = {};
+  encerradas.forEach(function(x){
+    var nome = relSemQuem(x), k = nome.toLowerCase();
+    if(!pessoas[k]) pessoas[k] = { nome: nome, equipe: relSemEquipe(x), corretiva: 0, preventiva: 0 };
+    pessoas[k][x.acao]++;
+  });
+  var listaPessoas = Object.keys(pessoas).map(function(k){ return pessoas[k]; })
+    .sort(function(a, b){ return (b.corretiva + b.preventiva) - (a.corretiva + a.preventiva) || a.nome.localeCompare(b.nome); });
+  var quem = listaPessoas.length
+    ? '<table><tr><th>Técnico</th><th>Equipe</th><th>Corretivas</th><th>Preventivas</th><th>Total</th></tr>' +
+      listaPessoas.map(function(p){
+        return '<tr><td>' + e(p.nome) + '</td><td>' + p.equipe + '</td><td class="n">' + p.corretiva + '</td><td class="n">' +
+               p.preventiva + '</td><td class="n"><b>' + (p.corretiva + p.preventiva) + '</b></td></tr>';
+      }).join('') + '</table>'
+    : '<p class="vazio">Nenhuma OS corretiva ou preventiva encerrada no período.</p>';
+
+  // 3. OS encerradas
+  var lista = encerradas.length
+    ? '<table><tr><th>OS</th><th>Tipo</th><th>Local</th><th>Técnico</th><th>Equipe</th><th>Encerrada em</th></tr>' +
+      encerradas.map(function(x){
+        return '<tr><td>' + e(x.code || '—') + '</td><td>' + NOMES[x.acao] + '</td><td>' + e(x.local || '—') + '</td><td>' +
+               e(relSemQuem(x)) + '</td><td>' + relSemEquipe(x) + '</td><td>' + relSemDataHora(x.dataConclusao) + '</td></tr>';
+      }).join('') + '</table>'
+    : '<p class="vazio">Nenhuma OS encerrada no período.</p>';
+
+  // 4. atividades previstas
+  var atvs = ((estado.planejamento || {}).atividades || []).slice();
+  var blocoPrazo = function(prazo, titulo){
+    var doPrazo = atvs.filter(function(a){ return a.prazo === prazo; })
+      .sort(function(a, b){ return String(a.previsao || '9999').localeCompare(String(b.previsao || '9999')); });
+    if(!doPrazo.length) return '<h3>' + titulo + '</h3><p class="vazio">Nenhuma atividade cadastrada.</p>';
+    return '<h3>' + titulo + '</h3><table><tr><th>Atividade</th><th>Previsão</th><th>Andamento</th><th>Evolução na semana</th><th>Situação atual</th></tr>' +
+      doPrazo.map(function(a){
+        var atual = Number(a.andamento) || 0;
+        var antes = relSemAndamentoEm(a, ini);
+        var evol = antes === null ? 'Nova na semana'
+                 : (atual - antes > 0 ? '+' + (atual - antes) + ' pontos (de ' + antes + '% para ' + atual + '%)'
+                 : (atual - antes < 0 ? (atual - antes) + ' pontos (de ' + antes + '% para ' + atual + '%)' : 'Sem avanço'));
+        return '<tr><td><b>' + e(a.titulo) + '</b></td><td>' + relSemDataISO(a.previsao) + '</td><td class="n"><b>' + atual + '%</b>' +
+               (atual >= 100 ? '<br><small>concluída</small>' : '') + '</td><td>' + evol + '</td><td>' + e(a.obs || '—') + '</td></tr>';
+      }).join('') + '</table>';
+  };
+
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório semanal da manutenção — ' + relSemData(fim) + '</title><style>' +
+    '@page{size:A4;margin:14mm}body{font-family:Arial,Helvetica,sans-serif;color:#1F1A26;font-size:10pt;line-height:1.35;margin:0}' +
+    'h1{font-size:15pt;margin:0;color:#1F1A26}h2{font-size:10.5pt;text-transform:uppercase;letter-spacing:.05em;color:#D9538F;margin:16px 0 6px}' +
+    'h3{font-size:10pt;margin:10px 0 4px;color:#4A4356}.sub{color:#6E6780;font-size:9.5pt;margin-top:3px}' +
+    '.faixa{height:4px;background:#EF4827;margin:8px 0 6px}table{width:100%;border-collapse:collapse;margin-bottom:4px}' +
+    'th{background:#F6F3F8;color:#4A4356;font-size:8.5pt;text-transform:uppercase;text-align:left;padding:5px 6px;border:1px solid #DDD8E3}' +
+    'td{padding:5px 6px;border:1px solid #DDD8E3;vertical-align:top;font-size:9.5pt}td.r{font-weight:bold;background:#FBFAFC}td.n{text-align:center}' +
+    'tr.tot td{font-weight:bold;background:#F6F3F8}.vazio{color:#8A8396;font-style:italic;margin:4px 0}small{color:#6E6780}' +
+    '.rod{margin-top:16px;padding-top:6px;border-top:1px solid #DDD8E3;font-size:8.5pt;color:#8A8396}' +
+    '</style></head><body>' +
+    '<h1>RELATÓRIO SEMANAL DA MANUTENÇÃO</h1>' +
+    '<div class="sub">VTM Mídia · Período: ' + relSemDataHora(ini) + ' até ' + relSemDataHora(fim) + '</div><div class="faixa"></div>' +
+    '<h2>1. Chamados corretivos e preventivos</h2>' + resumo +
+    '<h2>2. Quem realizou</h2>' + quem +
+    '<h2>3. OS encerradas na semana</h2>' + lista +
+    '<h2>4. Atividades previstas</h2>' + blocoPrazo('medio', 'Médio prazo') + blocoPrazo('longo', 'Longo prazo') +
+    '<div class="rod">Equipe EPX: atendimentos do Pacheco ou com "EPX" no técnico; os demais contam como VTM. ' +
+    'Gerado pelo Painel de Manutenção VTM em ' + relSemDataHora(agoraMs || fim) + '.</div>' +
+    '</body></html>';
+}
+/* ============ fim do bloco do relatório semanal ============ */
+
+/* ---------- Relatório semanal: tela do painel ---------- */
+function podeVerRelSemanal(){ return ehOperador() || (!!currentUser && currentUser.role === 'diretoria'); }
+let rsAbaAtual = 'rel';
+let rsAtvEditando = null;
+function openRelSemanal(){
+  if(!podeVerRelSemanal()) return;
+  const edita = ehOperador();
+  document.getElementById('rsEnvio').style.display = edita ? 'flex' : 'none';
+  document.getElementById('rsAtvBarra').style.display = edita ? 'flex' : 'none';
+  document.getElementById('rsEmails').value = (planejamento.emails || []).join(', ');
+  document.getElementById('relSemOverlay').classList.add('show');
+  rsAba(rsAbaAtual);
+}
+function closeRelSemanal(){ document.getElementById('relSemOverlay').classList.remove('show'); }
+function rsAba(aba){
+  rsAbaAtual = aba;
+  document.querySelectorAll('#relSemOverlay .cp-chip').forEach(b=>b.classList.toggle('on', b.dataset.a === aba));
+  document.getElementById('rsAbaRel').style.display = aba === 'rel' ? 'block' : 'none';
+  document.getElementById('rsAbaAtv').style.display = aba === 'atv' ? 'block' : 'none';
+  rsDesenhar();
+}
+function rsHtmlAtual(){
+  const agora = Date.now(), per = relSemPeriodo(agora);
+  return { html: relSemMonta(estadoLocal(), per.ini, per.fim, agora), per: per };
+}
+function rsDesenhar(){
+  const r = rsHtmlAtual();
+  document.getElementById('rsPeriodo').textContent = 'Período: ' + relSemDataHora(r.per.ini) + ' até agora. Fecha toda sexta-feira às 14h.';
+  document.getElementById('rsCAtv').textContent = (planejamento.atividades || []).length;
+  if(rsAbaAtual === 'rel') document.getElementById('rsFrame').srcdoc = r.html;
+  else rsDesenharAtividades();
+}
+function rsDesenharAtividades(){
+  const edita = ehOperador();
+  const atvs = planejamento.atividades || [];
+  const card = function(a){
+    const pct = Number(a.andamento) || 0;
+    const ult = (a.historico || []).slice(-1)[0];
+    return '<div class="rs-atv' + (edita ? ' edita' : '') + '"' + (edita ? ' onclick="rsAbrirAtividade(\'' + a.id + '\')"' : '') + '>' +
+      '<h4>' + escVist(a.titulo) + '</h4>' +
+      '<div class="cp-periodo"><span>' + (a.previsao ? 'Previsão: ' + relSemDataISO(a.previsao) : 'Sem previsão') + '</span>' +
+      '<div class="cp-progresso"><i style="width:' + Math.min(100, pct) + '%"></i></div><b>' + pct + '%</b></div>' +
+      (a.obs ? '<p>' + escVist(a.obs) + '</p>' : '') +
+      (ult ? '<div class="cp-ultima">Atualizada em ' + relSemDataHora(ult.em) + (ult.por ? ' por ' + escVist(ult.por) : '') + '</div>' : '') +
+      '</div>';
+  };
+  const grupo = function(prazo, titulo){
+    const lista = atvs.filter(a=>a.prazo === prazo)
+      .sort((a, b)=>String(a.previsao || '9999').localeCompare(String(b.previsao || '9999')));
+    return '<div class="rs-grupo">' + titulo + '</div>' +
+      (lista.length ? lista.map(card).join('') : '<div class="cp-vazio">Nenhuma atividade de ' + titulo.toLowerCase() + '.</div>');
+  };
+  document.getElementById('rsAtvLista').innerHTML = grupo('medio', 'Médio prazo') + grupo('longo', 'Longo prazo');
+}
+function rsAbrirAtividade(id){
+  if(!ehOperador()) return;
+  const a = id ? (planejamento.atividades || []).find(x=>x.id === id) : null;
+  rsAtvEditando = a ? a.id : null;
+  document.getElementById('rsAtvTitulo').textContent = a ? '✏️ Atualizar atividade' : '＋ Nova atividade';
+  document.getElementById('rsAtvNome').value = a ? a.titulo : '';
+  document.getElementById('rsAtvPrazo').value = a ? a.prazo : 'medio';
+  document.getElementById('rsAtvPrev').value = a ? (a.previsao || '') : '';
+  const pct = a ? (Number(a.andamento) || 0) : 0;
+  document.getElementById('rsAtvPct').value = pct;
+  document.getElementById('rsAtvPctTxt').textContent = pct + '%';
+  document.getElementById('rsAtvObs').value = a ? (a.obs || '') : '';
+  document.getElementById('rsAtvErro').textContent = '';
+  document.getElementById('rsAtvExcluir').style.display = a ? 'inline-flex' : 'none';
+  document.getElementById('relSemAtvOverlay').classList.add('show');
+}
+function rsFecharAtividade(){ document.getElementById('relSemAtvOverlay').classList.remove('show'); rsAtvEditando = null; }
+function rsSalvarAtividade(){
+  if(!ehOperador()) return;
+  const titulo = document.getElementById('rsAtvNome').value.trim();
+  if(!titulo){ document.getElementById('rsAtvErro').textContent = 'Escreva a atividade.'; return; }
+  const dados = {
+    titulo: titulo,
+    prazo: document.getElementById('rsAtvPrazo').value,
+    previsao: document.getElementById('rsAtvPrev').value || '',
+    andamento: Math.max(0, Math.min(100, parseInt(document.getElementById('rsAtvPct').value, 10) || 0)),
+    obs: document.getElementById('rsAtvObs').value.trim()
+  };
+  const quem = currentUser ? currentUser.name : '';
+  const agora = Date.now();
+  const lista = (planejamento.atividades || []).slice();
+  let a = rsAtvEditando ? lista.find(x=>x.id === rsAtvEditando) : null;
+  if(a){
+    const mudouAndamento = Number(a.andamento) !== dados.andamento || (a.obs || '') !== dados.obs;
+    a = Object.assign({}, a, dados);
+    // cada mudança de andamento fica registrada: é o que mostra a evolução da semana
+    if(mudouAndamento) a.historico = (a.historico || []).concat([{ em: agora, andamento: dados.andamento, obs: dados.obs, por: quem }]);
+    lista[lista.findIndex(x=>x.id === a.id)] = a;
+  } else {
+    lista.push(Object.assign({ id: 'atv' + agora + Math.floor(Math.random() * 1000), criadoEm: agora, criadoPor: quem,
+      historico: [{ em: agora, andamento: dados.andamento, obs: dados.obs, por: quem }] }, dados));
+  }
+  planejamento = Object.assign({}, planejamento, { atividades: lista });
+  rsFecharAtividade();
+  rsDesenhar();
+  persistComAviso('Não foi possível confirmar a gravação da atividade no servidor.');
+}
+function rsExcluirAtividade(){
+  if(!ehOperador() || !rsAtvEditando) return;
+  const id = rsAtvEditando;
+  askConfirm('Excluir esta atividade? Ela sai também do relatório semanal.', ()=>{
+    planejamento = Object.assign({}, planejamento, { atividades: (planejamento.atividades || []).filter(x=>x.id !== id) });
+    rsFecharAtividade();
+    rsDesenhar();
+    persistComAviso('Não foi possível confirmar a exclusão da atividade no servidor.');
+  });
+}
+function rsLerEmails(){
+  return document.getElementById('rsEmails').value.split(/[,;\s]+/).map(v=>v.trim().toLowerCase()).filter(Boolean);
+}
+function rsSalvarEmails(){
+  if(!ehOperador()) return;
+  const lista = rsLerEmails();
+  const errado = lista.find(v=>!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v));
+  if(errado){ askConfirm('Este e-mail parece incompleto: ' + errado, ()=>{}); return; }
+  planejamento = Object.assign({}, planejamento, { emails: Array.from(new Set(lista)) });
+  document.getElementById('rsEmails').value = planejamento.emails.join(', ');
+  persistComAviso('Não foi possível confirmar a gravação dos e-mails no servidor.');
+  askConfirm(planejamento.emails.length ? 'E-mails salvos: ' + planejamento.emails.join(', ') : 'Lista de e-mails vazia: o relatório não será enviado.', ()=>{});
+}
+async function rsEnviarAgora(){
+  if(!ehOperador()) return;
+  if(MODO_TESTE || !gasConfigured()){ askConfirm('O envio por e-mail só funciona no painel oficial, ligado ao servidor.', ()=>{}); return; }
+  const lista = rsLerEmails();
+  if(lista.join(',') !== (planejamento.emails || []).join(',')){ askConfirm('Salve os e-mails antes de enviar.', ()=>{}); return; }
+  if(!lista.length){ askConfirm('Coloque ao menos um e-mail e salve antes de enviar.', ()=>{}); return; }
+  askConfirm('Enviar agora o relatório da semana, em PDF, para: ' + lista.join(', ') + '?', async ()=>{
+    // grava antes: o servidor monta o relatório com o que está salvo
+    const ok = await persist();
+    if(!ok){ askConfirm('Não foi possível gravar os dados no servidor. O relatório não foi enviado.', ()=>{}); return; }
+    try{
+      const resp = await fetch(GAS_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action:'enviarRelatorioSemanal' }) });
+      const json = await resp.json().catch(()=>null);
+      if(json && json.ok) askConfirm('Relatório enviado para ' + (json.enviadoPara || lista).join(', ') + '.', ()=>{});
+      else askConfirm('O servidor não enviou o relatório.' + (json && json.error ? '\n\nResposta: ' + json.error : '\n\nConfira se o Apps Script v7 já foi publicado.'), ()=>{});
+    }catch(e){
+      askConfirm('Sem resposta do servidor. Confira a conexão e se o Apps Script v7 já foi publicado.', ()=>{});
+    }
+  });
+}
+function rsImprimir(){
+  const html = rsHtmlAtual().html.replace('</body>', '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script></body>');
+  const alvo = urlDoRelatorio(html);
+  let janela = null;
+  try{ janela = window.open(alvo.url, '_blank'); }catch(e){ janela = null; }
+  if(!janela){ const a = document.createElement('a'); a.href = alvo.url; a.download = 'Relatorio_Semanal_Manutencao.html'; document.body.appendChild(a); a.click(); a.remove(); }
 }
 
 function openCampanhas(){
