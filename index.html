@@ -1597,6 +1597,17 @@
   /* ---------- Campanhas (v5.08) ---------- */
   .cp-modal{width:1060px;}
   .rs-modal{width:1000px;}
+  #fTipoComp{width:100%;resize:vertical;line-height:1.45;}
+  .comp-videos{margin:4px 0 10px;}
+  .comp-video-link{display:block;word-break:break-all;font-size:12.5px;margin:2px 0 6px;color:#D9538F;}
+  .colab-lista{display:flex;flex-wrap:wrap;gap:8px;}
+  .colab-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--border);border-radius:999px;background:var(--panel-alt);font-size:13px;cursor:pointer;min-height:36px;}
+  .colab-chip small{color:var(--muted);font-size:11px;}
+  .colab-chip input[type=checkbox]{width:18px;height:18px;min-height:0;padding:0;margin:0;flex:0 0 auto;accent-color:#D9538F;border-radius:4px;}
+  .colab-chip:has(input:checked){border-color:#D9538F;}
+  .colab-chip.oculto{display:none;}
+  .tec-linhas{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+  .tec-linha{display:grid;grid-template-columns:minmax(0,1fr) 150px 44px;gap:8px;align-items:center;}
   .rs-frame{width:100%;height:56vh;border:1px solid var(--border);border-radius:var(--r-md);background:#fff;}
   .rs-envio{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--panel-alt);}
   .rs-obs{flex-basis:100%;color:var(--muted);font-size:11.5px;}
@@ -1759,6 +1770,7 @@
         <div class="menu-mais-grupo">Configuração</div>
         <button role="menuitem" onclick="menuMaisAcao(openCadastro,'locais')">📍 Cadastros</button>
         <button role="menuitem" onclick="menuMaisAcao(openDestinatarios)">📬 Destinatários</button>
+        <button role="menuitem" onclick="menuMaisAcao(openTecnicos)">👷 Técnicos</button>
         <button role="menuitem" onclick="menuMaisAcao(abrirLog)">🗒️ Registro de atividades</button>
         <div class="menu-mais-sep"></div>
         <div class="menu-mais-grupo">Dados</div>
@@ -1799,7 +1811,7 @@
     <div class="cp-filtros">
       <button class="cp-chip on" data-a="rel" onclick="rsAba('rel')">Relatório da semana</button>
       <button class="cp-chip" data-a="mes" onclick="rsAba('mes')">Relatório do mês</button>
-      <button class="cp-chip" data-a="atv" onclick="rsAba('atv')">Atividades previstas <b id="rsCAtv"></b></button>
+      <button class="cp-chip" data-a="atv" id="rsChipAtv" onclick="rsAba('atv')">Atividades previstas <b id="rsCAtv"></b></button>
     </div>
     <div id="rsAbaRel">
       <iframe id="rsFrame" class="rs-frame" title="Relatório semanal"></iframe>
@@ -1810,10 +1822,10 @@
     </div>
     <div class="rs-envio" id="rsEnvio">
       <div class="field" style="margin:0;flex:1 1 320px;">
-        <label>E-mails que recebem o relatório (separe por vírgula)</label>
+        <label id="rsEmailsRotulo">E-mails que recebem o relatório (separe por vírgula)</label>
         <input type="text" id="rsEmails" autocomplete="off" placeholder="nome@vtmmidia.com.br, outro@vtmmidia.com.br">
       </div>
-      <button class="btn" onclick="rsSalvarEmails()">Salvar e-mails</button>
+      <button class="btn" id="rsBtnSalvarEmails" onclick="rsSalvarEmails()">Salvar e-mails</button>
       <button class="btn primary" id="rsBtnEnviar" onclick="rsEnviarAgora()">📧 Enviar semanal agora</button>
       <small class="rs-obs">Envio automático em PDF anexo: o semanal toda sexta-feira às 14h e o mensal todo dia 1º às 8h.</small>
     </div>
@@ -2262,14 +2274,16 @@
     <div class="field" id="comprovacaoWrap" style="display:none;">
       <label>Locais desta comprovação</label>
       <div id="fCompGrupos" style="margin-bottom:8px;"></div>
+      <div id="fCompVideos" class="comp-videos" style="display:none;"></div>
       <label style="margin-top:4px;">Onde a foto da propaganda foi tirada (observação)</label>
       <input type="text" id="fLocalFoto" placeholder="Ex: Painel de entrada do shopping, virado para a Av. Principal">
       <div style="font-size:9px;color:var(--muted);margin-top:3px;">Anexe a foto nos campos "Foto de verificação/conclusão" abaixo.</div>
     </div>
     <div class="row2 esconde-totem">
-      <div class="field">
-        <label>Tipo de problema</label>
+      <div class="field" id="fTipoField">
+        <label id="lblTipo">Tipo de problema</label>
         <input type="text" id="fTipo" placeholder="Ex: falha de conectividade">
+        <textarea id="fTipoComp" rows="2" style="display:none;" oninput="document.getElementById('fTipo').value=this.value;compAutoAltura(this)"></textarea>
       </div>
       <div class="field">
         <label>Prioridade</label>
@@ -2281,7 +2295,7 @@
         </select>
       </div>
     </div>
-    <div class="field checkbox-field esconde-totem">
+    <div class="field checkbox-field esconde-totem" id="ehCompraField">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="fEhCompra" onchange="toggleCompraFields()" style="">
         Esta OS requer compra de material
@@ -2329,8 +2343,12 @@
       </div>
       <div class="field">
         <label>Técnico responsável</label>
-        <input type="text" id="fTecnicoM">
+        <select id="fTecnicoM" onchange="tecAtualizaColab()"></select>
       </div>
+    </div>
+    <div class="field">
+      <label>Em colaboração com</label>
+      <div id="fColabM" class="colab-lista"></div>
     </div>
     <div class="field">
       <label>Status</label>
@@ -2480,6 +2498,20 @@
     <div class="modal-actions">
       <button class="btn" onclick="fecharLog()">Fechar</button>
       <button class="btn primary" onclick="exportarLogCSV()">📗 Exportar planilha</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="tecnicosOverlay">
+  <div class="modal cp-modal-form">
+    <h2>👷 Técnicos</h2>
+    <p class="cp-sub">Quem aparece para escolher na OS e no campo "Em colaboração com". A equipe de cada um é a que conta nos relatórios.</p>
+    <div id="tecLinhas" class="tec-linhas"></div>
+    <button class="btn" onclick="tecAdicionar()">＋ Adicionar técnico</button>
+    <div class="cp-erro" id="tecErro" role="alert"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeTecnicos()">Cancelar</button>
+      <button class="btn primary" onclick="tecSalvar()">Salvar</button>
     </div>
   </div>
 </div>
@@ -3141,8 +3173,8 @@ const EMPRESA = {
    ao lado do título, então dá para conferir num relance se o
    aparelho está com a última cópia ou com uma antiga em cache.
    ============================================================ */
-const VERSAO_PAINEL = '5.09';
-const VERSAO_DATA = '19/10/2026';
+const VERSAO_PAINEL = '6.0';
+const VERSAO_DATA = '21/10/2026';
 let buscaDigitada = false;   // v5.06: ver render()
 
 const GAS_URL = EMPRESA.gasUrl;
@@ -3165,7 +3197,7 @@ function testeLoad(){
 
 function testeSave(){
   try{
-    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios, telasInfo, planejamento }));
+    window.localStorage.setItem(TESTE_KEY, JSON.stringify({ items, userSlots, cadastro, rotaPacheco, solicitacoes, rotaFixa, destinatarios, telasInfo, planejamento, equipeTecnicos }));
     const el = document.getElementById('syncInfo');
     if(el){ el.textContent = 'teste · salvo no navegador ' + new Date().toLocaleTimeString('pt-BR'); }
     return true;
@@ -3288,6 +3320,14 @@ let telasInfo = {};
    { atividades:[{ id, titulo, prazo:'medio'|'longo', previsao:'AAAA-MM-DD', andamento:0-100, obs,
                    historico:[{ em, andamento, obs, por }], criadoEm, criadoPor }], emails:[] } */
 let planejamento = { atividades: [], emails: [] };
+/* Lista de técnicos: [{ id, nome, equipe:'VTM'|'EPX'|'Terceirizado' }].
+   Vazia = a lista inicial (REL_TECNICOS_PADRAO). */
+let equipeTecnicos = [];
+function normalizaTecnicos(v){
+  return Array.isArray(v) ? v.filter(t=>t && t.nome).map(t=>({ id: t.id || ('tec' + Math.random().toString(36).slice(2,8)), nome: String(t.nome).trim(),
+    equipe: REL_EQUIPES.includes(t.equipe) ? t.equipe : 'VTM' })) : [];
+}
+function tecnicosLista(){ return equipeTecnicos.length ? equipeTecnicos : REL_TECNICOS_PADRAO; }
 function normalizaPlanejamento(v){
   const b = (v && typeof v === 'object') ? v : {};
   return { atividades: Array.isArray(b.atividades) ? b.atividades.filter(a=>a && a.id) : [],
@@ -3345,7 +3385,7 @@ function gasConfigured(){
 
 let isModalOpen = false;
 function anyModalOpen(){
-  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay','mtRenOverlay','logOverlay','destinatariosOverlay','relSemOverlay','relSemAtvOverlay'].some(id=>{
+  return ['overlay','codeOverlay','boasVindasOverlay','solicitarOSOverlay','reportFilterOverlay','vistoriaOverlay','cadastroOverlay','rotaOverlay','solicitacoesOverlay','mtRenOverlay','logOverlay','destinatariosOverlay','relSemOverlay','relSemAtvOverlay','tecnicosOverlay'].some(id=>{
     const el = document.getElementById(id);
     return el && el.classList.contains('show');
   });
@@ -3373,6 +3413,7 @@ async function loadData(){
       destinatarios = normalizaDestinatarios(d.destinatarios);
       telasInfo = (d.telasInfo && typeof d.telasInfo === 'object') ? d.telasInfo : telasInfo;
       planejamento = normalizaPlanejamento(d.planejamento);
+      equipeTecnicos = normalizaTecnicos(d.equipeTecnicos);
       rotaFixa = d.rotaFixa || rotaFixa;
       migraStatusPeca();
       render();
@@ -3402,6 +3443,7 @@ async function loadData(){
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
     telasInfo = (json && json.telasInfo && typeof json.telasInfo === 'object') ? json.telasInfo : telasInfo;
     planejamento = normalizaPlanejamento(json && json.planejamento);
+    equipeTecnicos = normalizaTecnicos(json && json.equipeTecnicos);
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
     if(json && json.licenca) licenca = json.licenca;
     migraStatusPeca();
@@ -3449,7 +3491,7 @@ async function diagnosticoConexao(){
     return;
   }
 
-  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo, planejamento });
+  const limpo = semFotosLocais({ items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo, planejamento, equipeTecnicos });
   const tamanho = JSON.stringify(limpo).length;
   const blocos = Math.ceil(tamanho / 45000);
   const pendentes = (solicitacoes||[]).filter(s=>s.status==='pendente').length;
@@ -3544,8 +3586,8 @@ function semFotosLocais(dados){
    ESTE aparelho alterou desde a última leitura.
    ============================================================ */
 let snapServidor = null;   // retrato dos dados na última leitura/gravação
-function estadoLocal(){ return { items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo, planejamento }; }
-const CHAVES_SIMPLES = ['cadastro','rotaPacheco','historicoRotas','rotaFixa','destinatarios','telasInfo','planejamento'];
+function estadoLocal(){ return { items, userSlots, cadastro, rotaPacheco, historicoRotas, solicitacoes, rotaFixa, destinatarios, telasInfo, planejamento, equipeTecnicos }; }
+const CHAVES_SIMPLES = ['cadastro','rotaPacheco','historicoRotas','rotaFixa','destinatarios','telasInfo','planejamento','equipeTecnicos'];
 // fonte = o que foi lido ou ENVIADO ao servidor (não o que está na tela agora:
 // uma alteração feita durante o envio ainda não foi gravada e precisa seguir "alterada")
 function tiraRetrato(fonte){
@@ -3587,6 +3629,7 @@ async function mesclaComServidor(){
   destinatarios = normalizaDestinatarios(pega('destinatarios'));
   const ti = pega('telasInfo'); telasInfo = (ti && typeof ti === 'object') ? ti : telasInfo;
   planejamento = normalizaPlanejamento(pega('planejamento'));
+  equipeTecnicos = normalizaTecnicos(pega('equipeTecnicos'));
   // vagas de login: junta as dos dois lados, ninguém perde a vaga
   const sv = normalizeUserSlots(json.userSlots), lc = normalizeUserSlots(userSlots);
   Object.keys(lc).forEach(function(k){ if(Array.isArray(lc[k])) sv[k] = Array.from(new Set((sv[k] || []).concat(lc[k]))); });
@@ -3789,6 +3832,7 @@ async function refreshFromServer(){
     destinatarios = normalizaDestinatarios(json && json.destinatarios);
     telasInfo = (json && json.telasInfo && typeof json.telasInfo === 'object') ? json.telasInfo : telasInfo;
     planejamento = normalizaPlanejamento(json && json.planejamento);
+    equipeTecnicos = normalizaTecnicos(json && json.equipeTecnicos);
     rotaFixa = (json && json.rotaFixa) || rotaFixa;
     migraStatusPeca();
     leituDoServidorOk = true;
@@ -4452,6 +4496,7 @@ function onAcaoChange(){
       ' preenchido nesta OS. Trocar a ação exige apagar o relatório atual, porque o roteiro é diferente.</span>'
     : 'Define qual relatório esta OS abre: ' + (ACOES[acao]||ACOES.visita).rel + '.';
   document.getElementById('comprovacaoWrap').style.display = (acao === 'comprovacao') ? 'block' : 'none';
+  aplicaModoComprovacao(acao === 'comprovacao');
   aplicaLocalMultiplo(acao === 'visita');
   aplicaModoTotem(acao === 'totem');
   atualizaBotaoVistoria();
@@ -4478,7 +4523,7 @@ function aplicaModoEdicao(){
   const soLeitura = perm === 'none';
   const limited = perm === 'limited';
 
-  const campos = ['fLocalSel','fLocal','fAcao','fTipo','fPrioridadeM','fSolicitante','fTecnicoM',
+  const campos = ['fLocalSel','fLocal','fAcao','fTipo','fTipoComp','fPrioridadeM','fSolicitante','fTecnicoM',
                   'fEhCompra','fRequerRelatorio','fRequerDiagnostico','fStatus','fDiagnostico'];
   const soDoTecnico = ['fStatus','fDiagnostico','fRequerDiagnostico'];
   campos.forEach(fid=>{
@@ -4487,6 +4532,7 @@ function aplicaModoEdicao(){
     if(limited) el.disabled = !soDoTecnico.includes(fid);
     else el.disabled = soLeitura;
   });
+  document.querySelectorAll('#fColabM input').forEach(c=>{ c.disabled = limited || soLeitura; });
 
   const matBloq = soLeitura || limited;
   document.querySelectorAll('#materiaisLista input').forEach(inp=>inp.disabled = matBloq);
@@ -4595,7 +4641,7 @@ function openModal(id){
     document.getElementById('fTipo').value = it.tipo;
     document.getElementById('fPrioridadeM').value = it.prioridade;
     document.getElementById('fSolicitante').value = it.solicitante||'';
-    document.getElementById('fTecnicoM').value = it.tecnico||'';
+    preencheTecnicosForm(it.tecnico || '', it.colaboradores || []);
     if(it.status === 'andamento' || it.status === 'concluida') document.getElementById('fStatus').value = it.status;
   else document.getElementById('fStatus').selectedIndex = -1;
     document.getElementById('fDiagnostico').value = it.diagnostico||'';
@@ -4622,7 +4668,8 @@ function openModal(id){
     atualizaAvisoSync();
   } else {
     document.getElementById('modalTitle').textContent = 'Nova ordem de serviço';
-    ['fLocal','fTipo','fSolicitante','fTecnicoM','fDiagnostico'].forEach(id=>document.getElementById(id).value='');
+    ['fLocal','fTipo','fSolicitante','fDiagnostico'].forEach(id=>document.getElementById(id).value='');
+    preencheTecnicosForm('', []);
     preencheTotem(null);
     document.getElementById('fAcao').value = 'visita';
     document.getElementById('fLocalFoto').value = '';
@@ -4663,6 +4710,49 @@ function openModal(id){
     // aplica o modo do campo de local conforme a ação (visita = múltipla escolha)
     onAcaoChange();
   }
+  aplicaModoComprovacao(document.getElementById('fAcao').value === 'comprovacao');
+}
+
+/* v6.0 — OS de comprovação: é pedido de comprovação, não problema.
+   Mostra o texto inteiro do pedido e do diagnóstico, os vídeos da campanha
+   e tira a compra de material. "Parcialmente atendida" continua valendo. */
+function compAutoAltura(el){
+  if(!el) return;
+  if(!el.offsetParent) return;          // escondido: mede quando aparecer
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight + 2, Math.round(window.innerHeight * 0.6)) + 'px';
+}
+function aplicaModoComprovacao(on){
+  const tipo = document.getElementById('fTipo');
+  const longo = document.getElementById('fTipoComp');
+  document.getElementById('lblTipo').textContent = on ? 'Pedido de comprovação' : 'Tipo de problema';
+  document.getElementById('fTipoField').style.gridColumn = on ? '1 / -1' : '';
+  tipo.style.display = on ? 'none' : '';
+  longo.style.display = on ? 'block' : 'none';
+  longo.disabled = tipo.disabled;
+  if(on){ longo.value = tipo.value; compAutoAltura(longo); }
+  // comprovação não compra material
+  document.getElementById('ehCompraField').style.display = on ? 'none' : '';
+  if(on && document.getElementById('fEhCompra').checked){
+    document.getElementById('fEhCompra').checked = false;
+    toggleCompraFields();
+  }
+  if(on) document.getElementById('compraFieldsWrap').style.display = 'none';
+  // diagnóstico inteiro à vista
+  const diag = document.getElementById('fDiagnostico');
+  if(on){
+    diag.oninput = ()=>compAutoAltura(diag);
+    requestAnimationFrame(()=>{ compAutoAltura(longo); compAutoAltura(diag); });
+  } else { diag.style.height = ''; diag.oninput = null; }
+  // vídeos da campanha que vieram do pedido
+  const box = document.getElementById('fCompVideos');
+  const it = editingId ? items.find(x=>x.id===editingId) : null;
+  const videos = (on && it) ? [it.linkVideo, it.linkVideo2].filter(Boolean) : [];
+  box.style.display = videos.length ? 'block' : 'none';
+  box.innerHTML = videos.map((v, i)=>
+    '<label>' + (videos.length > 1 ? 'Vídeo ' + (i + 1) + ' da campanha' : 'Vídeo da campanha') + '</label>' +
+    '<a class="comp-video-link" href="' + escVist(v) + '" target="_blank" rel="noopener">' + escVist(v) + '</a>' +
+    embedVideo(v)).join('');
 }
 
 function normalizaFotos(v){
@@ -4674,6 +4764,7 @@ function normalizaFotos(v){
 function toggleDiagnosticoFields(){
   const marcado = document.getElementById('fRequerDiagnostico').checked;
   document.getElementById('diagnosticoFieldsWrap').style.display = marcado ? 'block' : 'none';
+  if(marcado && document.getElementById('fAcao').value === 'comprovacao') compAutoAltura(document.getElementById('fDiagnostico'));
 }
 
 function onParcialChange(){
@@ -5031,6 +5122,8 @@ async function saveOS(){
     prioridade: document.getElementById('fPrioridadeM').value,
     solicitante: document.getElementById('fSolicitante').value.trim(),
     tecnico: document.getElementById('fTecnicoM').value.trim(),
+    colaboradores: Array.from(document.querySelectorAll('#fColabM input:checked')).map(c=>c.value)
+      .filter(v=>v !== document.getElementById('fTecnicoM').value.trim()),
     status: statusEscolhido,
     requerDiagnostico: document.getElementById('fRequerDiagnostico').checked,
     parcial: document.getElementById('fParcial').checked,
@@ -7154,8 +7247,9 @@ function cpSituacao(c){
    - Mensal: do dia 1º até o momento da emissão; no dia 1º vale o mês
      anterior inteiro (é o que vai no e-mail das 8h).
    - OS: só Corretiva e Preventiva.
-   - Equipe: EPX quando o técnico ou quem encerrou é o Pacheco ou
-     tem "EPX" escrito; qualquer outro conta como VTM.
+   - Quem fez: o técnico da OS e quem trabalhou em colaboração, cada um
+     com a equipe da lista de técnicos (VTM, EPX ou Terceirizado). Nomes
+     antigos, escritos à mão, são reconhecidos pelo nome da pessoa.
    ============================================================ */
 function relSemPad(n){ return (n < 10 ? '0' : '') + n; }
 function relSemData(ms){
@@ -7194,6 +7288,58 @@ function relMesPeriodo(agoraMs){
   return { ini: ini.getTime(), fim: agoraMs };
 }
 var REL_MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+// lista de técnicos (o painel guarda em equipeTecnicos; vazia = esta lista inicial)
+var REL_TECNICOS_PADRAO = [
+  { id:'joao',    nome:'João',            equipe:'VTM' },
+  { id:'robert',  nome:'Robert Furtuoso', equipe:'VTM' },
+  { id:'carlos',  nome:'Carlos',          equipe:'VTM' },
+  { id:'jan',     nome:'Jan',             equipe:'VTM' },
+  { id:'pacheco', nome:'Pacheco',         equipe:'EPX' },
+  { id:'alan',    nome:'Alan',            equipe:'Terceirizado' },
+  { id:'evair',   nome:'Evair',           equipe:'Terceirizado' }
+];
+var REL_EQUIPES = ['VTM', 'EPX', 'Terceirizado'];
+function relTecLista(estado){
+  var l = estado && estado.equipeTecnicos;
+  return (l && l.length) ? l : REL_TECNICOS_PADRAO;
+}
+function relNorm(t){
+  return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+}
+// pessoas da lista citadas num texto: pelo nome completo ou pelo primeiro nome
+function relPessoasDoTexto(txt, lista){
+  var n = ' ' + relNorm(txt) + ' ';
+  if(!n.trim()) return [];
+  return lista.filter(function(p){
+    var cheio = relNorm(p.nome), primeiro = cheio.split(' ')[0];
+    return (cheio && n.indexOf(' ' + cheio + ' ') >= 0) || (primeiro && n.indexOf(' ' + primeiro + ' ') >= 0);
+  });
+}
+// quem fez a OS: técnico + colaboração, sem repetir ninguém
+function relSemPessoas(x, lista){
+  var pessoas = [], vistos = {};
+  var add = function(nome, equipe){ var k = relNorm(nome); if(k && !vistos[k]){ vistos[k] = 1; pessoas.push({ nome: nome, equipe: equipe }); } };
+  var principal = String(x.tecnico || x.encerradoPor || '').trim();
+  var achados = relPessoasDoTexto(principal, lista);
+  if(achados.length) achados.forEach(function(p){ add(p.nome, p.equipe); });
+  else if(principal){
+    var t = ' ' + relNorm(principal) + ' ';
+    if(t.indexOf(' epx ') >= 0) add('Equipe EPX', 'EPX');
+    else if(t.indexOf(' vtm ') >= 0 || t.indexOf(' manutencao ') >= 0) add('Equipe VTM', 'VTM');
+    else add(principal, 'VTM');
+  }
+  (x.colaboradores || []).forEach(function(nome){
+    var p = relPessoasDoTexto(nome, lista)[0];
+    if(p) add(p.nome, p.equipe); else add(String(nome), 'VTM');
+  });
+  if(!pessoas.length) add('Não informado', 'VTM');
+  return pessoas;
+}
+function relSemEquipesOS(x, lista){
+  var eq = [];
+  relSemPessoas(x, lista).forEach(function(p){ if(eq.indexOf(p.equipe) < 0) eq.push(p.equipe); });
+  return eq;
+}
 function relSemEquipe(x){
   var t = (String(x.tecnico || '') + ' ' + String(x.encerradoPor || '')).toLowerCase();
   return (t.indexOf('pacheco') >= 0 || t.indexOf('epx') >= 0) ? 'EPX' : 'VTM';
@@ -7211,6 +7357,8 @@ function relSemAndamentoEm(atv, ms){
 // opcoes.mensal = true monta o relatório do mês; sem opcoes, o semanal (como sempre foi)
 function relSemMonta(estado, ini, fim, agoraMs, opcoes){
   var e = relSemEsc;
+  var lista = relTecLista(estado);
+  var temEq = function(x, eq){ return relSemEquipesOS(x, lista).indexOf(eq) >= 0; };
   var mensal = !!(opcoes && opcoes.mensal);
   var noPer = mensal ? 'no mês' : 'na semana';
   var NOMES = { corretiva:'Corretiva', preventiva:'Preventiva' };
@@ -7225,20 +7373,24 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
     return '<tr><td class="r">' + (acao ? NOMES[acao] : 'Total') + '</td>' +
       '<td class="n">' + os.filter(function(x){ return (!acao || x.acao === acao) && dentro(x.dataAbertura); }).length + '</td>' +
       '<td class="n">' + encerradas.filter(function(x){ return !acao || x.acao === acao; }).length + '</td>' +
-      '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && relSemEquipe(x) === 'VTM'; }).length + '</td>' +
-      '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && relSemEquipe(x) === 'EPX'; }).length + '</td>' +
+      '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && temEq(x, 'VTM'); }).length + '</td>' +
+      '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && temEq(x, 'EPX'); }).length + '</td>' +
+      '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && temEq(x, 'Terceirizado'); }).length + '</td>' +
       '<td class="n">' + os.filter(function(x){ return (!acao || x.acao === acao) && x.status !== 'concluida'; }).length + '</td></tr>';
   };
   var resumo = '<table><tr><th>Tipo</th><th>Abertas ' + noPer + '</th><th>Encerradas ' + noPer + '</th>' +
-    '<th>Encerradas pela VTM</th><th>Encerradas pela EPX</th><th>Em aberto agora</th></tr>' +
+    '<th>Encerradas pela VTM</th><th>Encerradas pela EPX</th><th>Encerradas por terceirizados</th><th>Em aberto agora</th></tr>' +
     linhaResumo('corretiva') + linhaResumo('preventiva') + linhaResumo(null).replace('<tr>', '<tr class="tot">') + '</table>';
 
   // 2. quem realizou
   var pessoas = {};
   encerradas.forEach(function(x){
-    var nome = relSemQuem(x), k = nome.toLowerCase();
-    if(!pessoas[k]) pessoas[k] = { nome: nome, equipe: relSemEquipe(x), corretiva: 0, preventiva: 0 };
-    pessoas[k][x.acao]++;
+    // OS em colaboração conta para cada pessoa que trabalhou nela
+    relSemPessoas(x, lista).forEach(function(pe){
+      var k = relNorm(pe.nome);
+      if(!pessoas[k]) pessoas[k] = { nome: pe.nome, equipe: pe.equipe, corretiva: 0, preventiva: 0 };
+      pessoas[k][x.acao]++;
+    });
   });
   var listaPessoas = Object.keys(pessoas).map(function(k){ return pessoas[k]; })
     .sort(function(a, b){ return (b.corretiva + b.preventiva) - (a.corretiva + a.preventiva) || a.nome.localeCompare(b.nome); });
@@ -7255,7 +7407,8 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
     ? '<table><tr><th>OS</th><th>Tipo</th><th>Local</th><th>Técnico</th><th>Equipe</th><th>Encerrada em</th></tr>' +
       encerradas.map(function(x){
         return '<tr><td>' + e(x.code || '—') + '</td><td>' + NOMES[x.acao] + '</td><td>' + e(x.local || '—') + '</td><td>' +
-               e(relSemQuem(x)) + '</td><td>' + relSemEquipe(x) + '</td><td>' + relSemDataHora(x.dataConclusao) + '</td></tr>';
+               e(relSemPessoas(x, lista).map(function(p){ return p.nome; }).join(' e ')) + '</td><td>' +
+               relSemEquipesOS(x, lista).join(' + ') + '</td><td>' + relSemDataHora(x.dataConclusao) + '</td></tr>';
       }).join('') + '</table>'
     : '<p class="vazio">Nenhuma OS encerrada no período.</p>';
 
@@ -7298,7 +7451,8 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
     '<h2>2. Quem realizou</h2>' + quem +
     '<h2>3. OS encerradas ' + noPer + '</h2>' + lista +
     '<h2>4. Atividades previstas</h2>' + blocoPrazo('medio', 'Médio prazo') + blocoPrazo('longo', 'Longo prazo') +
-    '<div class="rod">Equipe EPX: atendimentos do Pacheco ou com "EPX" no técnico; os demais contam como VTM. ' +
+    '<div class="rod">Equipes conforme a lista de técnicos do painel. A OS feita em colaboração conta para cada pessoa e cada equipe que trabalhou nela; ' +
+    'por isso a soma por equipe pode passar do total de OS. ' +
     'Gerado pelo Painel de Manutenção VTM em ' + relSemDataHora(agoraMs || fim) + '.</div>' +
     '</body></html>';
 }
@@ -7308,17 +7462,30 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
 function podeVerRelSemanal(){ return ehOperador() || (!!currentUser && currentUser.role === 'diretoria'); }
 let rsAbaAtual = 'rel';
 let rsAtvEditando = null;
+// Programador: tudo. Administrador: relatórios, envio e atividades; vê os e-mails sem alterar.
+// Diretoria: só os relatórios (tela e PDF); não vê atividades previstas nem e-mails.
+function podeAlterarEmailsRel(){ return !!currentUser && currentUser.role === 'admin'; }
 function openRelSemanal(){
   if(!podeVerRelSemanal()) return;
   const edita = ehOperador();
+  const mexeEmails = podeAlterarEmailsRel();
   document.getElementById('rsEnvio').style.display = edita ? 'flex' : 'none';
   document.getElementById('rsAtvBarra').style.display = edita ? 'flex' : 'none';
-  document.getElementById('rsEmails').value = (planejamento.emails || []).join(', ');
+  document.getElementById('rsChipAtv').style.display = edita ? '' : 'none';
+  if(!edita && rsAbaAtual === 'atv') rsAbaAtual = 'rel';
+  const campo = document.getElementById('rsEmails');
+  campo.value = (planejamento.emails || []).join(', ');
+  campo.readOnly = !mexeEmails;
+  document.getElementById('rsBtnSalvarEmails').style.display = mexeEmails ? '' : 'none';
+  document.getElementById('rsEmailsRotulo').textContent = mexeEmails
+    ? 'E-mails que recebem o relatório (separe por vírgula)'
+    : 'E-mails que recebem o relatório (só o Programador altera)';
   document.getElementById('relSemOverlay').classList.add('show');
   rsAba(rsAbaAtual);
 }
 function closeRelSemanal(){ document.getElementById('relSemOverlay').classList.remove('show'); }
 function rsAba(aba){
+  if(aba === 'atv' && !ehOperador()) aba = 'rel';
   rsAbaAtual = aba;
   document.querySelectorAll('#relSemOverlay .cp-chip').forEach(b=>b.classList.toggle('on', b.dataset.a === aba));
   document.getElementById('rsAbaRel').style.display = (aba === 'rel' || aba === 'mes') ? 'block' : 'none';
@@ -7424,7 +7591,7 @@ function rsLerEmails(){
   return document.getElementById('rsEmails').value.split(/[,;\s]+/).map(v=>v.trim().toLowerCase()).filter(Boolean);
 }
 function rsSalvarEmails(){
-  if(!ehOperador()) return;
+  if(!podeAlterarEmailsRel()) return;
   const lista = rsLerEmails();
   const errado = lista.find(v=>!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v));
   if(errado){ askConfirm('Este e-mail parece incompleto: ' + errado, ()=>{}); return; }
@@ -7461,6 +7628,72 @@ function rsImprimir(){
   let janela = null;
   try{ janela = window.open(alvo.url, '_blank'); }catch(e){ janela = null; }
   if(!janela){ const a = document.createElement('a'); a.href = alvo.url; a.download = rsAbaAtual === 'mes' ? 'Relatorio_Mensal_Manutencao.html' : 'Relatorio_Semanal_Manutencao.html'; document.body.appendChild(a); a.click(); a.remove(); }
+}
+
+
+/* ---------- Técnicos: escolha na OS, colaboração e lista ---------- */
+function preencheTecnicosForm(atual, colabs){
+  const lista = tecnicosLista();
+  const nomes = lista.map(p=>p.nome);
+  const sel = document.getElementById('fTecnicoM');
+  let opts = '<option value="">— escolha o técnico —</option>' +
+    lista.map(p=>'<option value="' + escVist(p.nome) + '">' + escVist(p.nome) + ' · ' + p.equipe + '</option>').join('');
+  // OS antiga com o nome escrito à mão: o texto fica preservado até alguém escolher da lista
+  if(atual && !nomes.includes(atual)) opts += '<option value="' + escVist(atual) + '">' + escVist(atual) + ' (escrito à mão)</option>';
+  sel.innerHTML = opts;
+  sel.value = atual || '';
+  const marcados = colabs || [];
+  const extras = marcados.filter(n=>!nomes.includes(n));
+  document.getElementById('fColabM').innerHTML =
+    lista.map(p=>'<label class="colab-chip"><input type="checkbox" value="' + escVist(p.nome) + '"' + (marcados.includes(p.nome) ? ' checked' : '') + '> ' +
+      escVist(p.nome) + ' <small>' + p.equipe + '</small></label>').join('') +
+    extras.map(n=>'<label class="colab-chip"><input type="checkbox" value="' + escVist(n) + '" checked> ' + escVist(n) + '</label>').join('');
+  document.querySelectorAll('#fColabM input').forEach(c=>{ c.disabled = sel.disabled; });
+  tecAtualizaColab();
+}
+// quem é o técnico principal não aparece de novo na colaboração
+function tecAtualizaColab(){
+  const principal = document.getElementById('fTecnicoM').value;
+  document.querySelectorAll('#fColabM input').forEach(c=>{
+    const fora = c.value === principal;
+    if(fora) c.checked = false;
+    c.closest('.colab-chip').classList.toggle('oculto', fora);
+  });
+}
+let tecRascunho = [];
+function openTecnicos(){
+  if(!ehAdmin()) return;
+  tecRascunho = tecnicosLista().map(t=>Object.assign({}, t));
+  document.getElementById('tecErro').textContent = '';
+  tecDesenhar();
+  document.getElementById('tecnicosOverlay').classList.add('show');
+}
+function closeTecnicos(){ document.getElementById('tecnicosOverlay').classList.remove('show'); }
+function tecDesenhar(){
+  document.getElementById('tecLinhas').innerHTML = tecRascunho.map((t, i)=>
+    '<div class="tec-linha">' +
+      '<input type="text" aria-label="Nome do técnico" value="' + escVist(t.nome) + '" oninput="tecRascunho[' + i + '].nome=this.value">' +
+      '<select aria-label="Equipe" onchange="tecRascunho[' + i + '].equipe=this.value">' +
+        REL_EQUIPES.map(eq=>'<option' + (eq === t.equipe ? ' selected' : '') + '>' + eq + '</option>').join('') + '</select>' +
+      '<button class="btn" aria-label="Tirar da lista" title="Tirar da lista" onclick="tecRascunho.splice(' + i + ',1);tecDesenhar()">✕</button>' +
+    '</div>').join('');
+}
+function tecAdicionar(){
+  tecRascunho.push({ id: 'tec' + Date.now(), nome: '', equipe: 'VTM' });
+  tecDesenhar();
+  const campos = document.querySelectorAll('#tecLinhas input');
+  if(campos.length) campos[campos.length - 1].focus();
+}
+function tecSalvar(){
+  if(!ehAdmin()) return;
+  const lista = tecRascunho.map(t=>({ id: t.id, nome: String(t.nome || '').trim(), equipe: t.equipe })).filter(t=>t.nome);
+  const chaves = lista.map(t=>relNorm(t.nome));
+  const repetido = lista.find((t, i)=>chaves.indexOf(chaves[i]) !== i);
+  if(repetido){ document.getElementById('tecErro').textContent = 'O nome "' + repetido.nome + '" está repetido na lista.'; return; }
+  if(!lista.length){ document.getElementById('tecErro').textContent = 'A lista precisa ter ao menos um técnico.'; return; }
+  equipeTecnicos = lista;
+  closeTecnicos();
+  persistComAviso('Não foi possível confirmar a gravação da lista de técnicos no servidor.');
 }
 
 function openCampanhas(){
