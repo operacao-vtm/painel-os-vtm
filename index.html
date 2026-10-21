@@ -7251,7 +7251,8 @@ function cpSituacao(c){
    - Semanal: da sexta-feira 14h anterior até o momento da emissão.
    - Mensal: do dia 1º até o momento da emissão; no dia 1º vale o mês
      anterior inteiro (é o que vai no e-mail das 8h).
-   - OS: Corretiva, Preventiva e Visita técnica (OS sem ação gravada conta como visita, como no painel).
+   - OS: todos os tipos do painel (corretiva, preventiva, visita técnica, compra de material,
+     comprovação e totem). OS sem ação gravada conta como visita, como no painel.
    - Quem fez: o técnico da OS e quem trabalhou em colaboração, cada um
      com a equipe da lista de técnicos (VTM, EPX ou Terceirizado). Nomes
      antigos, escritos à mão, são reconhecidos pelo nome da pessoa.
@@ -7366,28 +7367,43 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
   var temEq = function(x, eq){ return relSemEquipesOS(x, lista).indexOf(eq) >= 0; };
   var mensal = !!(opcoes && opcoes.mensal);
   var noPer = mensal ? 'no mês' : 'na semana';
-  var NOMES = { corretiva:'Corretiva', preventiva:'Preventiva', visita:'Visita técnica' };
-  var acaoDe = function(x){ return x.acao || 'visita'; };
-  var os = (estado.items || []).filter(function(x){ return x && NOMES[acaoDe(x)]; })
-                               .map(function(x){ return x.acao ? x : Object.assign({}, x, { acao: 'visita' }); });
+  // todos os tipos de OS do painel, para não faltar o trabalho de ninguém
+  var TIPOS = [
+    { k:'corretiva',   nome:'Corretiva',                   col:'Corretivas' },
+    { k:'preventiva',  nome:'Preventiva',                  col:'Preventivas' },
+    { k:'visita',      nome:'Visita técnica',              col:'Visitas' },
+    { k:'compra',      nome:'Compra de material',          col:'Compras' },
+    { k:'comprovacao', nome:'Comprovação',                 col:'Comprovações' },
+    { k:'totem',       nome:'Instalação/Remoção de Totem', col:'Totens' },
+    { k:'outro',       nome:'Outros',                      col:'Outros' }
+  ];
+  var NOMES = {};
+  TIPOS.forEach(function(t){ NOMES[t.k] = t.nome; });
+  // OS sem ação gravada conta como visita (como no painel); ação desconhecida vai para "Outros"
+  var acaoDe = function(x){ return !x.acao ? 'visita' : (NOMES[x.acao] && x.acao !== 'outro' ? x.acao : 'outro'); };
+  var os = (estado.items || []).filter(function(x){ return !!x; })
+                               .map(function(x){ var a = acaoDe(x); return x.acao === a ? x : Object.assign({}, x, { acao: a }); });
   var dentro = function(ms){ return ms && ms >= ini && ms <= fim; };
   var encerradas = os.filter(function(x){ return x.status === 'concluida' && dentro(x.dataConclusao); })
                      .sort(function(a, b){ return (b.dataConclusao || 0) - (a.dataConclusao || 0); });
-  var conta = function(lista, acao, cond){ return lista.filter(function(x){ return x.acao === acao && (!cond || cond(x)); }).length; };
+  // "Outros" só aparece quando existe
+  var tiposUsados = TIPOS.filter(function(t){ return t.k !== 'outro' || os.some(function(x){ return x.acao === 'outro'; }); });
 
   // 1. resumo
   var linhaResumo = function(acao){
+    var doTipo = function(x){ return !acao || x.acao === acao; };
     return '<tr><td class="r">' + (acao ? NOMES[acao] : 'Total') + '</td>' +
-      '<td class="n">' + os.filter(function(x){ return (!acao || x.acao === acao) && dentro(x.dataAbertura); }).length + '</td>' +
-      '<td class="n">' + encerradas.filter(function(x){ return !acao || x.acao === acao; }).length + '</td>' +
-      '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && temEq(x, 'VTM'); }).length + '</td>' +
-      '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && temEq(x, 'EPX'); }).length + '</td>' +
-      '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && temEq(x, 'Terceirizado'); }).length + '</td>' +
-      '<td class="n">' + os.filter(function(x){ return (!acao || x.acao === acao) && x.status !== 'concluida'; }).length + '</td></tr>';
+      '<td class="n">' + os.filter(function(x){ return doTipo(x) && dentro(x.dataAbertura); }).length + '</td>' +
+      '<td class="n">' + encerradas.filter(doTipo).length + '</td>' +
+      '<td class="n">' + encerradas.filter(function(x){ return doTipo(x) && temEq(x, 'VTM'); }).length + '</td>' +
+      '<td class="n">' + encerradas.filter(function(x){ return doTipo(x) && temEq(x, 'EPX'); }).length + '</td>' +
+      '<td class="n">' + encerradas.filter(function(x){ return doTipo(x) && temEq(x, 'Terceirizado'); }).length + '</td>' +
+      '<td class="n">' + os.filter(function(x){ return doTipo(x) && x.status !== 'concluida'; }).length + '</td></tr>';
   };
   var resumo = '<table><tr><th>Tipo</th><th>Abertas ' + noPer + '</th><th>Encerradas ' + noPer + '</th>' +
     '<th>Encerradas pela VTM</th><th>Encerradas pela EPX</th><th>Encerradas por terceirizados</th><th>Em aberto agora</th></tr>' +
-    linhaResumo('corretiva') + linhaResumo('preventiva') + linhaResumo('visita') + linhaResumo(null).replace('<tr>', '<tr class="tot">') + '</table>';
+    tiposUsados.map(function(t){ return linhaResumo(t.k); }).join('') +
+    linhaResumo(null).replace('<tr>', '<tr class="tot">') + '</table>';
 
   // 2. quem realizou
   var pessoas = {};
@@ -7395,22 +7411,24 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
     // OS em colaboração conta para cada pessoa que trabalhou nela
     relSemPessoas(x, lista).forEach(function(pe){
       var k = relNorm(pe.nome);
-      if(!pessoas[k]) pessoas[k] = { nome: pe.nome, equipe: pe.equipe, corretiva: 0, preventiva: 0, visita: 0 };
+      if(!pessoas[k]){ pessoas[k] = { nome: pe.nome, equipe: pe.equipe, total: 0 }; TIPOS.forEach(function(t){ pessoas[k][t.k] = 0; }); }
       pessoas[k][x.acao]++;
+      pessoas[k].total++;
     });
   });
   var listaPessoas = Object.keys(pessoas).map(function(k){ return pessoas[k]; })
-    .sort(function(a, b){ return (b.corretiva + b.preventiva + b.visita) - (a.corretiva + a.preventiva + a.visita) || a.nome.localeCompare(b.nome); });
+    .sort(function(a, b){ return b.total - a.total || a.nome.localeCompare(b.nome); });
   var quem = listaPessoas.length
-    ? '<table><tr><th>Técnico</th><th>Equipe</th><th>Corretivas</th><th>Preventivas</th><th>Visitas técnicas</th><th>Total</th></tr>' +
+    ? '<table class="quem"><tr><th>Técnico</th><th>Equipe</th>' + tiposUsados.map(function(t){ return '<th>' + t.col + '</th>'; }).join('') + '<th>Total</th></tr>' +
       listaPessoas.map(function(p){
-        return '<tr><td>' + e(p.nome) + '</td><td>' + p.equipe + '</td><td class="n">' + p.corretiva + '</td><td class="n">' +
-               p.preventiva + '</td><td class="n">' + p.visita + '</td><td class="n"><b>' + (p.corretiva + p.preventiva + p.visita) + '</b></td></tr>';
+        return '<tr><td>' + e(p.nome) + '</td><td>' + p.equipe + '</td>' +
+               tiposUsados.map(function(t){ return '<td class="n">' + p[t.k] + '</td>'; }).join('') +
+               '<td class="n"><b>' + p.total + '</b></td></tr>';
       }).join('') + '</table>'
-    : '<p class="vazio">Nenhuma OS corretiva, preventiva ou de visita técnica encerrada no período.</p>';
+    : '<p class="vazio">Nenhuma OS encerrada no período.</p>';
 
   // 3. OS encerradas
-  var lista = encerradas.length
+  var listaOS = encerradas.length
     ? '<table><tr><th>OS</th><th>Tipo</th><th>Local</th><th>Técnico</th><th>Equipe</th><th>Encerrada em</th></tr>' +
       encerradas.map(function(x){
         return '<tr><td>' + e(x.code || '—') + '</td><td>' + NOMES[x.acao] + '</td><td>' + e(x.local || '—') + '</td><td>' +
@@ -7449,14 +7467,14 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
     '.faixa{height:4px;background:#EF4827;margin:8px 0 6px}table{width:100%;border-collapse:collapse;margin-bottom:4px}' +
     'th{background:#F6F3F8;color:#4A4356;font-size:8.5pt;text-transform:uppercase;text-align:left;padding:5px 6px;border:1px solid #DDD8E3}' +
     'td{padding:5px 6px;border:1px solid #DDD8E3;vertical-align:top;font-size:9.5pt}td.r{font-weight:bold;background:#FBFAFC}td.n{text-align:center}' +
-    'tr.tot td{font-weight:bold;background:#F6F3F8}.vazio{color:#8A8396;font-style:italic;margin:4px 0}small{color:#6E6780}' +
+    'table.quem td,table.quem th{padding:5px 4px}tr.tot td{font-weight:bold;background:#F6F3F8}.vazio{color:#8A8396;font-style:italic;margin:4px 0}small{color:#6E6780}' +
     '.rod{margin-top:16px;padding-top:6px;border-top:1px solid #DDD8E3;font-size:8.5pt;color:#8A8396}' +
     '</style></head><body>' +
     '<h1>' + titulo + '</h1>' +
     '<div class="sub">VTM Mídia · Período: ' + periodo + '</div><div class="faixa"></div>' +
-    '<h2>1. Chamados corretivos, preventivos e visitas técnicas</h2>' + resumo +
+    '<h2>1. Chamados por tipo de serviço</h2>' + resumo +
     '<h2>2. Quem realizou</h2>' + quem +
-    '<h2>3. OS encerradas ' + noPer + '</h2>' + lista +
+    '<h2>3. OS encerradas ' + noPer + '</h2>' + listaOS +
     '<h2>4. Atividades previstas</h2>' + blocoPrazo('medio', 'Médio prazo') + blocoPrazo('longo', 'Longo prazo') +
     '<div class="rod">Equipes conforme a lista de técnicos do painel. A OS feita em colaboração conta para cada pessoa e cada equipe que trabalhou nela; ' +
     'por isso a soma por equipe pode passar do total de OS. ' +
