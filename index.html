@@ -4714,6 +4714,7 @@ function openModal(id){
 }
 
 /* v6.0 — OS de comprovação: é pedido de comprovação, não problema.
+   Visita técnica: sem compra de material, só o relatório técnico.
    Mostra o texto inteiro do pedido e do diagnóstico, os vídeos da campanha
    e tira a compra de material. "Parcialmente atendida" continua valendo. */
 function compAutoAltura(el){
@@ -4731,13 +4732,17 @@ function aplicaModoComprovacao(on){
   longo.style.display = on ? 'block' : 'none';
   longo.disabled = tipo.disabled;
   if(on){ longo.value = tipo.value; compAutoAltura(longo); }
-  // comprovação não compra material
-  document.getElementById('ehCompraField').style.display = on ? 'none' : '';
-  if(on && document.getElementById('fEhCompra').checked){
+  // comprovação e visita técnica não compram material (a visita fica só com o relatório técnico);
+  // uma visita antiga que já tinha pedido de material continua mostrando o pedido, para não perder nada
+  const ehVisita = document.getElementById('fAcao').value === 'visita';
+  const compraMarcada = document.getElementById('fEhCompra').checked;
+  const escondeCompra = on || (ehVisita && !compraMarcada);
+  document.getElementById('ehCompraField').style.display = escondeCompra ? 'none' : '';
+  if(on && compraMarcada){
     document.getElementById('fEhCompra').checked = false;
     toggleCompraFields();
   }
-  if(on) document.getElementById('compraFieldsWrap').style.display = 'none';
+  if(escondeCompra) document.getElementById('compraFieldsWrap').style.display = 'none';
   // diagnóstico inteiro à vista
   const diag = document.getElementById('fDiagnostico');
   if(on){
@@ -7246,7 +7251,7 @@ function cpSituacao(c){
    - Semanal: da sexta-feira 14h anterior até o momento da emissão.
    - Mensal: do dia 1º até o momento da emissão; no dia 1º vale o mês
      anterior inteiro (é o que vai no e-mail das 8h).
-   - OS: só Corretiva e Preventiva.
+   - OS: Corretiva, Preventiva e Visita técnica (OS sem ação gravada conta como visita, como no painel).
    - Quem fez: o técnico da OS e quem trabalhou em colaboração, cada um
      com a equipe da lista de técnicos (VTM, EPX ou Terceirizado). Nomes
      antigos, escritos à mão, são reconhecidos pelo nome da pessoa.
@@ -7361,8 +7366,10 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
   var temEq = function(x, eq){ return relSemEquipesOS(x, lista).indexOf(eq) >= 0; };
   var mensal = !!(opcoes && opcoes.mensal);
   var noPer = mensal ? 'no mês' : 'na semana';
-  var NOMES = { corretiva:'Corretiva', preventiva:'Preventiva' };
-  var os = (estado.items || []).filter(function(x){ return x && (x.acao === 'corretiva' || x.acao === 'preventiva'); });
+  var NOMES = { corretiva:'Corretiva', preventiva:'Preventiva', visita:'Visita técnica' };
+  var acaoDe = function(x){ return x.acao || 'visita'; };
+  var os = (estado.items || []).filter(function(x){ return x && NOMES[acaoDe(x)]; })
+                               .map(function(x){ return x.acao ? x : Object.assign({}, x, { acao: 'visita' }); });
   var dentro = function(ms){ return ms && ms >= ini && ms <= fim; };
   var encerradas = os.filter(function(x){ return x.status === 'concluida' && dentro(x.dataConclusao); })
                      .sort(function(a, b){ return (b.dataConclusao || 0) - (a.dataConclusao || 0); });
@@ -7380,7 +7387,7 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
   };
   var resumo = '<table><tr><th>Tipo</th><th>Abertas ' + noPer + '</th><th>Encerradas ' + noPer + '</th>' +
     '<th>Encerradas pela VTM</th><th>Encerradas pela EPX</th><th>Encerradas por terceirizados</th><th>Em aberto agora</th></tr>' +
-    linhaResumo('corretiva') + linhaResumo('preventiva') + linhaResumo(null).replace('<tr>', '<tr class="tot">') + '</table>';
+    linhaResumo('corretiva') + linhaResumo('preventiva') + linhaResumo('visita') + linhaResumo(null).replace('<tr>', '<tr class="tot">') + '</table>';
 
   // 2. quem realizou
   var pessoas = {};
@@ -7388,19 +7395,19 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
     // OS em colaboração conta para cada pessoa que trabalhou nela
     relSemPessoas(x, lista).forEach(function(pe){
       var k = relNorm(pe.nome);
-      if(!pessoas[k]) pessoas[k] = { nome: pe.nome, equipe: pe.equipe, corretiva: 0, preventiva: 0 };
+      if(!pessoas[k]) pessoas[k] = { nome: pe.nome, equipe: pe.equipe, corretiva: 0, preventiva: 0, visita: 0 };
       pessoas[k][x.acao]++;
     });
   });
   var listaPessoas = Object.keys(pessoas).map(function(k){ return pessoas[k]; })
-    .sort(function(a, b){ return (b.corretiva + b.preventiva) - (a.corretiva + a.preventiva) || a.nome.localeCompare(b.nome); });
+    .sort(function(a, b){ return (b.corretiva + b.preventiva + b.visita) - (a.corretiva + a.preventiva + a.visita) || a.nome.localeCompare(b.nome); });
   var quem = listaPessoas.length
-    ? '<table><tr><th>Técnico</th><th>Equipe</th><th>Corretivas</th><th>Preventivas</th><th>Total</th></tr>' +
+    ? '<table><tr><th>Técnico</th><th>Equipe</th><th>Corretivas</th><th>Preventivas</th><th>Visitas técnicas</th><th>Total</th></tr>' +
       listaPessoas.map(function(p){
         return '<tr><td>' + e(p.nome) + '</td><td>' + p.equipe + '</td><td class="n">' + p.corretiva + '</td><td class="n">' +
-               p.preventiva + '</td><td class="n"><b>' + (p.corretiva + p.preventiva) + '</b></td></tr>';
+               p.preventiva + '</td><td class="n">' + p.visita + '</td><td class="n"><b>' + (p.corretiva + p.preventiva + p.visita) + '</b></td></tr>';
       }).join('') + '</table>'
-    : '<p class="vazio">Nenhuma OS corretiva ou preventiva encerrada no período.</p>';
+    : '<p class="vazio">Nenhuma OS corretiva, preventiva ou de visita técnica encerrada no período.</p>';
 
   // 3. OS encerradas
   var lista = encerradas.length
@@ -7447,7 +7454,7 @@ function relSemMonta(estado, ini, fim, agoraMs, opcoes){
     '</style></head><body>' +
     '<h1>' + titulo + '</h1>' +
     '<div class="sub">VTM Mídia · Período: ' + periodo + '</div><div class="faixa"></div>' +
-    '<h2>1. Chamados corretivos e preventivos</h2>' + resumo +
+    '<h2>1. Chamados corretivos, preventivos e visitas técnicas</h2>' + resumo +
     '<h2>2. Quem realizou</h2>' + quem +
     '<h2>3. OS encerradas ' + noPer + '</h2>' + lista +
     '<h2>4. Atividades previstas</h2>' + blocoPrazo('medio', 'Médio prazo') + blocoPrazo('longo', 'Longo prazo') +
