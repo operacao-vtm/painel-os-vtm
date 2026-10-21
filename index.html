@@ -1794,10 +1794,11 @@
 
 <div class="overlay" id="relSemOverlay">
   <div class="modal rs-modal">
-    <h2>📅 Relatório semanal da manutenção</h2>
+    <h2>📅 Relatórios da manutenção</h2>
     <p class="cp-sub" id="rsPeriodo"></p>
     <div class="cp-filtros">
       <button class="cp-chip on" data-a="rel" onclick="rsAba('rel')">Relatório da semana</button>
+      <button class="cp-chip" data-a="mes" onclick="rsAba('mes')">Relatório do mês</button>
       <button class="cp-chip" data-a="atv" onclick="rsAba('atv')">Atividades previstas <b id="rsCAtv"></b></button>
     </div>
     <div id="rsAbaRel">
@@ -1813,8 +1814,8 @@
         <input type="text" id="rsEmails" autocomplete="off" placeholder="nome@vtmmidia.com.br, outro@vtmmidia.com.br">
       </div>
       <button class="btn" onclick="rsSalvarEmails()">Salvar e-mails</button>
-      <button class="btn primary" onclick="rsEnviarAgora()">📧 Enviar agora</button>
-      <small class="rs-obs">Envio automático toda sexta-feira às 14h, em PDF anexo.</small>
+      <button class="btn primary" id="rsBtnEnviar" onclick="rsEnviarAgora()">📧 Enviar semanal agora</button>
+      <small class="rs-obs">Envio automático em PDF anexo: o semanal toda sexta-feira às 14h e o mensal todo dia 1º às 8h.</small>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="rsImprimir()">🖨️ Imprimir / PDF</button>
@@ -7146,10 +7147,12 @@ function cpSituacao(c){
 }
 
 /* ============================================================
-   RELATÓRIO SEMANAL DA MANUTENÇÃO (v5.10)
+   RELATÓRIOS SEMANAL E MENSAL DA MANUTENÇÃO
    Este bloco é IGUAL no painel (index.html) e no Apps Script:
    a tela e o PDF do e-mail saem do mesmo código.
-   - Período: da sexta-feira 14h anterior até o momento da emissão.
+   - Semanal: da sexta-feira 14h anterior até o momento da emissão.
+   - Mensal: do dia 1º até o momento da emissão; no dia 1º vale o mês
+     anterior inteiro (é o que vai no e-mail das 8h).
    - OS: só Corretiva e Preventiva.
    - Equipe: EPX quando o técnico ou quem encerrou é o Pacheco ou
      tem "EPX" escrito; qualquer outro conta como VTM.
@@ -7180,6 +7183,17 @@ function relSemPeriodo(agoraMs){
   if(agoraMs - s.getTime() < 2 * 3600 * 1000) s.setDate(s.getDate() - 7);
   return { ini: s.getTime(), fim: agoraMs };
 }
+// mês: no dia 1º, o mês anterior inteiro; nos outros dias, do dia 1º até agora
+function relMesPeriodo(agoraMs){
+  var a = new Date(agoraMs);
+  var ini = new Date(a.getFullYear(), a.getMonth(), 1, 0, 0, 0, 0);
+  if(a.getDate() === 1){
+    var anterior = new Date(a.getFullYear(), a.getMonth() - 1, 1, 0, 0, 0, 0);
+    return { ini: anterior.getTime(), fim: ini.getTime() - 1 };
+  }
+  return { ini: ini.getTime(), fim: agoraMs };
+}
+var REL_MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 function relSemEquipe(x){
   var t = (String(x.tecnico || '') + ' ' + String(x.encerradoPor || '')).toLowerCase();
   return (t.indexOf('pacheco') >= 0 || t.indexOf('epx') >= 0) ? 'EPX' : 'VTM';
@@ -7194,8 +7208,11 @@ function relSemAndamentoEm(atv, ms){
   h.sort(function(a, b){ return a.em - b.em; });
   return Number(h[h.length - 1].andamento) || 0;
 }
-function relSemMonta(estado, ini, fim, agoraMs){
+// opcoes.mensal = true monta o relatório do mês; sem opcoes, o semanal (como sempre foi)
+function relSemMonta(estado, ini, fim, agoraMs, opcoes){
   var e = relSemEsc;
+  var mensal = !!(opcoes && opcoes.mensal);
+  var noPer = mensal ? 'no mês' : 'na semana';
   var NOMES = { corretiva:'Corretiva', preventiva:'Preventiva' };
   var os = (estado.items || []).filter(function(x){ return x && (x.acao === 'corretiva' || x.acao === 'preventiva'); });
   var dentro = function(ms){ return ms && ms >= ini && ms <= fim; };
@@ -7212,7 +7229,7 @@ function relSemMonta(estado, ini, fim, agoraMs){
       '<td class="n">' + encerradas.filter(function(x){ return (!acao || x.acao === acao) && relSemEquipe(x) === 'EPX'; }).length + '</td>' +
       '<td class="n">' + os.filter(function(x){ return (!acao || x.acao === acao) && x.status !== 'concluida'; }).length + '</td></tr>';
   };
-  var resumo = '<table><tr><th>Tipo</th><th>Abertas na semana</th><th>Encerradas na semana</th>' +
+  var resumo = '<table><tr><th>Tipo</th><th>Abertas ' + noPer + '</th><th>Encerradas ' + noPer + '</th>' +
     '<th>Encerradas pela VTM</th><th>Encerradas pela EPX</th><th>Em aberto agora</th></tr>' +
     linhaResumo('corretiva') + linhaResumo('preventiva') + linhaResumo(null).replace('<tr>', '<tr class="tot">') + '</table>';
 
@@ -7248,11 +7265,11 @@ function relSemMonta(estado, ini, fim, agoraMs){
     var doPrazo = atvs.filter(function(a){ return a.prazo === prazo; })
       .sort(function(a, b){ return String(a.previsao || '9999').localeCompare(String(b.previsao || '9999')); });
     if(!doPrazo.length) return '<h3>' + titulo + '</h3><p class="vazio">Nenhuma atividade cadastrada.</p>';
-    return '<h3>' + titulo + '</h3><table><tr><th>Atividade</th><th>Previsão</th><th>Andamento</th><th>Evolução na semana</th><th>Situação atual</th></tr>' +
+    return '<h3>' + titulo + '</h3><table><tr><th>Atividade</th><th>Previsão</th><th>Andamento</th><th>Evolução ' + noPer + '</th><th>Situação atual</th></tr>' +
       doPrazo.map(function(a){
         var atual = Number(a.andamento) || 0;
         var antes = relSemAndamentoEm(a, ini);
-        var evol = antes === null ? 'Nova na semana'
+        var evol = antes === null ? ('Nova ' + noPer)
                  : (atual - antes > 0 ? '+' + (atual - antes) + ' pontos (de ' + antes + '% para ' + atual + '%)'
                  : (atual - antes < 0 ? (atual - antes) + ' pontos (de ' + antes + '% para ' + atual + '%)' : 'Sem avanço'));
         return '<tr><td><b>' + e(a.titulo) + '</b></td><td>' + relSemDataISO(a.previsao) + '</td><td class="n"><b>' + atual + '%</b>' +
@@ -7260,7 +7277,12 @@ function relSemMonta(estado, ini, fim, agoraMs){
       }).join('') + '</table>';
   };
 
-  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório semanal da manutenção — ' + relSemData(fim) + '</title><style>' +
+  var titulo = mensal ? 'RELATÓRIO MENSAL DA MANUTENÇÃO' : 'RELATÓRIO SEMANAL DA MANUTENÇÃO';
+  var dIni = new Date(ini);
+  var periodo = mensal
+    ? REL_MESES[dIni.getMonth()] + ' de ' + dIni.getFullYear() + ' · de ' + relSemData(ini) + ' até ' + relSemDataHora(fim)
+    : relSemDataHora(ini) + ' até ' + relSemDataHora(fim);
+  return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>' + (mensal ? 'Relatório mensal' : 'Relatório semanal') + ' da manutenção — ' + relSemData(fim) + '</title><style>' +
     '@page{size:A4;margin:14mm}body{font-family:Arial,Helvetica,sans-serif;color:#1F1A26;font-size:10pt;line-height:1.35;margin:0}' +
     'h1{font-size:15pt;margin:0;color:#1F1A26}h2{font-size:10.5pt;text-transform:uppercase;letter-spacing:.05em;color:#D9538F;margin:16px 0 6px}' +
     'h3{font-size:10pt;margin:10px 0 4px;color:#4A4356}.sub{color:#6E6780;font-size:9.5pt;margin-top:3px}' +
@@ -7270,17 +7292,17 @@ function relSemMonta(estado, ini, fim, agoraMs){
     'tr.tot td{font-weight:bold;background:#F6F3F8}.vazio{color:#8A8396;font-style:italic;margin:4px 0}small{color:#6E6780}' +
     '.rod{margin-top:16px;padding-top:6px;border-top:1px solid #DDD8E3;font-size:8.5pt;color:#8A8396}' +
     '</style></head><body>' +
-    '<h1>RELATÓRIO SEMANAL DA MANUTENÇÃO</h1>' +
-    '<div class="sub">VTM Mídia · Período: ' + relSemDataHora(ini) + ' até ' + relSemDataHora(fim) + '</div><div class="faixa"></div>' +
+    '<h1>' + titulo + '</h1>' +
+    '<div class="sub">VTM Mídia · Período: ' + periodo + '</div><div class="faixa"></div>' +
     '<h2>1. Chamados corretivos e preventivos</h2>' + resumo +
     '<h2>2. Quem realizou</h2>' + quem +
-    '<h2>3. OS encerradas na semana</h2>' + lista +
+    '<h2>3. OS encerradas ' + noPer + '</h2>' + lista +
     '<h2>4. Atividades previstas</h2>' + blocoPrazo('medio', 'Médio prazo') + blocoPrazo('longo', 'Longo prazo') +
     '<div class="rod">Equipe EPX: atendimentos do Pacheco ou com "EPX" no técnico; os demais contam como VTM. ' +
     'Gerado pelo Painel de Manutenção VTM em ' + relSemDataHora(agoraMs || fim) + '.</div>' +
     '</body></html>';
 }
-/* ============ fim do bloco do relatório semanal ============ */
+/* ============ fim do bloco dos relatórios ============ */
 
 /* ---------- Relatório semanal: tela do painel ---------- */
 function podeVerRelSemanal(){ return ehOperador() || (!!currentUser && currentUser.role === 'diretoria'); }
@@ -7299,19 +7321,24 @@ function closeRelSemanal(){ document.getElementById('relSemOverlay').classList.r
 function rsAba(aba){
   rsAbaAtual = aba;
   document.querySelectorAll('#relSemOverlay .cp-chip').forEach(b=>b.classList.toggle('on', b.dataset.a === aba));
-  document.getElementById('rsAbaRel').style.display = aba === 'rel' ? 'block' : 'none';
+  document.getElementById('rsAbaRel').style.display = (aba === 'rel' || aba === 'mes') ? 'block' : 'none';
+  document.getElementById('rsBtnEnviar').textContent = aba === 'mes' ? '📧 Enviar mensal agora' : '📧 Enviar semanal agora';
   document.getElementById('rsAbaAtv').style.display = aba === 'atv' ? 'block' : 'none';
   rsDesenhar();
 }
+// relatório da aba aberta: mensal na aba "Relatório do mês"; nas outras, o semanal
 function rsHtmlAtual(){
-  const agora = Date.now(), per = relSemPeriodo(agora);
-  return { html: relSemMonta(estadoLocal(), per.ini, per.fim, agora), per: per };
+  const agora = Date.now(), mensal = rsAbaAtual === 'mes';
+  const per = mensal ? relMesPeriodo(agora) : relSemPeriodo(agora);
+  return { html: relSemMonta(estadoLocal(), per.ini, per.fim, agora, { mensal: mensal }), per: per, mensal: mensal };
 }
 function rsDesenhar(){
   const r = rsHtmlAtual();
-  document.getElementById('rsPeriodo').textContent = 'Período: ' + relSemDataHora(r.per.ini) + ' até agora. Fecha toda sexta-feira às 14h.';
+  document.getElementById('rsPeriodo').textContent = r.mensal
+    ? 'Período: ' + relSemData(r.per.ini) + ' até ' + (r.per.fim < Date.now() - 60000 ? relSemDataHora(r.per.fim) : 'agora') + '. Fecha no último dia do mês.'
+    : 'Período: ' + relSemDataHora(r.per.ini) + ' até agora. Fecha toda sexta-feira às 14h.';
   document.getElementById('rsCAtv').textContent = (planejamento.atividades || []).length;
-  if(rsAbaAtual === 'rel') document.getElementById('rsFrame').srcdoc = r.html;
+  if(rsAbaAtual === 'rel' || rsAbaAtual === 'mes') document.getElementById('rsFrame').srcdoc = r.html;
   else rsDesenharAtividades();
 }
 function rsDesenharAtividades(){
@@ -7412,18 +7439,19 @@ async function rsEnviarAgora(){
   const lista = rsLerEmails();
   if(lista.join(',') !== (planejamento.emails || []).join(',')){ askConfirm('Salve os e-mails antes de enviar.', ()=>{}); return; }
   if(!lista.length){ askConfirm('Coloque ao menos um e-mail e salve antes de enviar.', ()=>{}); return; }
-  askConfirm('Enviar agora o relatório da semana, em PDF, para: ' + lista.join(', ') + '?', async ()=>{
+  const mensal = rsAbaAtual === 'mes';
+  askConfirm('Enviar agora o relatório ' + (mensal ? 'do mês' : 'da semana') + ', em PDF, para: ' + lista.join(', ') + '?', async ()=>{
     // grava antes: o servidor monta o relatório com o que está salvo
     const ok = await persist();
     if(!ok){ askConfirm('Não foi possível gravar os dados no servidor. O relatório não foi enviado.', ()=>{}); return; }
     try{
       const resp = await fetch(GAS_URL, { method:'POST', headers:{ 'Content-Type':'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action:'enviarRelatorioSemanal' }) });
+        body: JSON.stringify({ action: mensal ? 'enviarRelatorioMensal' : 'enviarRelatorioSemanal' }) });
       const json = await resp.json().catch(()=>null);
       if(json && json.ok) askConfirm('Relatório enviado para ' + (json.enviadoPara || lista).join(', ') + '.', ()=>{});
-      else askConfirm('O servidor não enviou o relatório.' + (json && json.error ? '\n\nResposta: ' + json.error : '\n\nConfira se o Apps Script v7 já foi publicado.'), ()=>{});
+      else askConfirm('O servidor não enviou o relatório.' + (json && json.error ? '\n\nResposta: ' + json.error : '\n\nConfira se o Apps Script v8 já foi publicado.'), ()=>{});
     }catch(e){
-      askConfirm('Sem resposta do servidor. Confira a conexão e se o Apps Script v7 já foi publicado.', ()=>{});
+      askConfirm('Sem resposta do servidor. Confira a conexão e se o Apps Script v8 já foi publicado.', ()=>{});
     }
   });
 }
@@ -7432,7 +7460,7 @@ function rsImprimir(){
   const alvo = urlDoRelatorio(html);
   let janela = null;
   try{ janela = window.open(alvo.url, '_blank'); }catch(e){ janela = null; }
-  if(!janela){ const a = document.createElement('a'); a.href = alvo.url; a.download = 'Relatorio_Semanal_Manutencao.html'; document.body.appendChild(a); a.click(); a.remove(); }
+  if(!janela){ const a = document.createElement('a'); a.href = alvo.url; a.download = rsAbaAtual === 'mes' ? 'Relatorio_Mensal_Manutencao.html' : 'Relatorio_Semanal_Manutencao.html'; document.body.appendChild(a); a.click(); a.remove(); }
 }
 
 function openCampanhas(){
